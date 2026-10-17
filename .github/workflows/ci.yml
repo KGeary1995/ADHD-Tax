@@ -39,6 +39,8 @@ jobs:
     name: Build Android APK
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # publish the APK to the android-latest release
     defaults:
       run:
         working-directory: app
@@ -53,11 +55,27 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
-      - run: flutter build apk --release
+      # The run number becomes the Android versionCode, so each build
+      # installs as an update over the last one.
+      - run: flutter build apk --release --build-number=${{ github.run_number }}
       - uses: actions/upload-artifact@v4
         with:
           name: adhd-tax-android
           path: app/build/app/outputs/flutter-apk/app-release.apk
+      # One rolling release, so the phone download link never changes:
+      # https://github.com/<owner>/<repo>/releases/download/android-latest/ADHD-Tax.apk
+      - name: Publish to android-latest release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk ADHD-Tax.apk
+          gh release delete android-latest --cleanup-tag --yes || true
+          gh release create android-latest ADHD-Tax.apk \
+            --target "$GITHUB_SHA" \
+            --title "ADHD Tax for Android (latest build)" \
+            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. On your phone, tap ADHD-Tax.apk below to download and install."
 
   windows:
     name: Build Windows

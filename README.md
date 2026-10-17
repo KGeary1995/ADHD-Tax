@@ -35,6 +35,14 @@ Runs on Android, Windows, macOS and the web from one Flutter codebase. The full 
 
 Without Google setup, the app works exactly as before, storing everything on the device.
 
+## Install on your Android phone
+
+Open this link on the phone (signed in to GitHub, since the repo is private):
+
+**https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/ADHD-Tax.apk**
+
+Tap the downloaded file to install it. The first time, Android asks you to allow installs from Chrome or Files; Play Protect may also say it doesn't recognize the app, and **More details → Install anyway** gets past that. Every push rebuilds that same link, and new versions install over the old one without losing your tasks.
+
 ## Run it
 
 Requires [Flutter](https://docs.flutter.dev/get-started/install) 3.47+.
@@ -55,7 +63,7 @@ flutter build windows --release                   # Windows → build/windows/x6
 flutter build web --release --no-web-resources-cdn # Web → build/web/ (self-contained, no CDN)
 ```
 
-Every push runs CI, which tests the app and builds the web, Android and Windows versions. You can download the builds from the run's **Artifacts** section on GitHub.
+Every push runs CI, which tests the app and builds the web, Android and Windows versions. The Android build is published to the `android-latest` release (link above); all three are also attached to the run's **Artifacts** section.
 
 ### Set up Google sync (one time, about 20 minutes)
 
@@ -70,7 +78,7 @@ Sync needs your own Google Cloud OAuth client IDs. They're free, and nobody else
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID.** Create the ones you need:
    - **Web application** (needed for web *and* Android). Under authorized JavaScript origins, add `http://localhost:8080` and wherever you host the web build.
    - **Desktop app** (Windows/macOS/Linux).
-   - **Android**: package name `com.adhdtax.adhd_tax`, plus the SHA-1 of your signing key (`cd app/android && ./gradlew signingReport`).
+   - **Android**: package name `com.adhdtax.adhd_tax`, SHA-1 `E9:F6:E9:C8:17:8A:B9:27:E7:9A:28:87:EC:67:D5:04:4F:F5:1F:BA` (the app's signing key in `app/android/app/sideload.jks`).
 5. Copy `app/google_oauth.example.json` to `app/google_oauth.json` (it's git-ignored) and fill in the IDs.
 6. Run or build with the file:
    ```bash

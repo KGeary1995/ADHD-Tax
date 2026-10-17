@@ -29,11 +29,23 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        // Personal sideload key, committed so every CI build has the same
+        // signature: Android only installs an update over the previous
+        // version (keeping local data) when signatures match, and Google
+        // Sign-In's Android client is registered against this key's SHA-1.
+        // Replace with a secret-backed key before any public release.
+        create("sideload") {
+            storeFile = file("sideload.jks")
+            storePassword = "adhdtax-sideload"
+            keyAlias = "sideload"
+            keyPassword = "adhdtax-sideload"
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("sideload")
         }
     }
 }
