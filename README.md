@@ -15,7 +15,7 @@ Runs on Android, Windows, macOS and the web from one Flutter codebase. The full 
 | **Reroll limit** | "Not this one" twice, and it asks you to pick one of three and commit. Endless rerolling is the dread talking. |
 | **Overwhelmed button** | Hides everything and gives you one easy task for 5 minutes. |
 | **Focus screen** | Shows only the *first step*, a Time-Timer style shrinking disc, and a rotating quote. **Just 5 minutes** mode asks "keep going?" when the 5 minutes are up. |
-| **5-second capture** | Quick add (Ctrl+N) needs only a title. **Brain dump** turns a pasted list into tasks, one per line. "Add & start now" skips the list entirely. |
+| **5-second capture** | Quick add (Ctrl+N) needs only a title. **Brain dump** turns a pasted list into tasks, one per line. "Add & start now" skips the list entirely. **Full task form** opens the complete editor (first step, due date, notes, energy) with what you've typed so far. |
 | **XP, levels, achievements** | XP for *starting*, more for finishing, bonuses for dreaded tasks, old tasks, beating your estimate and errands. 18 achievements, ranks every 5 levels, and coins for the reward shop that's coming. Streaks include 2 grace days a week and never reset to zero. |
 | **Celebrations** | Confetti plus an XP breakdown card when you finish, and a small toast when you start (it never covers the screen at that moment). Intensity runs Off / Subtle / Normal / Party. |
 | **Motivational quotes** | 114 bundled quotes in five categories. The category depends on the moment: dread-busting for a task you rated "Ugh", self-compassion after a skip, momentum during focus. |
@@ -117,7 +117,7 @@ app/lib/
     motivation/    quote service + rotator
     safety/        PHI guard
     settings/      themes, celebration intensity, preferences
-app/test/          91 unit, widget and multi-device sync tests
+app/test/          103 unit, widget, phone-layout and multi-device sync tests
 docs/PLAN.md       full product plan and roadmap
 ```
 

@@ -135,6 +135,38 @@ class SectionLabel extends StatelessWidget {
   );
 }
 
+/// Pick exactly one of a few options. Chips wrap onto the next line on a
+/// narrow phone instead of squeezing their labels like a SegmentedButton.
+class ChoiceGroup<T> extends StatelessWidget {
+  const ChoiceGroup({
+    super.key,
+    required this.values,
+    required this.selected,
+    required this.labelOf,
+    required this.onSelected,
+  });
+
+  final List<T> values;
+  final T selected;
+  final String Function(T) labelOf;
+  final ValueChanged<T> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+    spacing: 8,
+    runSpacing: 8,
+    children: [
+      for (final v in values)
+        ChoiceChip(
+          label: Text(labelOf(v)),
+          selected: v == selected,
+          // Tapping the selected chip keeps it selected.
+          onSelected: (_) => onSelected(v),
+        ),
+    ],
+  );
+}
+
 /// Centers content with a max width so desktop layouts stay readable.
 class ContentWidth extends StatelessWidget {
   const ContentWidth({super.key, required this.child, this.maxWidth = 1180});

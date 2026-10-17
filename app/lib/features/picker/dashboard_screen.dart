@@ -31,36 +31,54 @@ class DashboardScreen extends ConsumerWidget {
         ? 'Good afternoon'
         : 'Good evening';
 
-    final header = Row(
+    final titles = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                greeting,
-                style: TextStyle(color: s.muted, fontWeight: FontWeight.w500),
-              ),
-              Text(
-                "Let's pick one thing.",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: s.onSurface,
-                ),
-              ),
-            ],
+        Text(
+          greeting,
+          style: TextStyle(color: s.muted, fontWeight: FontWeight.w500),
+        ),
+        Text(
+          "Let's pick one thing.",
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            color: s.onSurface,
           ),
         ),
-        OutlinedButton.icon(
-          onPressed: () => _overwhelm(context, ref),
-          icon: const Icon(Icons.self_improvement),
-          label: const Text('Overwhelmed?'),
-        ),
-        // Phones have no side rail to show sync status in.
-        if (MediaQuery.sizeOf(context).width < 760) const SyncBadge(),
       ],
     );
+    final overwhelmed = OutlinedButton.icon(
+      onPressed: () => _overwhelm(context, ref),
+      icon: const Icon(Icons.self_improvement),
+      label: const Text('Overwhelmed?'),
+    );
+    final width = MediaQuery.sizeOf(context).width;
+    // Phones have no side rail to show sync status in.
+    final syncBadge = width < 760 ? const SyncBadge() : null;
+    // On a narrow phone the button gets its own line instead of squeezing
+    // the title.
+    final header = width < 420
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: titles),
+                  ?syncBadge,
+                ],
+              ),
+              const SizedBox(height: 8),
+              overwhelmed,
+            ],
+          )
+        : Row(
+            children: [
+              Expanded(child: titles),
+              overwhelmed,
+              ?syncBadge,
+            ],
+          );
 
     return LayoutBuilder(
       builder: (context, c) {

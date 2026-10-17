@@ -16,9 +16,13 @@ class TaskEditorScreen extends ConsumerStatefulWidget {
     super.key,
     required this.taskId,
     this.focusFirstStep = false,
+    this.draft,
   });
 
   final String taskId;
+
+  /// Starting values for a new task, e.g. what was typed into Quick add.
+  final Task? draft;
 
   /// Opened from "Make it smaller": jump straight to the first-step field.
   final bool focusFirstStep;
@@ -42,7 +46,10 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     final existing = ref.read(tasksProvider.notifier).byId(widget.taskId);
     _isNew = existing == null;
     final now = ref.read(clockProvider)();
-    _task = existing ?? Task(id: '', title: '', createdAt: now, updatedAt: now);
+    _task =
+        existing ??
+        widget.draft ??
+        Task(id: '', title: '', createdAt: now, updatedAt: now);
     _title = TextEditingController(text: _task.title)
       ..addListener(() => setState(() {}));
     _firstStep = TextEditingController(text: _task.firstStep)
@@ -125,6 +132,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.spec;
+    final narrow = MediaQuery.sizeOf(context).width < 420;
 
     Widget field(String label, Widget child, {String? help}) => Padding(
       padding: const EdgeInsets.only(bottom: 18),
@@ -164,7 +172,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       body: ContentWidth(
         maxWidth: 760,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
+          padding: EdgeInsets.fromLTRB(
+            narrow ? 12 : 20,
+            8,
+            narrow ? 12 : 20,
+            48,
+          ),
           children: [
             Panel(
               child: Column(
@@ -218,16 +231,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                 children: [
                   field(
                     'Workspace',
-                    SegmentedButton<Workspace>(
-                      showSelectedIcon: false,
-                      segments: [
-                        for (final w in Workspace.values)
-                          ButtonSegment(value: w, label: Text(w.label)),
-                      ],
-                      selected: {_task.workspace},
-                      onSelectionChanged: (v) => setState(
-                        () => _task = _task.copyWith(workspace: v.first),
-                      ),
+                    ChoiceGroup(
+                      values: Workspace.values,
+                      selected: _task.workspace,
+                      labelOf: (w) => w.label,
+                      onSelected: (w) =>
+                          setState(() => _task = _task.copyWith(workspace: w)),
                     ),
                   ),
                   field(
@@ -245,7 +254,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                                 setState(() => _estimate.text = '$m'),
                           ),
                         SizedBox(
-                          width: 110,
+                          width: 120,
                           child: TextField(
                             controller: _estimate,
                             keyboardType: TextInputType.number,
@@ -272,44 +281,33 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   const SizedBox(height: 8),
                   field(
                     'Priority',
-                    SegmentedButton<Priority>(
-                      showSelectedIcon: false,
-                      segments: [
-                        for (final p in Priority.values)
-                          ButtonSegment(value: p, label: Text(p.label)),
-                      ],
-                      selected: {_task.priority},
-                      onSelectionChanged: (v) => setState(
-                        () => _task = _task.copyWith(priority: v.first),
-                      ),
+                    ChoiceGroup(
+                      values: Priority.values,
+                      selected: _task.priority,
+                      labelOf: (p) => p.label,
+                      onSelected: (p) =>
+                          setState(() => _task = _task.copyWith(priority: p)),
                     ),
                   ),
                   field(
-                    'How much do you not want to do this?',
-                    SegmentedButton<int>(
-                      showSelectedIcon: false,
-                      segments: [
-                        for (var i = 0; i < ughLabels.length; i++)
-                          ButtonSegment(value: i, label: Text(ughLabels[i])),
-                      ],
-                      selected: {_task.ugh},
-                      onSelectionChanged: (v) =>
-                          setState(() => _task = _task.copyWith(ugh: v.first)),
+                    'How much do you dread it?',
+                    ChoiceGroup(
+                      values: [for (var i = 0; i < ughLabels.length; i++) i],
+                      selected: _task.ugh,
+                      labelOf: (i) => ughLabels[i],
+                      onSelected: (i) =>
+                          setState(() => _task = _task.copyWith(ugh: i)),
                     ),
                     help: 'Dreaded tasks earn bonus XP and get suggested when your energy is up.',
                   ),
                   field(
                     'Energy it takes',
-                    SegmentedButton<Energy>(
-                      showSelectedIcon: false,
-                      segments: [
-                        for (final e in Energy.values)
-                          ButtonSegment(value: e, label: Text(e.label)),
-                      ],
-                      selected: {_task.energy},
-                      onSelectionChanged: (v) => setState(
-                        () => _task = _task.copyWith(energy: v.first),
-                      ),
+                    ChoiceGroup(
+                      values: Energy.values,
+                      selected: _task.energy,
+                      labelOf: (e) => e.label,
+                      onSelected: (e) =>
+                          setState(() => _task = _task.copyWith(energy: e)),
                     ),
                   ),
                 ],
@@ -339,30 +337,31 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                         ),
                       ),
                     ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Due date'),
-                    subtitle: Text(
-                      _task.dueAt == null
-                          ? 'None'
-                          : MaterialLocalizations.of(context)
-                                .formatFullDate(_task.dueAt!),
-                    ),
-                    trailing: Wrap(
+                  const SizedBox(height: 8),
+                  field(
+                    'Due date',
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
+                        OutlinedButton.icon(
+                          onPressed: _pickDue,
+                          icon: const Icon(Icons.event_outlined),
+                          label: Text(
+                            _task.dueAt == null
+                                ? 'Pick a date'
+                                : MaterialLocalizations.of(context)
+                                      .formatMediumDate(_task.dueAt!),
+                          ),
+                        ),
                         if (_task.dueAt != null)
-                          IconButton(
-                            tooltip: 'Clear',
+                          TextButton(
                             onPressed: () => setState(
                               () => _task = _task.copyWith(dueAt: null),
                             ),
-                            icon: const Icon(Icons.clear),
+                            child: const Text('Clear'),
                           ),
-                        IconButton(
-                          tooltip: 'Pick date',
-                          onPressed: _pickDue,
-                          icon: const Icon(Icons.event_outlined),
-                        ),
                       ],
                     ),
                   ),
@@ -378,13 +377,13 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                         () => _task = _task.copyWith(hardDeadline: v),
                       ),
                     ),
-                  if (!_isNew)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Status'),
-                      trailing: DropdownButton<TaskStatus>(
-                        value: _task.status,
-                        underline: const SizedBox.shrink(),
+                  if (!_isNew) ...[
+                    const SizedBox(height: 8),
+                    field(
+                      'Status',
+                      DropdownButtonFormField<TaskStatus>(
+                        initialValue: _task.status,
+                        isExpanded: true,
                         items: [
                           for (final st in TaskStatus.values)
                             DropdownMenuItem(
@@ -399,6 +398,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                         },
                       ),
                     ),
+                  ],
                 ],
               ),
             ),

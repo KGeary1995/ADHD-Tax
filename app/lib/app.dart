@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_themes.dart';
+import 'data/models/task.dart';
 import 'features/capture/quick_add_sheet.dart';
 import 'features/capture/task_editor_screen.dart';
 import 'features/focus/focus_screen.dart';
@@ -66,6 +67,7 @@ GoRouter buildRouter() => GoRouter(
       builder: (_, state) => TaskEditorScreen(
         taskId: state.pathParameters['id']!,
         focusFirstStep: state.uri.queryParameters['focusFirstStep'] == '1',
+        draft: state.extra is Task ? state.extra! as Task : null,
       ),
     ),
   ],
@@ -219,7 +221,16 @@ class AppShell extends StatelessWidget {
         const SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
             go(3),
       },
-      child: Focus(autofocus: true, child: scaffold),
+      // Tabs replace each other rather than stacking, so Android's back
+      // button would otherwise close the app from any tab. Back goes Home
+      // first, and only exits from there.
+      child: PopScope(
+        canPop: location == '/',
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) context.go('/');
+        },
+        child: Focus(autofocus: true, child: scaffold),
+      ),
     );
   }
 }
