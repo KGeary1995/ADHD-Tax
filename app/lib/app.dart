@@ -14,6 +14,7 @@ import 'features/picker/dashboard_screen.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/tasks/task_list_screen.dart';
+import 'sync/sync_badge.dart';
 import 'widgets/backdrop.dart';
 
 class _Dest {
@@ -85,7 +86,9 @@ class AdhdTaxApp extends ConsumerWidget {
       theme: buildTheme(spec),
       routerConfig: ref.watch(routerProvider),
       builder: (context, child) => ThemedBackdrop(
-        child: CelebrationOverlay(child: child ?? const SizedBox.shrink()),
+        child: SyncBootstrap(
+          child: CelebrationOverlay(child: child ?? const SizedBox.shrink()),
+        ),
       ),
     );
   }
@@ -170,7 +173,14 @@ class AppShell extends StatelessWidget {
                         alignment: Alignment.bottomCenter,
                         child: Padding(
                           padding: EdgeInsets.only(bottom: 20),
-                          child: LevelBadge(compact: true),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SyncBadge(),
+                              SizedBox(height: 12),
+                              LevelBadge(compact: true),
+                            ],
+                          ),
                         ),
                       ),
                     ),

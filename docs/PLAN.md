@@ -85,9 +85,10 @@ Engine (`lib/features/picker/picker_engine.dart`, pure Dart, fully unit-tested):
 
 **Drive sync** (`lib/sync/`): offline-first. Local SQLite (Drift) is the source of truth; Drive is the sync medium.
 - Store in the Drive **appDataFolder** (hidden, app-only) per account.
-- Each device appends to its **own** change log file (`ops/<deviceId>/<seq>.jsonl`) — devices never write the same file, so no write conflicts.
-- Each change carries a **Hybrid Logical Clock** timestamp; merge is per-field last-writer-wins. Deterministic, so every device converges.
-- Periodic compaction into `snapshot.json`. Sync on app open, on change (debounced), and every few minutes in foreground.
+- Each device writes its **own** state file (`state.<workspace>.<deviceId>.json`), so devices never write the same file and there are no write conflicts. (Built this way instead of the per-device change logs first planned: same guarantee, no compaction step needed.)
+- Every field carries a **Hybrid Logical Clock** timestamp; merge is per-field last-writer-wins, so every device converges. Deletes are tombstones that blank the record's fields.
+- XP is stored as immutable events and stats are a fold over them, so points earned on two devices add up.
+- Sync on app open, a few seconds after an edit, every 3 minutes in the foreground, and on resume. Uploads happen only when there are local writes.
 - Optional "Export backup to visible Drive folder" (JSON/CSV) for peace of mind.
 
 **Calendar**:
@@ -136,7 +137,7 @@ Ranked by impact on *starting tasks*:
   - Confirm with clinic compliance before using it for work.
 - **Work Google Workspace admin policy**: many orgs block unapproved third-party OAuth apps. The clinic's Workspace admin may need to allow the app's OAuth client ID (Admin console → Security → API controls). Plan for Personal to work even if Work is blocked.
 - **Google OAuth for a personal app**: create one Google Cloud project, enable Drive + Calendar APIs, OAuth consent screen = External. Calendar scopes are "sensitive" and the app won't be verified, so users see a "Google hasn't verified this app" warning they can click through (cap: 100 users). **Set publishing status to "In production"**, not "Testing" — in Testing, refresh tokens expire every 7 days and sync would silently break weekly.
-- **Scopes (minimal)**: `drive.appdata`, `calendar.events`, `calendar.readonly` (free/busy + list), `openid email profile`.
+- **Scopes (minimal)**: Phase 2 uses only `drive.appdata` + `drive.file` (both non-sensitive). Phase 3 adds `calendar.events` + `calendar.readonly` incrementally.
 - **Android background limits**: sync runs on foreground + WorkManager periodic task; don't promise real-time background sync.
 
 ---

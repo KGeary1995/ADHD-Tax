@@ -5,6 +5,7 @@ import '../../core/theme/app_themes.dart';
 import '../../widgets/backdrop.dart';
 import '../../widgets/task_chips.dart';
 import '../gamification/progress_controller.dart';
+import 'accounts_panel.dart';
 import 'settings_controller.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -120,21 +121,18 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
+          const SectionLabel('Accounts & sync'),
+          const AccountsPanel(),
+          const SizedBox(height: 20),
           const SectionLabel('Data'),
           Panel(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Column(
               children: [
-                const ListTile(
-                  leading: Icon(Icons.cloud_off_outlined),
-                  title: Text('Stored on this device'),
-                  subtitle: Text(
-                    'Google Drive sync and Calendar planning are coming next.',
-                  ),
-                ),
                 ListTile(
                   leading: Icon(Icons.restart_alt, color: s.danger),
                   title: const Text('Reset XP and achievements'),
+                  subtitle: const Text('Applies on all your synced devices.'),
                   onTap: () async {
                     final ok = await showDialog<bool>(
                       context: context,

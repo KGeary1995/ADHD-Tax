@@ -1,34 +1,39 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/providers.dart';
 import '../../data/models/task.dart';
+import '../../sync/replicas_controller.dart';
 
-const _tasksKey = 'tasks.v1';
 const _uuid = Uuid();
 
 final tasksProvider = NotifierProvider<TasksController, List<Task>>(
   TasksController.new,
 );
 
+/// Tasks from both workspaces. The replicas are the source of truth; this
+/// rebuilds whenever they change, locally or from sync.
 class TasksController extends Notifier<List<Task>> {
   DateTime _now() => ref.read(clockProvider)();
 
   @override
   List<Task> build() {
-    final raw = ref.read(keyValueStoreProvider).read(_tasksKey);
-    if (raw == null) return const [];
+    ref.watch(replicasProvider.select((s) => s.tasksVersion));
+    final set = ref.read(replicasProvider);
     return [
-      for (final j in jsonDecode(raw) as List<Object?>)
-        Task.fromJson(j as Map<String, Object?>),
-    ];
+      for (final (_, r) in set.entries)
+        for (final e in r.collection(collTasks).entries)
+          ?taskFromRecord(e.key, e.value),
+    ]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 
+  /// Reads the replicas directly, so back-to-back edits never build on a
+  /// list that hasn't rebuilt yet.
   Task? byId(String id) {
-    for (final t in state) {
-      if (t.id == id) return t;
+    for (final (_, r) in ref.read(replicasProvider).entries) {
+      final rec = r.get(collTasks, id);
+      final t = rec == null ? null : taskFromRecord(id, rec);
+      if (t != null) return t;
     }
     return null;
   }
@@ -56,7 +61,7 @@ class TasksController extends Notifier<List<Task>> {
       createdAt: now,
       updatedAt: now,
     );
-    _set([...state, t]);
+    _write(t);
     return t;
   }
 
@@ -77,16 +82,20 @@ class TasksController extends Notifier<List<Task>> {
     if (t.id.isEmpty) {
       t = Task.fromJson({...t.toJson(), 'id': _uuid.v4()});
     }
-    final updated = t.copyWith(updatedAt: _now());
-    final exists = state.any((x) => x.id == t.id);
-    _set(
-      exists
-          ? [for (final x in state) x.id == t.id ? updated : x]
-          : [...state, updated],
-    );
+    _write(t.copyWith(updatedAt: _now()));
   }
 
-  void delete(String id) => _set(state.where((t) => t.id != id).toList());
+  void delete(String id) {
+    final t = byId(id);
+    if (t == null) return;
+    ref
+        .read(replicasProvider.notifier)
+        .write(
+          t.workspace,
+          (r, now) => r.delete(collTasks, id, now),
+          tasks: true,
+        );
+  }
 
   void markStarted(String id) => _update(id, (t) {
     return t.copyWith(
@@ -125,16 +134,26 @@ class TasksController extends Notifier<List<Task>> {
       _update(id, (t) => t.copyWith(scheduledStart: _now().add(d)));
 
   void _update(String id, Task Function(Task) f) {
-    _set([
-      for (final t in state)
-        if (t.id == id) f(t).copyWith(updatedAt: _now()) else t,
-    ]);
+    final t = byId(id);
+    if (t != null) _write(f(t).copyWith(updatedAt: _now()));
   }
 
-  void _set(List<Task> tasks) {
-    state = tasks;
-    ref
-        .read(keyValueStoreProvider)
-        .write(_tasksKey, jsonEncode([for (final t in tasks) t.toJson()]));
+  void _write(Task t) {
+    final replicas = ref.read(replicasProvider.notifier);
+    final previous = byId(t.id);
+    // Moving between workspaces: tombstone it on the old side, so a Work
+    // task doesn't linger in the Personal account's Drive (or vice versa).
+    if (previous != null && previous.workspace != t.workspace) {
+      replicas.write(
+        previous.workspace,
+        (r, now) => r.delete(collTasks, t.id, now),
+        tasks: true,
+      );
+    }
+    replicas.write(
+      t.workspace,
+      (r, now) => r.put(collTasks, t.id, taskFields(t), now),
+      tasks: true,
+    );
   }
 }

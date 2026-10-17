@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Google sign-in and Drive sync. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="ADHD Tax"
         android:name="${applicationName}"

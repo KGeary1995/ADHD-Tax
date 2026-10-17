@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
 import '../../data/models/task.dart';
+import '../../sync/sync_badge.dart';
 import '../../widgets/backdrop.dart';
 import '../../widgets/task_chips.dart';
 import '../capture/quick_add_sheet.dart';
@@ -56,6 +57,8 @@ class DashboardScreen extends ConsumerWidget {
           icon: const Icon(Icons.self_improvement),
           label: const Text('Overwhelmed?'),
         ),
+        // Phones have no side rail to show sync status in.
+        if (MediaQuery.sizeOf(context).width < 760) const SyncBadge(),
       ],
     );
 

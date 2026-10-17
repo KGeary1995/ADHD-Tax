@@ -22,7 +22,18 @@ Runs on Android, Windows, macOS and the web from one Flutter codebase. The full 
 | **9 themes** | Professional (Slate, Graphite, Clinic Calm), futuristic (Neon Grid, Holo Glass, Mission Control, Terminal), and accessibility (Low-Stim, High Contrast). |
 | **Patient-info guard** | Work tasks that look like PHI (DOB, MRN, "pt Jane Doe") show a warning to use initials or a ticket number instead. |
 
-Data is stored locally on each device for now. Google Drive sync and Google Calendar planning are Phases 2 and 3.
+### Sync between devices (Phase 2)
+
+| Feature | What it does |
+|---|---|
+| **Two Google accounts** | The Personal workspace syncs to your personal Google account. Work syncs to your clinic's Google Workspace account. Their data never mixes, and moving a task to Work scrubs its text from the Personal account. |
+| **Private Drive folder** | Sync uses Drive's hidden app-data folder, which only this app can read. The app asks only for Google's non-sensitive Drive permissions, so it can't see anything else in your Drive. |
+| **Works offline** | Everything saves on the device first. It syncs on start, a few seconds after you edit something, every 3 minutes while the app is open, and when you come back to the app. |
+| **No conflicts** | Edits made offline on two devices merge field by field, so editing the title on your phone and the priority on your PC keeps both changes. XP is recorded as events, so points earned on each device add up instead of overwriting each other. |
+| **Backups** | "Back up to Drive" saves a readable JSON copy of a workspace to your Drive. |
+| **Guard rails** | The app warns you if the Work workspace is connected to a personal Gmail account. A sync badge shows status, and "Reconnect" appears if Google signs a device out. |
+
+Without Google setup, the app works exactly as before, storing everything on the device.
 
 ## Run it
 
@@ -46,6 +57,33 @@ flutter build web --release --no-web-resources-cdn # Web → build/web/ (self-co
 
 Every push runs CI, which tests the app and builds the web, Android and Windows versions. You can download the builds from the run's **Artifacts** section on GitHub.
 
+### Set up Google sync (one time, about 20 minutes)
+
+Sync needs your own Google Cloud OAuth client IDs. They're free, and nobody else's app gets access to your data.
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) and create a project (e.g. "ADHD Tax").
+2. **APIs & Services → Library:** enable the **Google Drive API**.
+3. **APIs & Services → OAuth consent screen**
+   - User type: **External**. Add yourself (and your work address) as test users.
+   - Scopes: add `.../auth/drive.appdata` and `.../auth/drive.file`. Both are non-sensitive, so no Google verification is needed.
+   - **Publishing status: In production.** If you leave it in Testing, Google expires sign-ins every 7 days and sync quietly stops.
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID.** Create the ones you need:
+   - **Web application** (needed for web *and* Android). Under authorized JavaScript origins, add `http://localhost:8080` and wherever you host the web build.
+   - **Desktop app** (Windows/macOS/Linux).
+   - **Android**: package name `com.adhdtax.adhd_tax`, plus the SHA-1 of your signing key (`cd app/android && ./gradlew signingReport`).
+5. Copy `app/google_oauth.example.json` to `app/google_oauth.json` (it's git-ignored) and fill in the IDs.
+6. Run or build with the file:
+   ```bash
+   flutter run -d chrome --web-port 8080 --dart-define-from-file=google_oauth.json
+   flutter run -d windows --dart-define-from-file=google_oauth.json
+   flutter build apk --release --dart-define-from-file=google_oauth.json
+   ```
+7. In the app, go to **Settings → Accounts & sync → Connect** for each workspace.
+
+**Clinic account:** many Google Workspace admins block unapproved apps. If connecting Work fails with "access blocked", ask your admin to trust the app's client ID under Admin console → Security → API controls. Personal sync works either way.
+
+**Web limitation:** browsers only get one-hour sign-ins, so the web app asks you to click **Reconnect** after that. Desktop and Android stay signed in.
+
 ### Keyboard shortcuts (desktop / web)
 
 | Keys | Action |
@@ -59,7 +97,9 @@ Every push runs CI, which tests the app and builds the web, Android and Windows 
 ```
 app/lib/
   core/            theme engine (9 themes), shared providers
-  data/            Task model, storage seam (local now, Drive sync next)
+  data/            Task model, local storage
+  sync/            replica (CRDT), sync engine, sync controller + badge
+  google/          sign-in per platform, Drive app-data store
   features/
     picker/        pick-for-me engine (pure Dart) + dashboard
     focus/         focus screen, visual timer
@@ -69,7 +109,7 @@ app/lib/
     motivation/    quote service + rotator
     safety/        PHI guard
     settings/      themes, celebration intensity, preferences
-app/test/          52 unit + widget tests
+app/test/          91 unit, widget and multi-device sync tests
 docs/PLAN.md       full product plan and roadmap
 ```
 
@@ -78,7 +118,7 @@ The decision logic (`picker_engine.dart`, `xp_rules.dart`, `achievements.dart`, 
 ## Roadmap
 
 1. ~~**Phase 1: offline MVP**~~ ✅
-2. **Phase 2: Google sign-in + Drive sync.** Personal and Work workspaces each sync to their own Google account via the Drive app-data folder. Each device writes its own change log, so devices never write the same file and nothing conflicts.
+2. ~~**Phase 2: Google sign-in + Drive sync**~~ ✅ (needs your OAuth setup, above)
 3. **Phase 3: Google Calendar.** Free time detected automatically ("47 min until Staff Huddle"). Plan My Day drops suggested tasks into a dedicated "ADHD Tax" calendar, with two-way updates and "leave in 15 min" alerts.
 4. **Phase 4: Monday.com-style views.** Board, table, timeline, calendar, projects, recurring tasks, command palette.
 5. **Phase 5: ADHD extras.** Learned estimate correction, errand batching, Android home-screen widget, desktop global hotkey, reward shop, body doubling, daily shutdown.
@@ -87,5 +127,5 @@ The decision logic (`picker_engine.dart`, `xp_rules.dart`, `achievements.dart`, 
 ## Before using it for clinic work
 
 - **No PHI in tasks.** Use initials or ticket numbers. The PHI guard catches common slips but is not a compliance control.
-- When Drive sync arrives, Work tasks will sync only to the **work** Google Workspace account. Your clinic's Workspace admin may need to approve the app's OAuth client (Admin console → Security → API controls).
+- Work tasks sync only to the **work** Google Workspace account you connect, and never to a server we run. Your clinic's Workspace admin may need to approve the app's OAuth client (Admin console → Security → API controls).
 - Check with your compliance officer before relying on it for anything patient-adjacent.
