@@ -64,6 +64,14 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
+dependency_overrides:
+  # 2.5.0 switched Android to Pigeon JNI, which crashed release builds at
+  # startup (NoSuchMethodError on SharedPreferencesApiRegistrar.getAll).
+  # 2.4.28 is the last published pre-JNI implementation.
+  shared_preferences_android: 2.4.28
+  # Same JNI switch in 2.3.0; stay on the method-channel implementation.
+  path_provider_android: 2.2.23
+
 flutter:
 
   # The following line ensures that the Material Icons font is
