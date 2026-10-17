@@ -46,6 +46,12 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("sideload")
+            // Release builds are shrunk with R8; keep plugin classes that are
+            // only reached via reflection/registration (see the rules file).
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

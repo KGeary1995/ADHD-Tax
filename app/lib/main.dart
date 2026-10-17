@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,21 +9,42 @@ import 'app.dart';
 import 'core/providers.dart';
 import 'data/storage/key_value_store.dart';
 import 'features/motivation/quote_service.dart';
+import 'startup_error.dart';
 
-Future<void> main() async {
+void main() {
+  runZonedGuarded(_start, (error, stack) {
+    // Anything that escapes before the first frame would otherwise leave a
+    // black screen; show it instead.
+    if (!_started) runApp(StartupErrorApp(error: error, stack: stack));
+  });
+}
+
+bool _started = false;
+
+Future<void> _start() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-  final quotes = await rootBundle.loadString('assets/quotes/quotes.json');
 
-  runApp(
-    ProviderScope(
-      overrides: [
-        keyValueStoreProvider.overrideWithValue(PrefsStore(prefs)),
-        quoteServiceProvider.overrideWithValue(
-          QuoteService.fromJsonString(quotes),
-        ),
-      ],
-      child: const AdhdTaxApp(),
-    ),
-  );
+  // A widget that throws while building shows its error in place, instead
+  // of an empty box in release builds. Self-contained, since it may replace
+  // the whole app.
+  ErrorWidget.builder = (details) => BuildErrorPanel(details: details);
+
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final quotes = await rootBundle.loadString('assets/quotes/quotes.json');
+    _started = true;
+    runApp(
+      ProviderScope(
+        overrides: [
+          keyValueStoreProvider.overrideWithValue(PrefsStore(prefs)),
+          quoteServiceProvider.overrideWithValue(
+            QuoteService.fromJsonString(quotes),
+          ),
+        ],
+        child: const AdhdTaxApp(),
+      ),
+    );
+  } on Object catch (error, stack) {
+    runApp(StartupErrorApp(error: error, stack: stack, onRetry: _start));
+  }
 }
