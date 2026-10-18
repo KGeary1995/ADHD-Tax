@@ -92,30 +92,42 @@ Every push runs CI, which tests the app and builds the web, Android and Windows 
 
 ### Set up Google sync (one time, about 20 minutes)
 
-Sync needs your own Google Cloud OAuth client IDs. They're free, and nobody else's app gets access to your data.
+Sync needs your own Google Cloud sign-in keys. They're free, and the app can only see its own hidden folder in your Drive. Do this on a computer: the Google Cloud console is hard to use on a phone.
 
-1. Go to [console.cloud.google.com](https://console.cloud.google.com) and create a project (e.g. "ADHD Tax").
-2. **APIs & Services → Library:** enable the **Google Drive API**.
-3. **APIs & Services → OAuth consent screen**
-   - User type: **External**. Add yourself (and your work address) as test users.
-   - Scopes: add `.../auth/drive.appdata` and `.../auth/drive.file`. Both are non-sensitive, so no Google verification is needed.
-   - **Publishing status: In production.** If you leave it in Testing, Google expires sign-ins every 7 days and sync quietly stops.
-4. **APIs & Services → Credentials → Create credentials → OAuth client ID.** Create the ones you need:
-   - **Web application** (needed for web *and* Android). Under authorized JavaScript origins, add `http://localhost:8080` and wherever you host the web build.
-   - **Desktop app** (Windows/macOS/Linux).
-   - **Android**: package name `com.adhdtax.adhd_tax`, SHA-1 `E9:F6:E9:C8:17:8A:B9:27:E7:9A:28:87:EC:67:D5:04:4F:F5:1F:BA` (the app's signing key in `app/android/app/sideload.jks`).
-5. Copy `app/google_oauth.example.json` to `app/google_oauth.json` (it's git-ignored) and fill in the IDs.
-6. Run or build with the file:
-   ```bash
-   flutter run -d chrome --web-port 8080 --dart-define-from-file=google_oauth.json
-   flutter run -d windows --dart-define-from-file=google_oauth.json
-   flutter build apk --release --dart-define-from-file=google_oauth.json
-   ```
-7. In the app, go to **Settings → Accounts & sync → Connect** for each workspace.
+**A. Create the Google project**
 
-**Clinic account:** many Google Workspace admins block unapproved apps. If connecting Work fails with "access blocked", ask your admin to trust the app's client ID under Admin console → Security → API controls. Personal sync works either way.
+1. Go to [console.cloud.google.com](https://console.cloud.google.com), sign in with your **personal** Google account, and create a project called "ADHD Tax".
+2. **APIs & Services → Library:** search for **Google Drive API** and click **Enable**.
+3. Open **Google Auth Platform** (the menu item formerly called "OAuth consent screen") and click **Get started**:
+   - **App name:** ADHD Tax. **Support email:** yours. **Audience:** External. **Contact email:** yours. Agree and **Create**.
+   - **Data Access → Add or remove scopes:** tick `.../auth/drive.appdata` and `.../auth/drive.file`, then **Update → Save**. Both are "non-sensitive", so Google doesn't need to review the app.
+   - **Audience → Publish app**, so the status is **In production**. If you leave it in Testing, Google signs you out every 7 days and sync quietly stops.
 
-**Web limitation:** browsers only get one-hour sign-ins, so the web app asks you to click **Reconnect** after that. Desktop and Android stay signed in.
+**B. Create three sign-in clients** (**Google Auth Platform → Clients → Create client**)
+
+| Application type | Fill in | Copy |
+|---|---|---|
+| **Web application** (used by iPhone, web *and* Android) | **Authorized JavaScript origins:** your iPhone web app address (e.g. `https://adhd-tax.pages.dev`) and `http://localhost:8080` | Client ID |
+| **Android** | Package name `com.adhdtax.adhd_tax`, SHA-1 `E9:F6:E9:C8:17:8A:B9:27:E7:9A:28:87:EC:67:D5:04:4F:F5:1F:BA` | nothing |
+| **Desktop app** (used by Mac and Windows) | Name only | Client ID **and** Client secret |
+
+**C. Give the keys to the builds**
+
+In GitHub, open this repo → **Settings → Secrets and variables → Actions → New repository secret**, and add:
+
+| Secret name | Value |
+|---|---|
+| `GOOGLE_WEB_CLIENT_ID` | the Web application's Client ID |
+| `GOOGLE_DESKTOP_CLIENT_ID` | the Desktop app's Client ID |
+| `GOOGLE_DESKTOP_CLIENT_SECRET` | the Desktop app's Client secret |
+
+The next build of each app includes them. Then, in each app, go to **Settings → Accounts & sync → Connect**: your personal Google account for **Personal**, and your clinic account for **Work**.
+
+For a build on your own computer, put the same three values in `app/google_oauth.json` (copy `app/google_oauth.example.json`; it's git-ignored) and add `--dart-define-from-file=google_oauth.json` to `flutter run` / `flutter build`.
+
+**Clinic account:** many Google Workspace admins block apps they haven't approved. If connecting Work fails with "access blocked", ask your admin to trust the Web and Desktop client IDs under Admin console → Security → API controls. Personal sync works either way.
+
+**iPhone and web:** browsers only get one-hour Google sign-ins, so after an hour the sync badge shows **Reconnect** (one tap). The app remembers a sign-in until it expires, so reopening it within the hour doesn't ask again. Android and Mac stay signed in.
 
 ### Keyboard shortcuts (desktop / web)
 

@@ -33,7 +33,18 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
-      - run: flutter build web --release --no-web-resources-cdn
+      # Google sign-in client ids from repository secrets (README → Set up
+      # Google sync). Empty until they're added, which builds without sync.
+      - name: Google sign-in keys
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+        run: |
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" > google_oauth.json
+      - run: flutter build web --release --no-web-resources-cdn --dart-define-from-file=google_oauth.json
       - uses: actions/upload-artifact@v4
         with:
           name: adhd-tax-web
@@ -63,7 +74,18 @@ jobs:
       # installs as an update over the last one. --no-shrink skips R8: it
       # stripped plugin code called only from Dart and crashed startup, and a
       # few MB doesn't matter for a sideloaded app.
-      - run: flutter build apk --release --no-shrink --build-number=${{ github.run_number }}
+      # Google sign-in client ids from repository secrets (README → Set up
+      # Google sync). Empty until they're added, which builds without sync.
+      - name: Google sign-in keys
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+        run: |
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" > google_oauth.json
+      - run: flutter build apk --release --no-shrink --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
       - uses: actions/upload-artifact@v4
         with:
           name: adhd-tax-android
@@ -97,7 +119,18 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
-      - run: flutter build windows --release
+      # Google sign-in client ids from repository secrets (README → Set up
+      # Google sync). Empty until they're added, which builds without sync.
+      - name: Google sign-in keys
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+        run: |
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" > google_oauth.json
+      - run: flutter build windows --release --dart-define-from-file=google_oauth.json
       - uses: actions/upload-artifact@v4
         with:
           name: adhd-tax-windows
@@ -147,11 +180,16 @@ jobs:
 
   # macOS runners use 10x the Actions minutes on a private repo (about 100
   # of the 2,000 free monthly minutes per build), so the Mac app builds on
-  # request (Run workflow) and on main, not on every push.
+  # request, not on every push: Run workflow, a push to main, or a push
+  # whose commit message contains [mac].
   macos:
     name: Build macOS app
     needs: test
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' &&
+        (github.ref == 'refs/heads/main' ||
+          contains(github.event.head_commit.message, '[mac]')))
     runs-on: macos-latest
     permissions:
       contents: write # publish to the macos-latest release
@@ -167,7 +205,18 @@ jobs:
           cache: true
       # Universal (Apple Silicon + Intel), signed for local use only: macOS
       # asks once to "Open Anyway" (README → Install on Mac).
-      - run: flutter build macos --release --build-number=${{ github.run_number }}
+      # Google sign-in client ids from repository secrets (README → Set up
+      # Google sync). Empty until they're added, which builds without sync.
+      - name: Google sign-in keys
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+        run: |
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" > google_oauth.json
+      - run: flutter build macos --release --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
       - run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/ADHD Tax.app" ADHD-Tax-macOS.zip
       - uses: actions/upload-artifact@v4
         with:
