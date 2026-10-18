@@ -2,6 +2,9 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
+## Build 39 — 2026-10-18 (18ededd) (web)
+- **iPhone web app is live** at **https://unstuck-4o8.pages.dev**: open it in Safari → Share → Add to Home Screen. Free, no account; tasks stay on that phone. No reminders, widget or Share (iPhone web apps can't do those).
+
 ## Next build — 2026-10-18 (iPhone/iPad)
 - **Native iPhone and iPad app** (via TestFlight once the Apple Developer account is set up): reminders, widgets in three sizes, Share → Unstuck, voice, and Google sign-in that stays signed in. Setup steps in the README.
 

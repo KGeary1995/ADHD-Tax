@@ -9,7 +9,7 @@ Everything about getting builds onto devices: CI, release links, secrets, signin
 | Android | CI `android` job, every push | GitHub release **`android-latest`** (asset replaced each build) | `https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/Unstuck.apk` |
 | Mac | CI `macos` job, on `[mac]` commits, pushes to `main`, or Run workflow | GitHub release **`macos-latest`** | `https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Unstuck-macOS.zip` |
 | iPhone / iPad (native) | CI `ios` job, on `[ios]` commits, pushes to `main`, or Run workflow | App Store Connect → **TestFlight** (needs the Apple secrets; until then the job only compiles) | TestFlight app on the device |
-| Web (and iPhone without an Apple account) | CI `test` job builds; `web-publish` deploys | Cloudflare Pages project `unstuck` (or repo variable `CLOUDFLARE_PROJECT`) | `https://unstuck.pages.dev` (the exact address is shown in the job summary) |
+| Web (and iPhone without an Apple account) | CI `test` job builds; `web-publish` deploys | Cloudflare Pages project `unstuck` (or repo variable `CLOUDFLARE_PROJECT`) | **`https://unstuck-4o8.pages.dev`** (project created by Build 39; the suffix is Cloudflare's because `unstuck` was taken) |
 | Windows | CI `windows` job, every push | Run artifact `unstuck-windows` only (no release yet) | Actions → run → Artifacts |
 
 The repo is **private**, so release downloads need a signed-in GitHub session.
@@ -77,7 +77,7 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 ## iPhone / web hosting (Cloudflare Pages)
 
 - `web-publish` always deploys with `--branch=main` to a project whose production branch is `main`, so the address never changes. This matters: **an iPhone home-screen app's data belongs to its address**, so changing the URL starts it empty.
-- The first deploy creates the project. If `unstuck.pages.dev` is taken, Cloudflare picks a suffixed name, shown in the job summary. After that, add the address to the Google web client's JavaScript origins.
+- The first deploy creates the project. If `unstuck.pages.dev` is taken, Cloudflare picks a suffixed name, shown in the job summary. Ours got `unstuck-4o8.pages.dev`. Add that address to the Google web client's JavaScript origins. Never delete or rename the Pages project: everyone's home-screen data belongs to that address.
 - Home-screen installs keep their own storage, separate from Safari tabs.
 - No push notifications: iPhone web apps can't schedule local notifications, and there's no server to send push.
 

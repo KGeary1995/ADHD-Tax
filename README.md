@@ -90,7 +90,7 @@ The web app still works on any phone: added to the home screen it opens full scr
 2. **Account ID:** in the dashboard, open **Workers & Pages**. The Account ID is on the right; copy it.
 3. **API token:** profile icon → **My Profile → API Tokens → Create Token → Create Custom Token**. Under Permissions choose **Account · Cloudflare Pages · Edit**, then **Continue to summary → Create Token**, and copy it.
 4. In GitHub, open this repo → **Settings → Secrets and variables → Actions → New repository secret**. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-5. Push anything, or go to **Actions → CI → Run workflow**. When the **Publish web app (iPhone)** job finishes, its summary shows the address, normally **https://unstuck.pages.dev**.
+5. Push anything, or go to **Actions → CI → Run workflow**. When the **Publish web app (iPhone)** job finishes, its summary shows the address. **Ours is https://unstuck-4o8.pages.dev** (live since Build 39; `unstuck.pages.dev` was taken, so Cloudflare added a suffix).
 
 **On the iPhone:** open that address in **Safari**, tap **Share → Add to Home Screen**, and from then on open Unstuck from the home screen. Tasks saved in the home-screen app are separate from the Safari tab, so use the icon.
 
@@ -141,7 +141,7 @@ Sync needs your own Google Cloud sign-in keys. They're free, and the app can onl
 
 | Application type | Fill in | Copy |
 |---|---|---|
-| **Web application** (used by the web app, Android *and* the iPhone app) | **Authorized JavaScript origins:** your iPhone web app address (e.g. `https://unstuck.pages.dev`) and `http://localhost:8080` | Client ID |
+| **Web application** (used by the web app, Android *and* the iPhone app) | **Authorized JavaScript origins:** your iPhone web app address (`https://unstuck-4o8.pages.dev`) and `http://localhost:8080` | Client ID |
 | **Android** | Package name `com.adhdtax.adhd_tax`, SHA-1 `E9:F6:E9:C8:17:8A:B9:27:E7:9A:28:87:EC:67:D5:04:4F:F5:1F:BA` | nothing |
 | **Desktop app** (used by Mac and Windows) | Name only | Client ID **and** Client secret |
 | **iOS** (the native iPhone/iPad app) | Bundle ID `com.adhdtax.adhdTax` | Client ID |
