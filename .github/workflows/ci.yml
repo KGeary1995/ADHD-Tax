@@ -6,8 +6,10 @@ on:
   # Actions → CI → Run workflow: also builds the Mac app (see `macos`).
   workflow_dispatch:
 
+# Per event, so a manual run (which builds the Mac app) and a push don't
+# cancel each other.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -69,7 +71,7 @@ jobs:
       # One rolling release, so the phone download link never changes:
       # https://github.com/<owner>/<repo>/releases/download/android-latest/ADHD-Tax.apk
       - name: Publish to android-latest release
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
