@@ -1,3 +1,5 @@
+> **Status note (2026-10-18):** this is the original plan from before the build. Phases 1–2 are built, plus repeating tasks, Android reminders, iPhone (as a web app) and Mac. Where the code differs from this plan, the code and `docs/ARCHITECTURE.md` are right. Notably, storage is shared_preferences rather than Drift/SQLite, and sync uses one whole-state file per device rather than an op log (see `docs/DECISIONS.md`). Phases 3+ (Calendar, board/table views, AI) are still the roadmap.
+
 # ADHD Tax — Product & Build Plan
 
 ## Context

@@ -49,3 +49,6 @@ app.*.map.json
 
 # Google OAuth client ids (see google_oauth.example.json)
 google_oauth.json
+
+# Screenshot tool dependencies
+/tool/screenshots/node_modules/

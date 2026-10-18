@@ -1,0 +1,105 @@
+# AGENTS.md — start here
+
+Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human picking up this repo cold. It is kept current: **if you change behavior, build, CI or deployment, update this file and the relevant `docs/` page in the same commit.**
+
+## What this is
+
+**ADHD Tax** is a task-initiation app for an ADHD user who struggles to *start* tasks. It picks one task for you (based on time available, energy, whether you can leave the house), shrinks it to a first step, runs a visual focus timer, and rewards starting with XP. Personal and Work tasks are kept apart and each syncs to its own Google account through Drive.
+
+- **One Flutter codebase** in `app/` → Android (APK, sideloaded), Mac, Windows, web. **iPhone uses the web build** added to the home screen (no App Store / TestFlight; the owner chose the free route).
+- **No backend server.** Data lives on each device and syncs through a hidden Google Drive app-data folder per Google account.
+- **Owner context:** the user works in ophthalmology clinic operations. Work tasks must never contain patient information (PHI). See "Rules" below.
+
+## Status (keep this section current)
+
+| Area | State | Verified on a real device? |
+|---|---|---|
+| Phase 1: offline app (picker, focus, XP, themes, quotes) | Done | Android: yes (Build 9+) |
+| Phase 2: Google sign-in + Drive sync | Code done; CI injects keys from secrets | **No.** Owner hasn't created the Google Cloud keys yet (see docs/DEPLOYMENT.md §Google) |
+| Phone layout fixes, full task form, back button | Done | Android: reported working |
+| Repeating tasks, Mark done + Undo, Android reminders | Done | Not yet reported |
+| iPhone (home-screen web app) | Done; needs Cloudflare secrets to publish | No (Chromium emulation only) |
+| Mac app | Builds and publishes on `[mac]` pushes | Owner got the Gatekeeper prompt; first run not yet confirmed |
+| Phase 3+ (Calendar, board/table views, AI) | Not started | — see docs/PLAN.md |
+
+Last updated: 2026-10-18 (commit after 595756a).
+
+## Toolchain
+
+| Tool | Version | Notes |
+|---|---|---|
+| Flutter / Dart | **3.47.7** / 3.13.5 | Pinned in `.github/workflows/ci.yml` (`FLUTTER_VERSION`). In Claude Code cloud sessions Flutter is at `/opt/flutter/bin` and not on PATH; `app/tool/check.sh` handles that. It warns about running as root; ignore it. |
+| Java | 17 (Temurin) | Android builds |
+| Node | 22 | Cloudflare deploy (`wrangler@4.145.0`) and the screenshot tool |
+| Python 3 + Pillow | any recent | Only for `app/tool/make_icons.py` |
+| Xcode | CI's `macos-latest` | Mac builds happen in CI; no Mac needed locally |
+
+## Commands (run from `app/`)
+
+```bash
+./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
+flutter pub get
+flutter test                         # 129 tests, ~20 s
+flutter test test/widget/reminders_undo_test.dart   # one file
+dart format lib test                 # CI fails on unformatted code
+flutter run -d chrome                # quickest way to see the app
+flutter build web --release --no-web-resources-cdn   # self-contained web build (no CDN; needed behind proxies)
+flutter build apk --release --no-shrink              # --no-shrink is REQUIRED (see Gotchas)
+python3 tool/make_icons.py           # redraw every app icon (web, iPhone, Mac, Android)
+```
+
+Seeing UI changes without a phone: `app/tool/screenshots/shoot.mjs` (Playwright) screenshots the web build with demo data at any size, including a fake iPhone home-indicator inset. Usage is in the file header.
+
+Google sync in a local build needs `app/google_oauth.json` (git-ignored; copy `google_oauth.example.json`) and `--dart-define-from-file=google_oauth.json`. Without it the app runs normally with sync switched off.
+
+## Repo map
+
+```
+AGENTS.md / CLAUDE.md   this guide (CLAUDE.md imports it)
+README.md               owner-facing: features, install links, setup steps
+CHANGELOG.md            what changed in each build, newest first
+docs/ARCHITECTURE.md    how the code works: data model, sync/CRDT, state, platforms
+docs/DEPLOYMENT.md      CI/CD, releases, secrets, Google/Cloudflare setup, signing keys
+docs/TROUBLESHOOTING.md symptom → cause → fix, from real incidents
+docs/DECISIONS.md       why things are the way they are (read before "simplifying")
+docs/PLAN.md            original product plan and roadmap (partly superseded; see its banner)
+.github/workflows/ci.yml  test → Android / Windows / web publish / Mac
+app/lib/                the app (feature-first; pure-Dart logic has no Flutter imports)
+app/test/               unit, widget, phone-layout and multi-device sync tests
+app/tool/               check.sh, make_icons.py, screenshots/
+app/web/                index.html, manifest, offline.js (service worker), flutter_bootstrap.js
+app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks (signing key, committed on purpose)
+```
+
+## How a change ships
+
+1. Work on the session's feature branch; keep PR #1 (`claude/eloquent-feynman-mhvav7` → `main`) or its successor updated.
+2. `./tool/check.sh` must pass.
+3. Push. CI runs `test` (format, analyze, test, web build), then in parallel:
+   - **Android**: builds the APK and replaces the `android-latest` release asset. The phone download link never changes.
+   - **Windows**: builds an artifact (not published as a release).
+   - **web-publish**: deploys to Cloudflare Pages if the Cloudflare secrets exist (otherwise it posts a notice).
+   - **macOS**: only on `workflow_dispatch`, pushes to `main`, or **commit messages containing `[mac]`** (macOS runners cost 10× minutes). Publishes to the `macos-latest` release.
+4. Tell the owner: "reinstall from the same link". The build number is the CI run number.
+
+Details, secrets and failure modes: docs/DEPLOYMENT.md.
+
+## Rules
+
+- **No PHI anywhere**: no patient names, dates of birth or MRNs in code, tests, fixtures, docs, commit messages or screenshots. Demo data uses generic tasks. The in-app PHI guard (`features/safety/phi_guard.dart`) is a warning, not a control.
+- **Keep the sync data model backward compatible.** Devices run different builds. New `Task` fields must have defaults in `Task.fromJson`; never rename or reuse a field. Never rewrite or delete XP events: revoke one by tombstoning it (`ProgressController.revoke`).
+- **Pure logic stays pure Dart** (no Flutter imports): `picker_engine.dart`, `recurrence.dart`, `nudge_plan.dart`, `xp_rules.dart`, `achievements.dart`, `progress_event.dart`, `phi_guard.dart`, `quote_service.dart`, `hlc.dart`, `replica.dart`, `sync_engine.dart`. Test them with plain unit tests.
+- **Phone first.** Every screen must work at 360×800 with 1.3× text (`test/widget/narrow_layout_test.dart` enforces this for the capture screens). Prefer wrapping `ChoiceGroup` chips over `SegmentedButton`.
+- **No shame mechanics** (product principle): no red overdue walls, streaks never reset to zero, celebrations respect the Off/Subtle/Normal/Party setting, and starting earns XP.
+- Commit messages explain *why*. Update `CHANGELOG.md` for anything the owner will notice.
+
+## Gotchas that have already bitten (details in docs/TROUBLESHOOTING.md)
+
+- `shared_preferences_android` and `path_provider_android` are **pinned** in `dependency_overrides`; newer versions crash release builds at startup (Pigeon JNI). Don't remove the pins.
+- Android release builds must use `--no-shrink`. R8 strips plugin code that's only called from Dart.
+- Impeller is disabled in `AndroidManifest.xml` (black screen on some GPUs).
+- `main.dart` wraps startup in `runZonedGuarded` and shows `StartupErrorApp` instead of a black screen. Keep it: it's how the owner reports crashes (screenshot + "Copy details").
+- The web build uses a **custom `web/flutter_bootstrap.js`** without Flutter's service worker, which would unregister `offline.js` and reload the page in a loop.
+- Flutter web ignores iPhone safe areas and rewrites the viewport tag. `core/safe_area/` fixes both; don't remove `WebSafeArea` from `app.dart`.
+- Starting `workflow_dispatch` through the GitHub API gave HTTP 403 on release creation; push-triggered runs publish fine. Use a `[mac]` commit to get a Mac build.
+- Widget tests: `pumpApp()` in `test/widget/app_flow_test.dart` builds the full app with in-memory storage and accepts provider `overrides`. Use `FakeReminders` (`reminders_undo_test.dart`) for notification behavior. Snackbars need `pumpAndSettle()` before tapping their action.

@@ -137,6 +137,18 @@ For a build on your own computer, put the same three values in `app/google_oauth
 | Ctrl+1 … 4 | Focus / Tasks / Progress / Settings |
 | Space | Pause/resume on the focus screen |
 
+## Documentation
+
+| Doc | For |
+|---|---|
+| [AGENTS.md](AGENTS.md) | Start here if you're changing the code (people or AI): commands, rules, gotchas, current status |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How it works: data model, sync, state, platforms |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | CI, release links, secrets, signing, hosting |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Symptom → cause → fix |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Why things are the way they are |
+| [CHANGELOG.md](CHANGELOG.md) | What changed in each build |
+| [docs/PLAN.md](docs/PLAN.md) | Original product plan and roadmap |
+
 ## Project layout
 
 ```
@@ -157,7 +169,7 @@ app/lib/
     settings/      themes, celebration intensity, preferences
 app/test/          129 unit, widget, phone-layout and multi-device sync tests
 docs/PLAN.md       full product plan and roadmap
-app/tool/          make_icons.py: redraws the app icon at every size
+app/tool/          check.sh (CI checks), make_icons.py (app icons), screenshots/ (web screenshots)
 ```
 
 The decision logic (`picker_engine.dart`, `xp_rules.dart`, `achievements.dart`, `phi_guard.dart`, `quote_service.dart`) is pure Dart with no Flutter imports, so it's fast to test and reusable.
@@ -167,7 +179,7 @@ The decision logic (`picker_engine.dart`, `xp_rules.dart`, `achievements.dart`, 
 1. ~~**Phase 1: offline MVP**~~ ✅
 2. ~~**Phase 2: Google sign-in + Drive sync**~~ ✅ (needs your OAuth setup, above)
 3. **Phase 3: Google Calendar.** Free time detected automatically ("47 min until Staff Huddle"). Plan My Day drops suggested tasks into a dedicated "ADHD Tax" calendar, with two-way updates and "leave in 15 min" alerts.
-4. **Phase 4: Monday.com-style views.** Board, table, timeline, calendar, projects, recurring tasks, command palette.
+4. **Phase 4: Monday.com-style views.** Board, table, timeline, calendar, projects, command palette. (Repeating tasks are already done.)
 5. **Phase 5: ADHD extras.** Learned estimate correction, errand batching, Android home-screen widget, desktop global hotkey, reward shop, body doubling, daily shutdown.
 6. **Phase 6: optional AI (Claude).** "Break this down" and natural-language capture, using your own API key. Off by default in Work.
 

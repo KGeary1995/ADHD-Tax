@@ -1,9 +1,12 @@
 # ADHD Tax — Flutter app
 
-See the [project README](../README.md) for what this is and how to run it.
+The project docs live at the repo root:
+
+- [AGENTS.md](../AGENTS.md): start here (commands, rules, gotchas)
+- [README.md](../README.md): features and install links
+- [docs/](../docs): architecture, deployment, troubleshooting, decisions
 
 ```bash
-flutter pub get
-flutter test
-flutter run -d chrome     # or: -d windows, -d macos, -d <android device>
+./tool/check.sh          # format + analyze + tests, same as CI
+flutter run -d chrome    # or: -d macos, -d windows, -d <android device>
 ```
