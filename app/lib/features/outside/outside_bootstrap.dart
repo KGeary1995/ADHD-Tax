@@ -33,7 +33,7 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _sub = ref.read(androidBridgeProvider).requests.listen(_handle);
-      _pushWidget(ref.read(pickResultProvider));
+      _pushWidget();
     });
   }
 
@@ -62,9 +62,11 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
   }
 
   /// The widget mirrors Home's teal card.
-  void _pushWidget(PickResult result) {
+  void _pushWidget() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      final result = ref.read(pickResultProvider);
       final s = result.suggestion;
       final data = s == null
           ? {
@@ -72,13 +74,37 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
                   ? 'Your list is empty. Tap + to add something.'
                   : 'Nothing fits right now. Open Unstuck to change your situation.',
             }
-          : _cardData(s);
+          : {
+              ..._cardData(s),
+              // The large widget's "Next up": two more that fit now.
+              for (final (i, alt)
+                  in ref
+                      .read(nextUpProvider)
+                      .where((x) => x.task.id != s.task.id)
+                      .take(2)
+                      .indexed)
+                ..._altData(i + 1, alt),
+            };
       final key = data.toString();
       if (key == _lastWidget) return;
       _lastWidget = key;
       ref.read(androidBridgeProvider).updateWidget(data);
     });
   }
+
+  Map<String, String> _altData(int n, Suggestion s) => {
+    'alt${n}Title': s.task.title,
+    'alt${n}Meta': taskFacts(
+      s.task,
+      plannedMin: s.isChunk ? s.plannedMin : null,
+    ).take(3).join(' · '),
+    'alt${n}Route': _focusRoute(s),
+  };
+
+  String _focusRoute(Suggestion s) => Uri(
+    path: '/focus/${s.task.id}',
+    queryParameters: {'min': '${s.plannedMin}'},
+  ).toString();
 
   Map<String, String> _cardData(Suggestion s) {
     final t = s.task;
@@ -92,16 +118,14 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
       'title': t.title,
       'step': t.firstStep.trim().isEmpty ? '' : 'First: ${t.firstStep.trim()}',
       'meta': '${t.workspace.label} · $time$due',
-      'startRoute': Uri(
-        path: '/focus/${t.id}',
-        queryParameters: {'min': '${s.plannedMin}'},
-      ).toString(),
+      'startRoute': _focusRoute(s),
     };
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(pickResultProvider, (_, r) => _pushWidget(r));
+    ref.listen(pickResultProvider, (_, _) => _pushWidget());
+    ref.listen(nextUpProvider, (_, _) => _pushWidget());
     return widget.child;
   }
 }

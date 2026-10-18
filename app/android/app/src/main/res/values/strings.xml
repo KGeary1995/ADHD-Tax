@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="pick_widget_description">Your one thing right now, with a Start button.</string>
+    <string name="pick_widget_description">Your one thing right now, with Start and +.</string>
+    <string name="pick_widget_small_description">Just the task and a Start button.</string>
+    <string name="pick_widget_square_description">Your one thing, with Start and +.</string>
+    <string name="pick_widget_large_description">Your one thing, plus two more that fit right now.</string>
+    <string name="pick_widget_label">Unstuck card</string>
+    <string name="pick_widget_small_label">Unstuck start</string>
+    <string name="pick_widget_square_label">Unstuck square</string>
+    <string name="pick_widget_large_label">Unstuck card + next up</string>
 </resources>

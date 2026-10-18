@@ -139,8 +139,27 @@ void main() {
     final t = c.read(tasksProvider).single;
     expect(t.notes, 'Ticket 4411');
 
+    c
+        .read(tasksProvider.notifier)
+        .create(title: 'Water plants', estimateMin: 5);
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 1));
+    // The large widget lists what else fits right now.
+    expect(bridge.widgetUpdates.last['alt1Title'], isNotNull);
+    expect(bridge.widgetUpdates.last.containsKey('alt2Title'), isFalse);
+    expect([
+      bridge.widgetUpdates.last['title'],
+      bridge.widgetUpdates.last['alt1Title'],
+    ], containsAll(['Call IT about printer', 'Water plants']));
+    c
+        .read(tasksProvider.notifier)
+        .delete(
+          c.read(tasksProvider).firstWhere((x) => x.title == 'Water plants').id,
+        );
+    await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 1));
     expect(bridge.widgetUpdates.last['title'], 'Call IT about printer');
+    expect(bridge.widgetUpdates.last.containsKey('alt1Title'), isFalse);
     expect(bridge.widgetUpdates.last['startRoute'], '/focus/${t.id}?min=15');
 
     // Widget "+" opens Quick add; Start opens the focus session.

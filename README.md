@@ -29,7 +29,7 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **Real task lengths** | After 5 tasks timed with the focus timer, Unstuck learns how long things really take you ("about 1.6× your guess") and picks tasks that truly fit your time. See Progress. |
 | **Evening wrap-up** | 3 minutes at night (Android reminds you, or tap **Wrap up** on Home after 5 pm): today's wins, what's still open, and tomorrow's first thing, which then shows first on Home in the morning. |
 | **Share and voice** | On Android, share text from any app to **Unstuck** to make it a task. The mic in Quick add types what you say (Android, Mac, and Chrome/Safari). |
-| **Home-screen widget (Android)** | Long-press your home screen → Widgets → Unstuck: the current pick with **Start**, plus **+** to add a task. It updates whenever the app is open. |
+| **Home-screen widgets (Android)** | Long-press your home screen → Widgets → Unstuck. Four sizes: **start** (2×1), **square** (2×2), **card** (4×2) and **card + next up** (4×3, with two more tasks that fit right now). Each shows the current pick with **Start**; the bigger ones add **+**. They update whenever the app is open. |
 | **Patient-info guard** | Work tasks that look like PHI (DOB, MRN, "pt Jane Doe") show a warning to use initials or a ticket number instead. |
 
 ### Sync between devices (Phase 2)

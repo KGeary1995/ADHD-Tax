@@ -129,6 +129,24 @@ final pickResultProvider = Provider<PickResult>((ref) {
   return pickerEngine.pick(tasks, ctx, exclude: inputs.rejected);
 });
 
+/// What else would fit right now, best first, for the large home-screen
+/// widget's "Next up" list.
+final nextUpProvider = Provider<List<Suggestion>>((ref) {
+  final inputs = ref.watch(pickerInputsProvider);
+  return pickerEngine
+      .rank(
+        ref.watch(tasksProvider),
+        _context(
+          inputs,
+          ref.read(clockProvider)(),
+          ref.watch(calibrationProvider),
+        ),
+        exclude: inputs.rejected,
+      )
+      .take(4)
+      .toList();
+});
+
 /// "Pick one of these 3 and commit" after too many rerolls. Rejected tasks
 /// are allowed back in: the point is to choose, not to keep skipping.
 final commitChoicesProvider = Provider<List<Suggestion>>((ref) {

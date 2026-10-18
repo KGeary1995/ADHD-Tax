@@ -10,6 +10,7 @@
 
     <TextView
         android:id="@+id/widget_meta"
+        android:text="Personal · 15 min"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ellipsize="end"
@@ -20,6 +21,7 @@
 
     <TextView
         android:id="@+id/widget_title"
+        android:text="Your one thing, right now"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"

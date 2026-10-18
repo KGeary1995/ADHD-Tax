@@ -126,7 +126,7 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
 
 `MainActivity.kt` (launchMode `singleTask`, Flutter deep linking off) talks to Dart over the `unstuck/android` method channel:
 - **Share → Unstuck**: an `ACTION_SEND text/plain` intent becomes a `SharedText` request; `taskFromShare` turns the subject or first line into the title and the rest into notes, and Quick add opens prefilled.
-- **Home-screen widget** (`PickWidget.kt`, `res/layout/pick_widget.xml`): a RemoteViews copy of Home's teal card. It never computes anything; `OutsideBootstrap` pushes the current pick (`updateWidget`) whenever it changes, so it shows the last pick from when the app was open. Taps open `/` (card), `/focus/<id>?min=N` (Start) or `/add` (+) through the same channel.
+- **Home-screen widgets** (`PickWidget.kt`, `res/layout/pick_widget*.xml`, `res/xml/pick_widget*_info.xml`): RemoteViews copies of Home's teal card in four sizes, each its own provider so the launcher lists them: `PickWidgetSmall` 2×1, `PickWidgetSquare` 2×2, `PickWidget` 4×2 (the original class name, so placed widgets survive), `PickWidgetLarge` 4×3 with "Next up" (`nextUpProvider`, two more that fit). One renderer fills whichever views a layout has; RemoteViews skips the rest. They never compute anything; `OutsideBootstrap` pushes the current pick (`updateWidget`) whenever it changes, so they show the last pick from when the app was open. Taps open `/` (card), `/focus/<id>?min=N` (Start, or a Next-up row) or `/add` (+) through the same channel.
 - Elsewhere `NoAndroidBridge` does nothing. Tests use a fake bridge.
 
 ## Capture (`features/capture/`)

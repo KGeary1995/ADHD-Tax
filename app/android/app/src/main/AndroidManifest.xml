@@ -50,9 +50,10 @@
                 android:name="flutter_deeplinking_enabled"
                 android:value="false"/>
         </activity>
-        <!-- Home-screen widget: the current pick with a Start button. -->
+        <!-- Home-screen widgets in four sizes: the current pick with Start. -->
         <receiver
             android:name=".PickWidget"
+            android:label="@string/pick_widget_label"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
@@ -60,6 +61,39 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/pick_widget_info"/>
+        </receiver>
+        <receiver
+            android:name=".PickWidgetSmall"
+            android:label="@string/pick_widget_small_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pick_widget_small_info"/>
+        </receiver>
+        <receiver
+            android:name=".PickWidgetSquare"
+            android:label="@string/pick_widget_square_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pick_widget_square_info"/>
+        </receiver>
+        <receiver
+            android:name=".PickWidgetLarge"
+            android:label="@string/pick_widget_large_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pick_widget_large_info"/>
         </receiver>
         <!-- Deliver scheduled notifications, and re-schedule them after a
              reboot or an app update. -->
