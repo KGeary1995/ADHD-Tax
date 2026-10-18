@@ -126,6 +126,17 @@ class DashboardScreen extends ConsumerWidget {
                   ],
                   const SizedBox(height: 24),
                   const Spacer(),
+                  // Tap to skip ahead. Dread-busting when the pick is one
+                  // you rated "Ugh" or worse.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: QuoteRotator(
+                      context: (suggestion?.task.ugh ?? 0) >= 2
+                          ? QuoteContext.dreadTask
+                          : QuoteContext.dashboard,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                   const _TodayLine(),
                 ],
               ),
