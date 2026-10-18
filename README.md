@@ -30,6 +30,7 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **Evening wrap-up** | 3 minutes at night (Android reminds you, or tap **Wrap up** on Home after 5 pm): today's wins, what's still open, and tomorrow's first thing, which then shows first on Home in the morning. |
 | **Share and voice** | On Android, share text from any app to **Unstuck** to make it a task. The mic in Quick add types what you say (Android, Mac, and Chrome/Safari). |
 | **Home-screen widgets (Android)** | Long-press your home screen → Widgets → Unstuck. Four sizes: **start** (2×1), **square** (2×2), **card** (4×2) and **card + next up** (4×3, with two more tasks that fit right now). Each shows the current pick with **Start**; the bigger ones add **+**. They update whenever the app is open. |
+| **Backup file** | Settings → **Save a backup file** puts every task and all your XP in one file you keep (Files, Drive, email…). **Restore from a backup file** adds it back in; anything newer on the device is kept, so restoring an old file never undoes work. No Google account needed. |
 | **Patient-info guard** | Work tasks that look like PHI (DOB, MRN, "pt Jane Doe") show a warning to use initials or a ticket number instead. |
 
 ### Sync between devices (Phase 2)

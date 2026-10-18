@@ -1,4 +1,5 @@
 import 'package:adhd_tax/app.dart';
+import 'package:adhd_tax/core/providers.dart';
 import 'package:adhd_tax/features/capture/quick_add_sheet.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:adhd_tax/widgets/ui.dart';
@@ -17,7 +18,15 @@ final _editorScroll = find
 Future<ProviderContainer> _pumpPhone(WidgetTester tester, double scale) {
   tester.platformDispatcher.textScaleFactorTestValue = scale;
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-  return pumpApp(tester, size: _phone);
+  // Evening, so Home's line also carries the "Wrap up" link (the widest
+  // case; it overflowed once and only showed after 5 pm).
+  return pumpApp(
+    tester,
+    size: _phone,
+    overrides: [
+      clockProvider.overrideWithValue(() => DateTime(2026, 10, 18, 21)),
+    ],
+  );
 }
 
 void main() {

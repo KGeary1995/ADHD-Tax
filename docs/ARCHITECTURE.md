@@ -46,6 +46,7 @@ Routes (`app.dart`): a `ShellRoute` with the bottom bar / side rail (`AppShell`)
 | `device.id` | This install's id (uuid). Stamps writes and names its sync files. |
 | `replica.v1.personal`, `replica.v1.work` | The full CRDT replica per workspace (tasks, XP events, meta). |
 | `sync.v1.<ws>` | Sync bookkeeping: connected email, remote checksums already merged, last upload marker, lastSyncedAt. |
+| `backup.lastSavedAt` | When this device last saved a backup file. Device-local. |
 | `settings.v1` | `AppSettings` JSON (theme, celebrations, reminders…). Device-local, not synced. |
 | `tasks.v1`, `progress.v1` | Legacy Phase-1 format. Migrated into the replicas once on launch, then removed. The screenshot tool seeds demo data this way. |
 
@@ -67,6 +68,13 @@ On the web these live in `localStorage` with a `flutter.` prefix. The web Google
 - A round (`syncOnce()` in `sync_engine.dart`, with bookkeeping in `SyncState`): list files with the workspace prefix → download the ones whose md5 changed since last merge → merge → upload our own file if `lastLocalWrite` is newer than our last upload. Devices never write the same file, so there are no write conflicts. Unreadable remote files are skipped and retried.
 - `SyncController(ws)` triggers a round on start, 4 s after local edits, every 3 min in the foreground, on app resume (`SyncBootstrap`), and on demand. Its phases are notConfigured, disconnected, connecting, syncing, synced, error and needsReconnect, and `SyncBadge` / Settings show them.
 - **Backup**: "Back up to Drive" writes a readable JSON file to the visible Drive root (`drive.file` scope).
+
+### Backup file (no Google needed) (`sync/backup_file.dart`, `features/settings/backup_*.dart`)
+
+- **Save a backup file** writes `{app, kind: "unstuck-backup", v: 1, exportedAt, workspaces: {personal: <replica JSON>, work: <replica JSON>}}`, clocks included. `BackupFile` is pure Dart.
+- **Restore** is `ReplicasController.restore()`: a CRDT merge of each workspace, the same as receiving a sync file, so an old backup never overwrites newer edits, deletions made after the backup stay deleted, and restoring twice is a no-op. Restored data is stamped as a local write so sync uploads it.
+- File I/O goes through `BackupFiles` (`backupFilesProvider`; tests use a fake). Native: `file_picker`'s save and open dialogs (macOS needs the `files.user-selected.read-write` entitlement). Web on a phone: the Web Share sheet with the file (`web_share.dart`), because a plain download is easy to lose on an iPhone; desktop browsers download. The JSON is built before any `await`, because Safari only opens the share sheet straight after the tap.
+- `backup.lastSavedAt` (device-local key) drives "Last saved …" in Settings.
 - **Scopes**: only `drive.appdata` and `drive.file`, both non-sensitive, so the Google app needs no verification.
 
 ### Sign-in per platform (`google/auth_*.dart`, chosen by `auth_factory.dart`)

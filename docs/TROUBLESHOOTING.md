@@ -63,4 +63,5 @@ Symptom → cause → fix. Every entry here happened on this project; add new on
 | "Woah! You appear to be trying to run flutter as root" | Harmless. |
 | Playwright can't reach the local server or the internet | Launch Chromium with `--proxy-server=$HTTPS_PROXY` (shoot.mjs does) and serve on `127.0.0.1`. |
 | Web screenshots show a locale error | Use `locale: 'en-US'` in the browser context (shoot.mjs does). |
+| Phone-layout tests fail only in the evening | Home adds a "Wrap up" link after 5 pm. Pin `clockProvider` in layout tests (`narrow_layout_test` uses 9 pm). |
 | `rm` of temp files refused by a safety check | Write temp files to the session scratchpad instead and don't delete them. |

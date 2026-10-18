@@ -5,6 +5,7 @@ import '../../core/theme/app_themes.dart';
 import '../../widgets/ui.dart';
 import '../gamification/progress_controller.dart';
 import 'accounts_panel.dart';
+import 'backup_group.dart';
 import 'reminders_panel.dart';
 import 'settings_controller.dart';
 
@@ -60,6 +61,8 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
+          gap,
+          const BackupGroup(),
           gap,
           Group(
             label: 'Data',

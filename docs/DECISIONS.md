@@ -2,6 +2,9 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-18 — Backup file restores by merging, not replacing
+Until Google sync is set up, tasks live only on the device, so the owner asked for a backup they control. The file holds the full replicas with their clocks, and restoring is the same CRDT merge sync uses. A "replace everything" restore would silently throw away anything done since the backup, which is the kind of loss that kills motivation; merging can't lose newer work and is safe to repeat. On phones the web app saves through the share sheet rather than a download, because iPhone downloads are hard to find again.
+
 ### 2026-10-18 — Native iOS app through TestFlight
 The owner chose native for iPhone and iPad once the web app's limits were clear (no reminders, widgets or Share). Distribution is TestFlight internal testing: no App Store review, $99/yr. CI signs with Xcode automatic signing through an App Store Connect API key, so no certificates live in the repo or need a Mac. The share extension queues text in the App Group and the app opens Quick add on its next resume, because extensions can't open their app. Widget taps use `unstuck://app/<route>` and Flutter's own deep linking (go_router routes, plus a `/add` redirect), while Android keeps the method channel. The web app stays as the no-account option. Supersedes "iPhone = home-screen web app".
 

@@ -22,8 +22,9 @@ class AccountsPanel extends ConsumerWidget {
           GroupRow(
             title: 'Google sync isn\'t set up in this build',
             subtitle:
-                'Tasks are saved on this device only. To sync your phone '
-                'and computer, follow "Set up Google sync" in the README.',
+                'Tasks are saved on this device only, so save a backup '
+                'file below now and then. To sync your phone and computer, '
+                'follow "Set up Google sync" in the README.',
           ),
         ],
       );

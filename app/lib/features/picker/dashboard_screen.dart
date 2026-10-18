@@ -491,54 +491,45 @@ class _TodayLine extends ConsumerWidget {
         )
         .fold(0, (a, r) => a + r.amount);
     final style = s.mono(12, color: s.isDark ? const Color(0xFF7C8885) : null);
+    Widget link(String text, Color? color, VoidCallback onTap) => InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+        child: Text(
+          text,
+          style: style.copyWith(
+            color: color,
+            decoration: TextDecoration.underline,
+            decorationColor: color ?? style.color,
+          ),
+        ),
+      ),
+    );
+    // Stats left, links right; on a narrow phone with large text the links
+    // drop to their own line instead of overflowing.
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Row(
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 18,
         children: [
-          Expanded(
-            child: Wrap(
-              spacing: 18,
-              runSpacing: 4,
-              children: [
-                Text('$done done today', style: style),
-                Text('$xpToday XP today', style: style),
-              ],
-            ),
+          Wrap(
+            spacing: 18,
+            runSpacing: 4,
+            children: [
+              Text('$done done today', style: style),
+              Text('$xpToday XP today', style: style),
+            ],
           ),
-          if (now.hour >= 17) ...[
-            InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () => context.push('/wrapup'),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 12,
-                ),
-                child: Text(
-                  'Wrap up',
-                  style: style.copyWith(
-                    color: s.primary,
-                    decoration: TextDecoration.underline,
-                    decorationColor: s.primary,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-          ],
-          InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () => overwhelm(context, ref),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-              child: Text(
-                'Overwhelmed?',
-                style: style.copyWith(
-                  decoration: TextDecoration.underline,
-                  decorationColor: style.color,
-                ),
-              ),
-            ),
+          Wrap(
+            spacing: 10,
+            children: [
+              if (now.hour >= 17)
+                link('Wrap up', s.primary, () => context.push('/wrapup')),
+              link('Overwhelmed?', null, () => overwhelm(context, ref)),
+            ],
           ),
         ],
       ),

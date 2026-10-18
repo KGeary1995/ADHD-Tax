@@ -8,6 +8,7 @@ import '../data/models/task.dart';
 import '../data/storage/key_value_store.dart';
 import '../features/gamification/achievements.dart';
 import '../features/gamification/progress_event.dart';
+import 'backup_file.dart';
 import 'replica.dart';
 
 const collTasks = 'tasks';
@@ -105,6 +106,23 @@ class ReplicasController extends Notifier<ReplicaSet> {
   void remoteMerged(Workspace ws) {
     _persist(ws, state[ws]);
     state = state.bumped(tasks: true, events: true);
+  }
+
+  /// Merges a backup file in. Returns true if it added or changed anything.
+  /// Restored data counts as a local write, so sync uploads it too.
+  bool restore(BackupFile backup) {
+    final now = _now();
+    var any = false;
+    for (final MapEntry(key: ws, value: theirs) in backup.replicas.entries) {
+      final r = state[ws];
+      if (!r.merge(theirs, now)) continue;
+      r.clock = r.clock.send(now);
+      r.lastLocalWrite = r.clock.pack();
+      _persist(ws, r);
+      state = state.bumped(tasks: true, events: true, localWrite: ws);
+      any = true;
+    }
+    return any;
   }
 
   void _persist(Workspace ws, Replica r) =>
