@@ -77,15 +77,15 @@ GoRouter buildRouter() => GoRouter(
 
 final routerProvider = Provider<GoRouter>((ref) => buildRouter());
 
-class AdhdTaxApp extends ConsumerWidget {
-  const AdhdTaxApp({super.key});
+class UnstuckApp extends ConsumerWidget {
+  const UnstuckApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeId = ref.watch(settingsProvider.select((s) => s.themeId));
     final spec = themeSpecById(themeId);
     return MaterialApp.router(
-      title: 'ADHD Tax',
+      title: 'Unstuck',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(spec),
       routerConfig: ref.watch(routerProvider),
@@ -160,7 +160,7 @@ class AppShell extends StatelessWidget {
                       child: Column(
                         children: [
                           Text(
-                            'ADHD',
+                            'UN',
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
                               letterSpacing: 2,
@@ -168,7 +168,7 @@ class AppShell extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'TAX',
+                            'STUCK',
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
                               letterSpacing: 2,

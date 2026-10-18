@@ -1,4 +1,6 @@
-# ADHD Tax
+# Unstuck
+
+*Formerly "ADHD Tax". The GitHub repo keeps its old name.*
 
 **Pick one task. Start it. Level up.**
 
@@ -42,7 +44,7 @@ Without Google setup, the app works exactly as before, storing everything on the
 
 Open this link on the phone (signed in to GitHub, since the repo is private):
 
-**https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/ADHD-Tax.apk**
+**https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/Unstuck.apk**
 
 Tap the downloaded file to install it. The first time, Android asks you to allow installs from Chrome or Files; Play Protect may also say it doesn't recognize the app, and **More details → Install anyway** gets past that. Every push rebuilds that same link, and new versions install over the old one without losing your tasks.
 
@@ -56,15 +58,15 @@ The iPhone version is the web app, added to the home screen. It opens full scree
 2. **Account ID:** in the dashboard, open **Workers & Pages**. The Account ID is on the right; copy it.
 3. **API token:** profile icon → **My Profile → API Tokens → Create Token → Create Custom Token**. Under Permissions choose **Account · Cloudflare Pages · Edit**, then **Continue to summary → Create Token**, and copy it.
 4. In GitHub, open this repo → **Settings → Secrets and variables → Actions → New repository secret**. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-5. Push anything, or go to **Actions → CI → Run workflow**. When the **Publish web app (iPhone)** job finishes, its summary shows the address, normally **https://adhd-tax.pages.dev**.
+5. Push anything, or go to **Actions → CI → Run workflow**. When the **Publish web app (iPhone)** job finishes, its summary shows the address, normally **https://unstuck.pages.dev**.
 
-**On the iPhone:** open that address in **Safari**, tap **Share → Add to Home Screen**, and from then on open ADHD Tax from the home screen. Tasks saved in the home-screen app are separate from the Safari tab, so use the icon.
+**On the iPhone:** open that address in **Safari**, tap **Share → Add to Home Screen**, and from then on open Unstuck from the home screen. Tasks saved in the home-screen app are separate from the Safari tab, so use the icon.
 
 ## Install on Mac
 
-1. Download **https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/ADHD-Tax-macOS.zip** (signed in to GitHub). Safari unzips it.
-2. Drag **ADHD Tax** into **Applications** and open it.
-3. The first time, macOS says it can't verify the developer: click **Done**, then go to **System Settings → Privacy & Security**, scroll down to "ADHD Tax was blocked", and click **Open Anyway**. You do this once for each new version.
+1. Download **https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Unstuck-macOS.zip** (signed in to GitHub). Safari unzips it.
+2. Drag **Unstuck** into **Applications** and open it.
+3. The first time, macOS says it can't verify the developer: click **Done**, then go to **System Settings → Privacy & Security**, scroll down to "Unstuck was blocked", and click **Open Anyway**. You do this once for each new version.
 
 The Mac app is built on request, because macOS build machines cost 10x the free GitHub Actions minutes (about 100 of the 2,000 monthly minutes per build). To build a new version, go to **Actions → CI → Run workflow**. Merges to `main` also build one.
 
@@ -96,10 +98,10 @@ Sync needs your own Google Cloud sign-in keys. They're free, and the app can onl
 
 **A. Create the Google project**
 
-1. Go to [console.cloud.google.com](https://console.cloud.google.com), sign in with your **personal** Google account, and create a project called "ADHD Tax".
+1. Go to [console.cloud.google.com](https://console.cloud.google.com), sign in with your **personal** Google account, and create a project called "Unstuck".
 2. **APIs & Services → Library:** search for **Google Drive API** and click **Enable**.
 3. Open **Google Auth Platform** (the menu item formerly called "OAuth consent screen") and click **Get started**:
-   - **App name:** ADHD Tax. **Support email:** yours. **Audience:** External. **Contact email:** yours. Agree and **Create**.
+   - **App name:** Unstuck. **Support email:** yours. **Audience:** External. **Contact email:** yours. Agree and **Create**.
    - **Data Access → Add or remove scopes:** tick `.../auth/drive.appdata` and `.../auth/drive.file`, then **Update → Save**. Both are "non-sensitive", so Google doesn't need to review the app.
    - **Audience → Publish app**, so the status is **In production**. If you leave it in Testing, Google signs you out every 7 days and sync quietly stops.
 
@@ -107,7 +109,7 @@ Sync needs your own Google Cloud sign-in keys. They're free, and the app can onl
 
 | Application type | Fill in | Copy |
 |---|---|---|
-| **Web application** (used by iPhone, web *and* Android) | **Authorized JavaScript origins:** your iPhone web app address (e.g. `https://adhd-tax.pages.dev`) and `http://localhost:8080` | Client ID |
+| **Web application** (used by iPhone, web *and* Android) | **Authorized JavaScript origins:** your iPhone web app address (e.g. `https://unstuck.pages.dev`) and `http://localhost:8080` | Client ID |
 | **Android** | Package name `com.adhdtax.adhd_tax`, SHA-1 `E9:F6:E9:C8:17:8A:B9:27:E7:9A:28:87:EC:67:D5:04:4F:F5:1F:BA` | nothing |
 | **Desktop app** (used by Mac and Windows) | Name only | Client ID **and** Client secret |
 
@@ -178,7 +180,7 @@ The decision logic (`picker_engine.dart`, `xp_rules.dart`, `achievements.dart`, 
 
 1. ~~**Phase 1: offline MVP**~~ ✅
 2. ~~**Phase 2: Google sign-in + Drive sync**~~ ✅ (needs your OAuth setup, above)
-3. **Phase 3: Google Calendar.** Free time detected automatically ("47 min until Staff Huddle"). Plan My Day drops suggested tasks into a dedicated "ADHD Tax" calendar, with two-way updates and "leave in 15 min" alerts.
+3. **Phase 3: Google Calendar.** Free time detected automatically ("47 min until Staff Huddle"). Plan My Day drops suggested tasks into a dedicated "Unstuck" calendar, with two-way updates and "leave in 15 min" alerts.
 4. **Phase 4: Monday.com-style views.** Board, table, timeline, calendar, projects, command palette. (Repeating tasks are already done.)
 5. **Phase 5: ADHD extras.** Learned estimate correction, errand batching, Android home-screen widget, desktop global hotkey, reward shop, body doubling, daily shutdown.
 6. **Phase 6: optional AI (Claude).** "Break this down" and natural-language capture, using your own API key. Off by default in Work.

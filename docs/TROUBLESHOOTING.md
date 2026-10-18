@@ -10,15 +10,17 @@ Symptom → cause → fix. Every entry here happened on this project; add new on
 | "App not installed" when updating on Android | APK signed with a different key than the installed one | Only CI builds (signed with `sideload.jks`) install over each other. A locally built debug APK needs an uninstall first, which loses local-only data. |
 | **Black screen** on Android launch (Builds ≤ 6) | An exception before the first frame (release builds show nothing) | Fixed in Build 8: `runZonedGuarded` + `StartupErrorApp` show the error instead. If you ever see black again, it's below Dart (engine/GPU); Impeller is already disabled. |
 | Startup error screen: `PlatformException … NoSuchMethodError … SharedPreferencesApiRegistrar.getAll` | `shared_preferences_android` ≥ 2.5 / `path_provider_android` ≥ 2.3 use Pigeon JNI, which breaks in release builds | Pinned to 2.4.28 / 2.2.23 in `dependency_overrides` (Build 9). Keep the pins and keep `--no-shrink`. Re-test on a real phone before removing them. |
-| Mac: *"ADHD Tax" Not Opened — Apple could not verify…* | Ad-hoc signed app, not notarized | **Done** → System Settings → Privacy & Security → **Open Anyway**. Or `xattr -dr com.apple.quarantine "/Applications/ADHD Tax.app"`. Repeat for each new download. |
+| Mac: *"Unstuck" Not Opened — Apple could not verify…* | Ad-hoc signed app, not notarized | **Done** → System Settings → Privacy & Security → **Open Anyway**. Or `xattr -dr com.apple.quarantine "/Applications/Unstuck.app"`. Repeat for each new download. |
+| Two apps on the Mac after the rename ("ADHD Tax" and "Unstuck") | The Mac app file name changed with the rename | Delete **ADHD Tax** from Applications. Both use the same bundle id, so tasks are kept. |
+| Android still says "ADHD Tax" under the icon right after updating | Launcher label cache | It updates after a moment; restarting the launcher or phone forces it. |
 | iPhone home-screen app starts empty | Data is per address, and home-screen installs are separate from Safari tabs | Always open the same `*.pages.dev` address from the home-screen icon. With sync on, connecting restores everything. |
 
 ## Reminders (Android)
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| No timer alert or nudges at all | Notification permission denied | Settings → Reminders shows **Allow notifications**; otherwise Android Settings → Apps → ADHD Tax → Notifications. |
-| Alerts late or missing | Manufacturer battery optimization (Samsung, Xiaomi, OnePlus…) | Android Settings → Apps → ADHD Tax → Battery → **Unrestricted**. |
+| No timer alert or nudges at all | Notification permission denied | Settings → Reminders shows **Allow notifications**; otherwise Android Settings → Apps → Unstuck → Notifications. |
+| Alerts late or missing | Manufacturer battery optimization (Samsung, Xiaomi, OnePlus…) | Android Settings → Apps → Unstuck → Battery → **Unrestricted**. |
 | Nudges stopped after weeks without opening the app | Only 14 days are planned ahead, re-planned on each launch | Open the app; it re-plans. |
 | Swiped the app away mid-focus and the session is gone | The session lives in memory; only the alert is OS-scheduled | Known limitation. |
 

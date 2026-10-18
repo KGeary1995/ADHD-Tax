@@ -47,7 +47,7 @@ jobs:
       - run: flutter build web --release --no-web-resources-cdn --dart-define-from-file=google_oauth.json
       - uses: actions/upload-artifact@v4
         with:
-          name: adhd-tax-web
+          name: unstuck-web
           path: app/build/web
 
   android:
@@ -88,22 +88,22 @@ jobs:
       - run: flutter build apk --release --no-shrink --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
       - uses: actions/upload-artifact@v4
         with:
-          name: adhd-tax-android
+          name: unstuck-android
           path: app/build/app/outputs/flutter-apk/app-release.apk
       # One rolling release, so the phone download link never changes:
-      # https://github.com/<owner>/<repo>/releases/download/android-latest/ADHD-Tax.apk
+      # https://github.com/<owner>/<repo>/releases/download/android-latest/Unstuck.apk
       - name: Publish to android-latest release
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk ADHD-Tax.apk
+          cp build/app/outputs/flutter-apk/app-release.apk Unstuck.apk
           gh release delete android-latest --cleanup-tag --yes || true
-          gh release create android-latest ADHD-Tax.apk \
+          gh release create android-latest Unstuck.apk \
             --target "$GITHUB_SHA" \
-            --title "ADHD Tax for Android (latest build)" \
-            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. On your phone, tap ADHD-Tax.apk below to download and install."
+            --title "Unstuck for Android (latest build)" \
+            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. On your phone, tap Unstuck.apk below to download and install."
 
   windows:
     name: Build Windows
@@ -133,7 +133,7 @@ jobs:
       - run: flutter build windows --release --dart-define-from-file=google_oauth.json
       - uses: actions/upload-artifact@v4
         with:
-          name: adhd-tax-windows
+          name: unstuck-windows
           path: app/build/windows/x64/runner/Release
 
   # The iPhone version: the web build, hosted on Cloudflare Pages and added
@@ -147,7 +147,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      PROJECT: ${{ vars.CLOUDFLARE_PROJECT || 'adhd-tax' }}
+      PROJECT: ${{ vars.CLOUDFLARE_PROJECT || 'unstuck' }}
       WRANGLER: wrangler@4.145.0
     steps:
       - name: Not set up yet
@@ -156,7 +156,7 @@ jobs:
       - uses: actions/download-artifact@v4
         if: env.CLOUDFLARE_API_TOKEN != ''
         with:
-          name: adhd-tax-web
+          name: unstuck-web
           path: web
       - uses: actions/setup-node@v4
         if: env.CLOUDFLARE_API_TOKEN != ''
@@ -217,18 +217,18 @@ jobs:
           printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s"}\n' \
             "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" > google_oauth.json
       - run: flutter build macos --release --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
-      - run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/ADHD Tax.app" ADHD-Tax-macOS.zip
+      - run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/Unstuck.app" Unstuck-macOS.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: adhd-tax-macos
-          path: app/ADHD-Tax-macOS.zip
+          name: unstuck-macos
+          path: app/Unstuck-macOS.zip
       - name: Publish to macos-latest release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           gh release delete macos-latest --cleanup-tag --yes || true
-          gh release create macos-latest ADHD-Tax-macOS.zip \
+          gh release create macos-latest Unstuck-macOS.zip \
             --target "$GITHUB_SHA" \
-            --title "ADHD Tax for Mac (latest build)" \
-            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. Download ADHD-Tax-macOS.zip, open it, and drag ADHD Tax into Applications."
+            --title "Unstuck for Mac (latest build)" \
+            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. Download Unstuck-macOS.zip, open it, and drag Unstuck into Applications."

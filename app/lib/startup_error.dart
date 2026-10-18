@@ -55,7 +55,7 @@ class StartupErrorView extends StatelessWidget {
             const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 12),
             const Text(
-              'Something went wrong starting ADHD Tax',
+              'Something went wrong starting Unstuck',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
@@ -107,7 +107,7 @@ class BuildErrorPanel extends StatelessWidget {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Text(
-            'ADHD Tax hit an error drawing this screen:\n\n'
+            'Unstuck hit an error drawing this screen:\n\n'
             '${details.exceptionAsString()}\n\n${details.stack ?? ''}',
             style: const TextStyle(color: Color(0xFFFFD7D7), fontSize: 12),
           ),

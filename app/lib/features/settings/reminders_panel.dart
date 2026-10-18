@@ -109,9 +109,9 @@ class _RemindersPanelState extends ConsumerState<RemindersPanel> {
                   Text(
                     _blocked
                         ? 'Android didn\'t show the prompt. Turn them on in '
-                              'Android Settings → Apps → ADHD Tax → '
+                              'Android Settings → Apps → Unstuck → '
                               'Notifications.'
-                        : 'Notifications are off for ADHD Tax, so none of '
+                        : 'Notifications are off for Unstuck, so none of '
                               'these will reach you.',
                     style: TextStyle(color: s.onSurface),
                   ),

@@ -30,6 +30,7 @@ class WebGoogleAuth implements GoogleAuth {
   final Map<Workspace, (String token, DateTime expires)> _tokens = {};
   Future<void>? _loaded;
 
+  // Pre-rename prefix kept so saved sign-ins survive the update.
   static String _key(Workspace ws) => 'adhdtax.googleToken.${ws.name}';
 
   static (String, DateTime)? _load(Workspace ws) {

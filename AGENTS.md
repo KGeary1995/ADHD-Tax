@@ -4,10 +4,11 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 
 ## What this is
 
-**ADHD Tax** is a task-initiation app for an ADHD user who struggles to *start* tasks. It picks one task for you (based on time available, energy, whether you can leave the house), shrinks it to a first step, runs a visual focus timer, and rewards starting with XP. Personal and Work tasks are kept apart and each syncs to its own Google account through Drive.
+**Unstuck** (formerly *ADHD Tax*; the repo and internal ids keep the old name) is a task-initiation app for an ADHD user who struggles to *start* tasks. It picks one task for you (based on time available, energy, whether you can leave the house), shrinks it to a first step, runs a visual focus timer, and rewards starting with XP. Personal and Work tasks are kept apart and each syncs to its own Google account through Drive.
 
 - **One Flutter codebase** in `app/` → Android (APK, sideloaded), Mac, Windows, web. **iPhone uses the web build** added to the home screen (no App Store / TestFlight; the owner chose the free route).
 - **No backend server.** Data lives on each device and syncs through a hidden Google Drive app-data folder per Google account.
+- **Naming:** the user-visible name is **Unstuck**. Internal identifiers keep the old name **on purpose**: the Android applicationId `com.adhdtax.adhd_tax`, the Mac bundle id `com.adhdtax.adhdTax`, the Dart package `adhd_tax`, the repo `KGeary1995/ADHD-Tax`, the web token key `adhdtax.googleToken.*`, and the repeat-copy id seed `adhd-tax:repeat:` (pinned by a test). Changing them installs a separate, empty app, breaks Google Sign-In's Android client, or duplicates repeating tasks across devices. See docs/DECISIONS.md.
 - **Owner context:** the user works in ophthalmology clinic operations. Work tasks must never contain patient information (PHI). See "Rules" below.
 
 ## Status (keep this section current)
@@ -19,10 +20,10 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Phone layout fixes, full task form, back button | Done | Android: reported working |
 | Repeating tasks, Mark done + Undo, Android reminders | Done | Not yet reported |
 | iPhone (home-screen web app) | Done; needs Cloudflare secrets to publish | No (Chromium emulation only) |
-| Mac app | Builds and publishes on `[mac]` pushes | Owner got the Gatekeeper prompt; first run not yet confirmed |
+| Mac app | Builds and publishes on `[mac]` pushes | **Yes**: opens and works after "Open Anyway" (Build 21, still named ADHD Tax) |
 | Phase 3+ (Calendar, board/table views, AI) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-18 (commit after 595756a).
+Last updated: 2026-10-18 (rename to Unstuck + new icon).
 
 ## Toolchain
 

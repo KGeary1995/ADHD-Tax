@@ -1,13 +1,16 @@
-"""Draws the ADHD Tax icon and writes every size each platform needs.
+"""Draws the Unstuck icon and writes every size each platform needs.
 
-A timer ring (time blindness) around a "start" triangle (the whole point:
-starting). Run from app/:  python3 tool/make_icons.py   (needs Pillow)
+A tangled loop that straightens into an arrow: stuck, then moving. Teal on
+deep teal. Run from app/:  python3 tool/make_icons.py   (needs Pillow)
 """
-from PIL import Image, ImageDraw
+import math
+
+from PIL import Image, ImageDraw, ImageFilter
 
 S = 4096  # draw big, scale down for smooth edges
-BG_TOP, BG_BOTTOM = (31, 38, 66), (13, 15, 24)
-ACCENT, ACCENT2 = (124, 156, 255), (177, 140, 255)
+BG_TOP, BG_BOTTOM = (18, 52, 64), (8, 18, 26)
+STROKE_TOP, STROKE_BOTTOM = (140, 255, 210), (60, 200, 230)
+GLOW = (90, 240, 200)
 
 
 def gradient(size, top, bottom):
@@ -18,46 +21,79 @@ def gradient(size, top, bottom):
     return img.resize((size, size))
 
 
+def mark(scale: float) -> Image.Image:
+    """The tangle → arrow stroke as a mask, centred, `scale` of full size."""
+    m = Image.new("L", (S, S), 0)
+    d = ImageDraw.Draw(m)
+    w = S * 0.075 * scale
+
+    def at(x, y):  # design coordinates (0..1) → canvas, scaled about centre
+        return (S / 2 + (x - 0.5) * S * scale, S / 2 + (y - 0.5) * S * scale)
+
+    # One cursive loop on the left, then a straight run up and to the right.
+    pts = []
+    for i in range(3001):
+        t = i / 3000
+        if t < 0.62:
+            u = t / 0.62 * 2 * math.pi
+            x = 0.26 + 0.13 * math.sin(u) + 0.22 * (t / 0.62)
+            y = 0.58 - 0.16 * (1 - math.cos(u)) * 0.9
+        else:
+            v = (t - 0.62) / 0.38
+            x = 0.48 + (0.80 - 0.48) * v
+            y = 0.58 + (0.34 - 0.58) * v
+        pts.append(at(x, y))
+
+    def dot(x, y):
+        d.ellipse((x - w / 2, y - w / 2, x + w / 2, y + w / 2), fill=255)
+
+    for p in pts:  # round brush stamps: smooth stroke, round joins and caps
+        dot(*p)
+    ex, ey = pts[-1]
+    px, py = pts[-120]
+    ang = math.atan2(ey - py, ex - px)
+    head = S * 0.15 * scale
+    for sgn in (1, -1):
+        bx = ex - head * math.cos(ang + sgn * 0.62)
+        by = ey - head * math.sin(ang + sgn * 0.62)
+        steps = 200
+        for k in range(steps + 1):
+            dot(ex + (bx - ex) * k / steps, ey + (by - ey) * k / steps)
+    # Centre the drawing and size it to 68% of the width (of the scaled
+    # area), measured from its actual pixels rather than guessed.
+    left, top, right, bottom = m.getbbox()
+    k = (S * 0.68 * scale) / (right - left)
+    cx, cy = (left + right) / 2, (top + bottom) / 2
+    # Output pixel (x, y) samples input (cx + (x - S/2)/k, cy + (y - S/2)/k).
+    return m.transform(
+        m.size,
+        Image.AFFINE,
+        (1 / k, 0, cx - S / 2 / k, 0, 1 / k, cy - S / 2 / k),
+        resample=Image.BICUBIC,
+    )
+
+
 def art(full_bleed: bool, margin: float = 0.0, radius: float = 0.225):
-    """The icon on a transparent canvas. full_bleed: square background to the
+    """Icon on a transparent canvas. full_bleed: square background to the
     edges (iOS and maskable icons, which the OS crops itself)."""
     canvas = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     m = int(S * margin)
-    box = (m, m, S - m, S - m)
     side = S - 2 * m
     bg = gradient(side, BG_TOP, BG_BOTTOM).convert("RGBA")
-    mask = Image.new("L", (side, side), 0)
-    md = ImageDraw.Draw(mask)
+    shape = Image.new("L", (side, side), 0)
+    sd = ImageDraw.Draw(shape)
     if full_bleed:
-        md.rectangle((0, 0, side, side), fill=255)
+        sd.rectangle((0, 0, side, side), fill=255)
     else:
-        md.rounded_rectangle((0, 0, side - 1, side - 1), radius=int(side * radius), fill=255)
-    canvas.paste(bg, box[:2], mask)
+        sd.rounded_rectangle((0, 0, side - 1, side - 1), radius=int(side * radius), fill=255)
+    canvas.paste(bg, (m, m), shape)
 
-    d = ImageDraw.Draw(canvas)
-    c = S / 2
-    # Content shrinks for full-bleed icons so it stays inside OS crop zones.
-    r = side * (0.30 if full_bleed else 0.34)
-    w = int(side * 0.065)
-    ring = (c - r, c - r, c + r, c + r)
-    d.arc(ring, 0, 360, fill=(48, 56, 88, 255), width=w)  # track
-    d.arc(ring, -90, 180, fill=ACCENT + (255,), width=w)            # time left
-    # Round caps on the arc ends.
-    import math
-    for ang in (-90, 180):
-        a = math.radians(ang)
-        x, y = c + (r - w / 2) * math.cos(a), c + (r - w / 2) * math.sin(a)
-        d.ellipse((x - w / 2, y - w / 2, x + w / 2, y + w / 2), fill=ACCENT + (255,))
-
-    # Play triangle with a soft vertical gradient, nudged right to look centred.
-    t = r * 0.62
-    tri = Image.new("L", (S, S), 0)
-    ImageDraw.Draw(tri).polygon(
-        [(c - t * 0.42, c - t * 0.62), (c - t * 0.42, c + t * 0.62), (c + t * 0.70, c)],
-        fill=255,
-    )
-    fill = gradient(S, ACCENT2, ACCENT).convert("RGBA")
-    canvas.paste(fill, (0, 0), tri)
+    # Full-bleed icons get cropped (maskable safe zone is the middle 80%).
+    stroke = mark((side / S) * (0.80 if full_bleed else 1.0))
+    halo = Image.new("RGBA", (S, S), GLOW + (0,))
+    halo.putalpha(stroke.filter(ImageFilter.GaussianBlur(S * 0.025)).point(lambda v: int(v * 0.55)))
+    canvas.alpha_composite(halo)
+    canvas.paste(gradient(S, STROKE_TOP, STROKE_BOTTOM).convert("RGBA"), (0, 0), stroke)
     return canvas
 
 
@@ -70,8 +106,8 @@ def save(img, size, path, flatten=False):
     out.save(path)
 
 
-rounded = art(False, margin=0.0)
-mac = art(False, margin=0.098, radius=0.225)  # macOS icons sit inside a margin
+rounded = art(False)
+mac = art(False, margin=0.098)  # macOS icons sit inside a margin
 bleed = art(True)
 
 for n in (192, 512):
@@ -83,6 +119,7 @@ save(rounded, 64, "web/favicon.png")
 for n in (16, 32, 64, 128, 256, 512, 1024):
     save(mac, n, f"macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_{n}.png")
 
+android = art(False, margin=0.06)
 for folder, n in (("mdpi", 48), ("hdpi", 72), ("xhdpi", 96), ("xxhdpi", 144), ("xxxhdpi", 192)):
-    save(art(False, margin=0.06), n, f"android/app/src/main/res/mipmap-{folder}/ic_launcher.png")
+    save(android, n, f"android/app/src/main/res/mipmap-{folder}/ic_launcher.png")
 print("icons written")

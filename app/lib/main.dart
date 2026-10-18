@@ -41,7 +41,7 @@ Future<void> _start() async {
             QuoteService.fromJsonString(quotes),
           ),
         ],
-        child: const AdhdTaxApp(),
+        child: const UnstuckApp(),
       ),
     );
   } on Object catch (error, stack) {

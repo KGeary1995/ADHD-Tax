@@ -27,7 +27,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Something went wrong starting ADHD Tax'), findsOneWidget);
+    expect(find.text('Something went wrong starting Unstuck'), findsOneWidget);
     expect(find.textContaining('prefs unavailable'), findsOneWidget);
 
     await tester.tap(find.text('Copy details'));

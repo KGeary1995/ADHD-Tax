@@ -138,7 +138,7 @@ class AndroidReminders implements Reminders {
       if (!n.at.isAfter(now)) continue;
       await _plugin.zonedSchedule(
         id: id++,
-        title: 'ADHD Tax',
+        title: 'Unstuck',
         body: n.message,
         // An absolute instant, worked out in local time by the caller, so
         // daylight-saving changes need no time zone database here.

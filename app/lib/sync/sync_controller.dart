@@ -256,7 +256,7 @@ class SyncController extends Notifier<WorkspaceSync> {
     final replica = ref.read(replicasProvider)[workspace];
     final now = _now();
     final doc = {
-      'app': 'ADHD Tax',
+      'app': 'Unstuck',
       'workspace': workspace.name,
       'exportedAt': now.toIso8601String(),
       'tasks': [
@@ -271,7 +271,7 @@ class SyncController extends Notifier<WorkspaceSync> {
     final date =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     return remote.exportBackup(
-      'ADHD Tax backup - ${workspace.label} - $date.json',
+      'Unstuck backup - ${workspace.label} - $date.json',
       utf8.encode(const JsonEncoder.withIndent('  ').convert(doc)),
     );
   }

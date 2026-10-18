@@ -6,10 +6,10 @@ Everything about getting builds onto devices: CI, release links, secrets, signin
 
 | Platform | Built by | Delivered via | Link |
 |---|---|---|---|
-| Android | CI `android` job, every push | GitHub release **`android-latest`** (asset replaced each build) | `https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/ADHD-Tax.apk` |
-| Mac | CI `macos` job, on `[mac]` commits, pushes to `main`, or Run workflow | GitHub release **`macos-latest`** | `https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/ADHD-Tax-macOS.zip` |
-| iPhone + web | CI `test` job builds; `web-publish` deploys | Cloudflare Pages project `adhd-tax` (or repo variable `CLOUDFLARE_PROJECT`) | `https://adhd-tax.pages.dev` (the exact address is shown in the job summary) |
-| Windows | CI `windows` job, every push | Run artifact `adhd-tax-windows` only (no release yet) | Actions → run → Artifacts |
+| Android | CI `android` job, every push | GitHub release **`android-latest`** (asset replaced each build) | `https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/Unstuck.apk` |
+| Mac | CI `macos` job, on `[mac]` commits, pushes to `main`, or Run workflow | GitHub release **`macos-latest`** | `https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Unstuck-macOS.zip` |
+| iPhone + web | CI `test` job builds; `web-publish` deploys | Cloudflare Pages project `unstuck` (or repo variable `CLOUDFLARE_PROJECT`) | `https://unstuck.pages.dev` (the exact address is shown in the job summary) |
+| Windows | CI `windows` job, every push | Run artifact `unstuck-windows` only (no release yet) | Actions → run → Artifacts |
 
 The repo is **private**, so release downloads need a signed-in GitHub session.
 
@@ -19,7 +19,7 @@ Triggers: `push`, `pull_request`, `workflow_dispatch`. Concurrency group = `ci-<
 
 | Job | Runs on | Does | Publishes |
 |---|---|---|---|
-| `test` | ubuntu | `pub get` → `dart format --set-exit-if-changed` → `flutter analyze` → `flutter test` → web build | artifact `adhd-tax-web` |
+| `test` | ubuntu | `pub get` → `dart format --set-exit-if-changed` → `flutter analyze` → `flutter test` → web build | artifact `unstuck-web` |
 | `android` | ubuntu, after `test` | `flutter build apk --release --no-shrink --build-number=<run_number>` | `android-latest` release, except on `pull_request` |
 | `windows` | windows, after `test` | `flutter build windows --release` | artifact only |
 | `web-publish` | ubuntu, after `test`, push or dispatch | `wrangler pages project create` (first time) + `pages deploy --branch=main` | Cloudflare Pages; skipped with a notice if secrets are missing |
@@ -40,7 +40,7 @@ Every build job first writes `app/google_oauth.json` from secrets and builds wit
 | `GOOGLE_DESKTOP_CLIENT_SECRET` | secret | all builds (used by Mac/Windows) | Clients → Desktop app |
 | `CLOUDFLARE_API_TOKEN` | secret | `web-publish` | Cloudflare → My Profile → API Tokens → custom token, permission *Account · Cloudflare Pages · Edit* |
 | `CLOUDFLARE_ACCOUNT_ID` | secret | `web-publish` | Cloudflare → Workers & Pages (right sidebar) |
-| `CLOUDFLARE_PROJECT` | variable (optional) | `web-publish` | Defaults to `adhd-tax` |
+| `CLOUDFLARE_PROJECT` | variable (optional) | `web-publish` | Defaults to `unstuck` |
 
 The Google client ids and the desktop "secret" end up inside the shipped apps. That's normal for installed and browser apps (Google documents installed-app secrets as non-confidential). They're kept as secrets only to keep them out of the repo history.
 
@@ -56,7 +56,7 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 
 ## Mac distribution
 
-- CI builds a universal app, signed ad hoc (`CODE_SIGN_IDENTITY = "-"`), with no Apple Developer account. Gatekeeper blocks the first launch: **System Settings → Privacy & Security → Open Anyway**, or `xattr -dr com.apple.quarantine "/Applications/ADHD Tax.app"`.
+- CI builds a universal app, signed ad hoc (`CODE_SIGN_IDENTITY = "-"`), with no Apple Developer account. Gatekeeper blocks the first launch: **System Settings → Privacy & Security → Open Anyway**, or `xattr -dr com.apple.quarantine "/Applications/Unstuck.app"`.
 - Sandbox entitlements (`macos/Runner/*.entitlements`) include `network.client` (Drive) and `network.server` (the loopback OAuth redirect).
 - Data lives in the app's sandbox container (bundle id `com.adhdtax.adhdTax`) and survives updates.
 - Proper signing and notarization would need the $99/year Apple Developer Program; that would also enable TestFlight for a native iPhone app.
@@ -64,7 +64,7 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 ## iPhone / web hosting (Cloudflare Pages)
 
 - `web-publish` always deploys with `--branch=main` to a project whose production branch is `main`, so the address never changes. This matters: **an iPhone home-screen app's data belongs to its address**, so changing the URL starts it empty.
-- The first deploy creates the project. If `adhd-tax.pages.dev` is taken, Cloudflare picks a suffixed name, shown in the job summary. After that, add the address to the Google web client's JavaScript origins.
+- The first deploy creates the project. If `unstuck.pages.dev` is taken, Cloudflare picks a suffixed name, shown in the job summary. After that, add the address to the Google web client's JavaScript origins.
 - Home-screen installs keep their own storage, separate from Safari tabs.
 - No push notifications: iPhone web apps can't schedule local notifications, and there's no server to send push.
 
@@ -85,5 +85,5 @@ flutter build apk --release --no-shrink --dart-define-from-file=google_oauth.jso
 flutter build macos --release --dart-define-from-file=google_oauth.json      # on a Mac
 flutter build windows --release --dart-define-from-file=google_oauth.json    # on Windows
 flutter build web --release --no-web-resources-cdn --dart-define-from-file=google_oauth.json
-npx wrangler@4.145.0 pages deploy build/web --project-name=adhd-tax --branch=main
+npx wrangler@4.145.0 pages deploy build/web --project-name=unstuck --branch=main
 ```

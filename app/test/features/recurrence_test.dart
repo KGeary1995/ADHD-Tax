@@ -1,6 +1,7 @@
 import 'package:adhd_tax/data/models/task.dart';
 import 'package:adhd_tax/features/tasks/recurrence.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uuid/uuid.dart';
 
 Task _task({
   Repeat repeat = Repeat.weekly,
@@ -44,6 +45,14 @@ void main() {
     expect(next.completedAt, isNull);
     expect(next.actualMin, isNull);
     expect(next.skipCount, 0);
+  });
+
+  test('next id seed is frozen (older builds derive the same id)', () {
+    final next = nextOccurrence(_task(), DateTime(2026, 10, 7, 18))!;
+    expect(
+      next.id,
+      const Uuid().v5(Namespace.url.value, 'adhd-tax:repeat:laundry'),
+    );
   });
 
   test('same finished task always gives the same next id (sync-safe)', () {

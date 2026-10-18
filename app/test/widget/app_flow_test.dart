@@ -37,7 +37,7 @@ Future<ProviderContainer> pumpApp(
   );
   addTearDown(container.dispose);
   await tester.pumpWidget(
-    UncontrolledProviderScope(container: container, child: const AdhdTaxApp()),
+    UncontrolledProviderScope(container: container, child: const UnstuckApp()),
   );
   await tester.pumpAndSettle();
   return container;
