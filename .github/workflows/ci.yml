@@ -3,6 +3,8 @@ name: CI
 on:
   push:
   pull_request:
+  # Actions → CI → Run workflow: also builds the Mac app (see `macos`).
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -98,3 +100,84 @@ jobs:
         with:
           name: adhd-tax-windows
           path: app/build/windows/x64/runner/Release
+
+  # The iPhone version: the web build, hosted on Cloudflare Pages and added
+  # to the home screen from Safari. Needs two repository secrets (README →
+  # "Install on iPhone"); until they exist this job just says so.
+  web-publish:
+    name: Publish web app (iPhone)
+    needs: test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROJECT: ${{ vars.CLOUDFLARE_PROJECT || 'adhd-tax' }}
+      WRANGLER: wrangler@4.145.0
+    steps:
+      - name: Not set up yet
+        if: env.CLOUDFLARE_API_TOKEN == ''
+        run: echo "::notice::Add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets to publish the iPhone web app (README → Install on iPhone)."
+      - uses: actions/download-artifact@v4
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        with:
+          name: adhd-tax-web
+          path: web
+      - uses: actions/setup-node@v4
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        with:
+          node-version: '22'
+      - name: Deploy to Cloudflare Pages
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: |
+          # First run creates the project; later runs just deploy. Always
+          # deploying as the production branch keeps one fixed address, and
+          # with it the tasks saved on the phone (they belong to the address).
+          npx --yes "$WRANGLER" pages project create "$PROJECT" --production-branch=main || true
+          npx --yes "$WRANGLER" pages deploy web --project-name="$PROJECT" --branch=main --commit-dirty=true
+          {
+            echo "### iPhone web app"
+            echo "Open the project's \`.pages.dev\` address below in Safari, then Share → Add to Home Screen."
+            echo '```'
+            npx --yes "$WRANGLER" pages project list
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # macOS runners use 10x the Actions minutes on a private repo (about 100
+  # of the 2,000 free monthly minutes per build), so the Mac app builds on
+  # request (Run workflow) and on main, not on every push.
+  macos:
+    name: Build macOS app
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: macos-latest
+    permissions:
+      contents: write # publish to the macos-latest release
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      # Universal (Apple Silicon + Intel), signed for local use only: macOS
+      # asks once to "Open Anyway" (README → Install on Mac).
+      - run: flutter build macos --release --build-number=${{ github.run_number }}
+      - run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/ADHD Tax.app" ADHD-Tax-macOS.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adhd-tax-macos
+          path: app/ADHD-Tax-macOS.zip
+      - name: Publish to macos-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release delete macos-latest --cleanup-tag --yes || true
+          gh release create macos-latest ADHD-Tax-macOS.zip \
+            --target "$GITHUB_SHA" \
+            --title "ADHD Tax for Mac (latest build)" \
+            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. Download ADHD-Tax-macOS.zip, open it, and drag ADHD Tax into Applications."

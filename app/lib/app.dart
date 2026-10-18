@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/safe_area/web_safe_area.dart';
 import 'core/theme/app_themes.dart';
 import 'data/models/task.dart';
 import 'features/capture/quick_add_sheet.dart';
@@ -88,10 +89,14 @@ class AdhdTaxApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(spec),
       routerConfig: ref.watch(routerProvider),
-      builder: (context, child) => ThemedBackdrop(
-        child: SyncBootstrap(
-          child: ReminderBootstrap(
-            child: CelebrationOverlay(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => WebSafeArea(
+        child: ThemedBackdrop(
+          child: SyncBootstrap(
+            child: ReminderBootstrap(
+              child: CelebrationOverlay(
+                child: child ?? const SizedBox.shrink(),
+              ),
+            ),
           ),
         ),
       ),

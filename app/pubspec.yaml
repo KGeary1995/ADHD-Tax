@@ -49,6 +49,7 @@ dependencies:
   google_identity_services_web: ^0.3.3+1
   flutter_local_notifications: ^22.3.2
   timezone: ^0.11.2
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:

@@ -3,10 +3,10 @@
     "short_name": "ADHD Tax",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
+    "background_color": "#0d0f18",
+    "theme_color": "#0d0f18",
     "description": "Pick one task. Start it. Level up.",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
@@ -31,5 +31,6 @@
             "type": "image/png",
             "purpose": "maskable"
         }
-    ]
+    ],
+    "id": "./"
 }

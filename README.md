@@ -4,7 +4,7 @@
 
 A task app built for ADHD brains that struggle to *start*. Most to-do apps help you organize. This one makes the decision for you, shrinks the first step until it's easy, and rewards you the moment you begin, not only when you finish.
 
-Runs on Android, Windows, macOS and the web from one Flutter codebase. The full product plan and roadmap are in [docs/PLAN.md](docs/PLAN.md).
+Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web from one Flutter codebase. The full product plan and roadmap are in [docs/PLAN.md](docs/PLAN.md).
 
 ## What works today (Phase 1)
 
@@ -46,6 +46,28 @@ Open this link on the phone (signed in to GitHub, since the repo is private):
 
 Tap the downloaded file to install it. The first time, Android asks you to allow installs from Chrome or Files; Play Protect may also say it doesn't recognize the app, and **More details → Install anyway** gets past that. Every push rebuilds that same link, and new versions install over the old one without losing your tasks.
 
+## Install on iPhone
+
+The iPhone version is the web app, added to the home screen. It opens full screen with its own icon and works offline. Timer alerts and check-in nudges are Android-only, because iPhone web apps can't schedule notifications; the focus timer still runs on screen.
+
+**One-time hosting setup (about 10 minutes, free, no credit card).** CI publishes the web app to Cloudflare Pages once it has two secrets:
+
+1. Sign up at [dash.cloudflare.com](https://dash.cloudflare.com/sign-up).
+2. **Account ID:** in the dashboard, open **Workers & Pages**. The Account ID is on the right; copy it.
+3. **API token:** profile icon → **My Profile → API Tokens → Create Token → Create Custom Token**. Under Permissions choose **Account · Cloudflare Pages · Edit**, then **Continue to summary → Create Token**, and copy it.
+4. In GitHub, open this repo → **Settings → Secrets and variables → Actions → New repository secret**. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+5. Push anything, or go to **Actions → CI → Run workflow**. When the **Publish web app (iPhone)** job finishes, its summary shows the address, normally **https://adhd-tax.pages.dev**.
+
+**On the iPhone:** open that address in **Safari**, tap **Share → Add to Home Screen**, and from then on open ADHD Tax from the home screen. Tasks saved in the home-screen app are separate from the Safari tab, so use the icon.
+
+## Install on Mac
+
+1. Download **https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/ADHD-Tax-macOS.zip** (signed in to GitHub). Safari unzips it.
+2. Drag **ADHD Tax** into **Applications** and open it.
+3. The first time, macOS says it can't verify the developer: click **Done**, then go to **System Settings → Privacy & Security**, scroll down to "ADHD Tax was blocked", and click **Open Anyway**. You do this once for each new version.
+
+The Mac app is built on request, because macOS build machines cost 10x the free GitHub Actions minutes (about 100 of the 2,000 monthly minutes per build). To build a new version, go to **Actions → CI → Run workflow**. Merges to `main` also build one.
+
 ## Run it
 
 Requires [Flutter](https://docs.flutter.dev/get-started/install) 3.47+.
@@ -66,7 +88,7 @@ flutter build windows --release                   # Windows → build/windows/x6
 flutter build web --release --no-web-resources-cdn # Web → build/web/ (self-contained, no CDN)
 ```
 
-Every push runs CI, which tests the app and builds the web, Android and Windows versions. The Android build is published to the `android-latest` release (link above); all three are also attached to the run's **Artifacts** section.
+Every push runs CI, which tests the app and builds the web, Android and Windows versions. The Android build is published to the `android-latest` release, and the web app to Cloudflare Pages once it's set up (see above). The Mac app builds on request, to the `macos-latest` release. Every build is also attached to the run's **Artifacts** section.
 
 ### Set up Google sync (one time, about 20 minutes)
 
@@ -123,6 +145,7 @@ app/lib/
     settings/      themes, celebration intensity, preferences
 app/test/          129 unit, widget, phone-layout and multi-device sync tests
 docs/PLAN.md       full product plan and roadmap
+app/tool/          make_icons.py: redraws the app icon at every size
 ```
 
 The decision logic (`picker_engine.dart`, `xp_rules.dart`, `achievements.dart`, `phi_guard.dart`, `quote_service.dart`) is pure Dart with no Flutter imports, so it's fast to test and reusable.
