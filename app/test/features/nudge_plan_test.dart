@@ -1,3 +1,4 @@
+import 'package:adhd_tax/data/models/task.dart';
 import 'package:adhd_tax/features/reminders/nudge_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -72,5 +73,43 @@ void main() {
       planNudges(times: [], weekdaysOnly: false, now: friMorning),
       isEmpty,
     );
+  });
+
+  test('a reminder for each waiting task with a check-back date ahead', () {
+    Task t(String id, TaskStatus st, DateTime? at, [String who = '']) => Task(
+      id: id,
+      title: 'Task $id',
+      status: st,
+      followUpAt: at,
+      waitingOn: who,
+      createdAt: friMorning,
+      updatedAt: friMorning,
+    );
+    final n = planFollowUps([
+      t('a', TaskStatus.waiting, DateTime(2026, 10, 12, 9), 'IT'),
+      t('b', TaskStatus.waiting, DateTime(2026, 10, 8, 9)), // already passed
+      t('c', TaskStatus.todo, DateTime(2026, 10, 12, 9)), // not waiting
+      t('d', TaskStatus.waiting, null), // no date
+    ], friMorning);
+    expect(n, hasLength(1));
+    expect(n.single.at, DateTime(2026, 10, 12, 9));
+    expect(n.single.message, 'Task a: any news from IT?');
+    expect(n.single.route, '/tasks');
+  });
+
+  test('wrap-up every evening, starting tonight', () {
+    final n = planWrapUps(time: 20 * 60 + 30, now: friMorning, days: 3);
+    expect(n.map((x) => x.at), [
+      DateTime(2026, 10, 9, 20, 30),
+      DateTime(2026, 10, 10, 20, 30),
+      DateTime(2026, 10, 11, 20, 30),
+    ]);
+    expect(n.every((x) => x.route == '/wrapup'), isTrue);
+    final late = planWrapUps(
+      time: 20 * 60 + 30,
+      now: DateTime(2026, 10, 9, 21),
+      days: 2,
+    );
+    expect(late.first.at, DateTime(2026, 10, 10, 20, 30));
   });
 }

@@ -11,6 +11,7 @@ import '../capture/quick_add_sheet.dart';
 import '../focus/focus_route.dart';
 import 'task_actions.dart';
 import 'tasks_controller.dart';
+import 'waiting_sheet.dart';
 
 final _workspaceFilterProvider = NotifierProvider<_WorkspaceFilter, Workspace?>(
   _WorkspaceFilter.new,
@@ -57,7 +58,10 @@ class TaskListScreen extends ConsumerWidget {
     // their day.
     final comingUp = open.where(later).toList()
       ..sort((a, b) => a.scheduledStart!.compareTo(b.scheduledStart!));
-    final waiting = all.where((t) => t.status == TaskStatus.waiting).toList();
+    final waitingAll = all.where((t) => t.status == TaskStatus.waiting);
+    final checkBack = waitingAll.where((t) => followUpDue(t, now)).toList()
+      ..sort((a, b) => a.followUpAt!.compareTo(b.followUpAt!));
+    final waiting = waitingAll.where((t) => !followUpDue(t, now)).toList();
     final done = all.where((t) => t.status == TaskStatus.done).toList()
       ..sort(
         (a, b) => (b.completedAt ?? b.updatedAt).compareTo(
@@ -117,6 +121,17 @@ class TaskListScreen extends ConsumerWidget {
                     onPressed: () => showQuickAdd(context),
                     child: const Text('Add a task'),
                   ),
+                ],
+              ),
+            ),
+          if (checkBack.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SectionTitle('Check back', count: checkBack.length),
+                  for (final t in checkBack) _CheckBackRow(task: t),
                 ],
               ),
             ),
@@ -246,7 +261,7 @@ class _TaskTile extends ConsumerWidget {
                   case 'five':
                     openFocus(context, task.id, minutes: 5, justFive: true);
                   case 'waiting':
-                    ctl.setStatus(task.id, TaskStatus.waiting);
+                    showWaitingSheet(context, task);
                   case 'todo':
                     ctl.reopen(task.id);
                   case 'done':
@@ -323,6 +338,68 @@ class _DoneCircle extends StatelessWidget {
         child: done
             ? Icon(Icons.check_rounded, size: 16, color: s.onAccent)
             : null,
+      ),
+    );
+  }
+}
+
+/// A waiting task whose check-back date has come: one tap to resolve it.
+class _CheckBackRow extends ConsumerWidget {
+  const _CheckBackRow({required this.task});
+  final Task task;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final ctl = ref.read(tasksProvider.notifier);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Panel(
+        radius: 20,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        onTap: () => context.push('/task/${task.id}'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              task.title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: s.onSurface,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              task.waitingOn.isEmpty
+                  ? 'Any news? Time to check back.'
+                  : 'Waiting on ${task.waitingOn}. Any news?',
+              style: TextStyle(fontSize: 13, color: s.muted),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                Pill(
+                  label: 'Back to my list',
+                  selected: false,
+                  onTap: () => ctl.reopen(task.id),
+                ),
+                Pill(
+                  label: 'Still waiting',
+                  selected: false,
+                  onTap: () => showWaitingSheet(context, task),
+                ),
+                Pill(
+                  label: 'Done',
+                  selected: false,
+                  onTap: () => markDoneWithUndo(context, ref, task),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

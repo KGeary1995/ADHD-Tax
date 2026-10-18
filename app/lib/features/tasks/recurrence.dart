@@ -64,6 +64,8 @@ Task? nextOccurrence(Task done, DateTime finishedAt) {
     'actualMin': null,
     'skipCount': 0,
     'lastSkippedAt': null,
+    'waitingOn': '',
+    'followUpAt': null,
   });
 }
 

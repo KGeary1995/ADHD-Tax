@@ -33,7 +33,7 @@ Routes (`app.dart`): a `ShellRoute` with the bottom bar / side rail (`AppShell`)
 
 ## Data model (`data/models/task.dart`, pure Dart)
 
-`Task` fields: id, title, notes, firstStep, estimateMin, requiresLeavingHouse, location, priority (p1–p4), dueAt, hardDeadline, ugh (0–3 dread), energy, workspace (personal/work), status (inbox/todo/doing/waiting/done/archived), chunkable, scheduledStart (hidden from the picker until then), createdAt, updatedAt, startedAt, completedAt, actualMin, skipCount, lastSkippedAt, repeat (none/daily/weekdays/weekly/biweekly/monthly), repeatFromDone.
+`Task` fields: id, title, notes, firstStep, estimateMin, requiresLeavingHouse, location, priority (p1–p4), dueAt, hardDeadline, ugh (0–3 dread), energy, workspace (personal/work), status (inbox/todo/doing/waiting/done/archived), chunkable, scheduledStart (hidden from the picker until then), createdAt, updatedAt, startedAt, completedAt, actualMin, skipCount, lastSkippedAt, repeat (none/daily/weekdays/weekly/biweekly/monthly), repeatFromDone, waitingOn and followUpAt (who a waiting task waits on, and when to check back).
 
 `Task.fromJson` defaults every field, so data written by older or newer builds still loads. Records that fail to parse are skipped (`taskFromRecord`), never fatal.
 
@@ -92,6 +92,9 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
 
 `picker_engine.dart` (pure) filters open tasks (workspace, leave-house, `scheduledStart` not in the future, fits the time or is chunkable) and scores them with tunable `PickerWeights`: priority, urgency (hard deadlines ramp sooner), staleness, fit to the time window, energy match, dread (boosted in the morning / high energy), skip penalty decaying over ~24 h, and in-progress. It returns one suggestion with a human reason. The dashboard limits rerolls ("Not this one" twice → pick one of three). **Overwhelmed** picks one easy task for 5 minutes.
 
+- **Real task lengths** (`features/insights/estimate_calibration.dart`, pure): the median of actual ÷ estimated minutes over the last 30 tasks finished with the timer, per workspace when it has ≥5, otherwise overall. Ignored until 5 samples or when within ±15% of 1×. `PickerContext.calibration` makes the engine fit tasks by `realMinutes` and plan the session for that long; Progress shows the factor.
+- **Pinned pick**: the evening wrap-up stores tomorrow's first task in `AppSettings.pinnedTaskId/pinnedDay` (device-local). `pickResultProvider` returns it first on that day until it's done or passed on with "Not this one".
+
 ## Tasks, repeating, undo (`features/tasks/`)
 
 - `TasksController` reads tasks from all replicas and writes through `ReplicasController`.
@@ -101,6 +104,7 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
   - Without a due date, it's hidden until its next day.
   - `repeatFromDone` counts from the finish date instead of the schedule.
 - The task list shows hidden tasks (snoozed, next copies) under **Coming up**.
+- **Waiting on someone** (`waiting_sheet.dart`): records who it waits on and a check-back date (9 am tomorrow / in 3 days / next week / a date). When the date comes the task moves to **Check back** at the top of Tasks (Back to my list / Still waiting / Done), Home shows a one-line banner, and Android notifies.
 - `task_actions.dart`: Mark done, Archive and Delete, each with an Undo snackbar. Everything needed for the undo is captured before the change, because the tile may be gone by then.
 
 ## Focus session (`features/focus/`)
@@ -111,12 +115,23 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
 
 - `Reminders` interface; `AndroidReminders` (flutter_local_notifications) on real Android devices, `NoReminders` everywhere else, including `flutter test`, which runs on the host. The platform switch is a conditional import (`platform_io.dart` / `platform_stub.dart`).
 - **Focus**: an ongoing notification with a countdown chronometer, plus a "time's up" alert scheduled with an exact alarm (`USE_EXACT_ALARM` on Android 13+, `SCHEDULE_EXACT_ALARM` on Android 12). On time-up in the foreground both are cleared, since the dialog is the alert. In the background the alert stays.
-- **Nudges**: `nudge_plan.dart` (pure) computes absolute times for the next 14 days from settings (times, weekdays only), skipping 90 minutes after `lastActiveAt`. `ReminderBootstrap` re-plans on launch, resume and relevant changes, and asks for notification permission once on first launch. Times are absolute UTC instants, so no time-zone database is needed and daylight-saving changes are handled by re-planning.
+- **Nudges**: `nudge_plan.dart` (pure) computes absolute times for the next 14 days from settings (times, weekdays only), skipping 90 minutes after `lastActiveAt`. The same scheduled set also holds follow-ups on waiting tasks (`planFollowUps`) and the evening wrap-up (`planWrapUps`). Each `Nudge` carries a route; tapping the notification opens it (`Reminders.opened`). `ReminderBootstrap` re-plans on launch, resume and relevant changes, and asks for notification permission once on first launch. Times are absolute UTC instants, so no time-zone database is needed and daylight-saving changes are handled by re-planning.
 - Status-bar icon: `android/app/src/main/res/drawable/ic_stat_focus.xml`, kept from resource shrinking by `res/raw/keep.xml`.
+
+## Evening wrap-up (`features/wrapup/`)
+
+`/wrapup` (full screen; from the Android reminder or the "Wrap up" link on Home after 5 pm): today's finishes and XP, tasks still in progress (Done / Keep for tomorrow / Back to the list), and tomorrow's first thing chosen from the picker's top candidates for tomorrow morning, with an optional first step. "Done for today" pins it.
+
+## Outside the app (`features/outside/`, Android)
+
+`MainActivity.kt` (launchMode `singleTask`, Flutter deep linking off) talks to Dart over the `unstuck/android` method channel:
+- **Share → Unstuck**: an `ACTION_SEND text/plain` intent becomes a `SharedText` request; `taskFromShare` turns the subject or first line into the title and the rest into notes, and Quick add opens prefilled.
+- **Home-screen widget** (`PickWidget.kt`, `res/layout/pick_widget.xml`): a RemoteViews copy of Home's teal card. It never computes anything; `OutsideBootstrap` pushes the current pick (`updateWidget`) whenever it changes, so it shows the last pick from when the app was open. Taps open `/` (card), `/focus/<id>?min=N` (Start) or `/add` (+) through the same channel.
+- Elsewhere `NoAndroidBridge` does nothing. Tests use a fake bridge.
 
 ## Capture (`features/capture/`)
 
-- **Quick add** (bottom sheet): a title plus labelled chip groups (Workspace, How long?, Priority, dread, an Errand switch). Its buttons are pinned above the keyboard and the nav bar. **Brain dump** creates one task per line. **Full task form** opens the editor with the draft.
+- **Quick add** (bottom sheet): a title plus labelled chip groups (Workspace, How long?, Priority, dread, an Errand switch). A mic button (`voice_input.dart`, `speech_to_text`) dictates into the title, or new lines in Brain dump; it works on Android, Mac and in Chrome/Safari, and says so elsewhere. Its buttons are pinned above the keyboard and the nav bar. **Brain dump** creates one task per line. **Full task form** opens the editor with the draft.
 - **Task editor**: every field, plus repeat settings and status.
 - The PHI warning appears for Work tasks that look like patient info.
 
@@ -139,8 +154,8 @@ Navigation (`app.dart`): phones get a floating pill nav (`extendBody`, so screen
 
 | Folder | What |
 |---|---|
-| `core/`, `data/`, `features/` | Pure logic: HLC, Task JSON, picker scoring, XP, achievements fold, quotes, PHI guard, recurrence, nudge planning |
+| `core/`, `data/`, `features/` | Pure logic: HLC, Task JSON, picker scoring, XP, achievements fold, quotes, PHI guard, recurrence, nudge/follow-up/wrap-up planning, estimate calibration, share-to-task parsing |
 | `sync/` | Replica merge laws, sync engine against `FakeRemote` (multi-device convergence, ping-pong, offline edits, corrupt files), sync controller with a fake auth |
-| `widget/` | Full-app flows (`pumpApp`), light/dark/system on a phone, settings migration, phone-width overflow at 1.0×/1.3× text, back navigation, Quick add → full form, reminders with `FakeReminders`, Mark done/Delete with Undo, startup error screen |
+| `widget/` | Full-app flows (`pumpApp`), waiting → check back, wrap-up pin, share/widget requests with a fake bridge (`new_features_test.dart`), light/dark/system on a phone, settings migration, phone-width overflow at 1.0×/1.3× text, back navigation, Quick add → full form, reminders with `FakeReminders`, Mark done/Delete with Undo, startup error screen |
 
 Inject time with `clockProvider` and storage with `keyValueStoreProvider` (`MemoryStore`).

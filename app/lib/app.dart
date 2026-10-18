@@ -11,11 +11,13 @@ import 'features/capture/task_editor_screen.dart';
 import 'features/focus/focus_screen.dart';
 import 'features/gamification/celebration_overlay.dart';
 import 'features/gamification/progress_screen.dart';
+import 'features/outside/outside_bootstrap.dart';
 import 'features/picker/dashboard_screen.dart';
 import 'features/reminders/reminder_bootstrap.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/tasks/task_list_screen.dart';
+import 'features/wrapup/wrapup_screen.dart';
 import 'sync/sync_badge.dart';
 import 'widgets/ui.dart';
 
@@ -57,6 +59,7 @@ GoRouter buildRouter() => GoRouter(
         );
       },
     ),
+    GoRoute(path: '/wrapup', builder: (_, _) => const WrapUpScreen()),
     GoRoute(
       path: '/task/:id',
       builder: (_, state) => TaskEditorScreen(
@@ -86,7 +89,11 @@ class UnstuckApp extends ConsumerWidget {
       builder: (context, child) => WebSafeArea(
         child: SyncBootstrap(
           child: ReminderBootstrap(
-            child: CelebrationOverlay(child: child ?? const SizedBox.shrink()),
+            child: OutsideBootstrap(
+              child: CelebrationOverlay(
+                child: child ?? const SizedBox.shrink(),
+              ),
+            ),
           ),
         ),
       ),

@@ -195,6 +195,37 @@ class _RemindersPanelState extends ConsumerState<RemindersPanel> {
                 ctl.update((x) => x.copyWith(nudgeWeekdaysOnly: v)),
           ),
         ],
+        SwitchRow(
+          title: 'Evening wrap-up',
+          subtitle: settings.wrapUp
+              ? label(settings.wrapUpTime)
+              : "Today's wins and tomorrow's first thing",
+          subtitleMono: settings.wrapUp,
+          value: settings.wrapUp,
+          onChanged: (v) => ctl.update((x) => x.copyWith(wrapUp: v)),
+        ),
+        if (settings.wrapUp)
+          GroupRow(
+            title: 'Wrap-up time',
+            trailing: Text(
+              label(settings.wrapUpTime),
+              style: s.mono(14, color: s.primary),
+            ),
+            onTap: () async {
+              final t = settings.wrapUpTime;
+              final picked = await showTimePicker(
+                context: context,
+                initialTime: TimeOfDay(hour: t ~/ 60, minute: t % 60),
+                helpText: 'Wrap up the day at',
+              );
+              if (picked != null) {
+                ctl.update(
+                  (x) =>
+                      x.copyWith(wrapUpTime: picked.hour * 60 + picked.minute),
+                );
+              }
+            },
+          ),
       ],
     );
   }

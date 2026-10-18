@@ -25,6 +25,11 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **Repeating tasks** | Every day, weekday, week, 2 weeks or month, on a fixed schedule ("report every Friday") or counted from when you finish ("water plants a week after last time"). The next one waits in **Coming up** until its day, so finishing laundry doesn't put laundry straight back in front of you. |
 | **Reminders (Android)** | A countdown in your notifications while you focus, plus a "time's up" alert even if you've switched apps. Check-in nudges ("pick one thing?") at times you choose, skipped for 90 minutes after you've started or finished something. Settings → Reminders. |
 | **Undo** | **Mark done**, Archive and Delete from the task list each show an Undo bar. Undoing a done also takes back its XP and the next copy of a repeating task. |
+| **Waiting on someone** | Park a task with who it's waiting on and when to check back. On the day it moves to **Check back** at the top of Tasks (and Android reminds you): back to your list, still waiting, or done. |
+| **Real task lengths** | After 5 tasks timed with the focus timer, Unstuck learns how long things really take you ("about 1.6× your guess") and picks tasks that truly fit your time. See Progress. |
+| **Evening wrap-up** | 3 minutes at night (Android reminds you, or tap **Wrap up** on Home after 5 pm): today's wins, what's still open, and tomorrow's first thing, which then shows first on Home in the morning. |
+| **Share and voice** | On Android, share text from any app to **Unstuck** to make it a task. The mic in Quick add types what you say (Android, Mac, and Chrome/Safari). |
+| **Home-screen widget (Android)** | Long-press your home screen → Widgets → Unstuck: the current pick with **Start**, plus **+** to add a task. It updates whenever the app is open. |
 | **Patient-info guard** | Work tasks that look like PHI (DOB, MRN, "pt Jane Doe") show a warning to use initials or a ticket number instead. |
 
 ### Sync between devices (Phase 2)

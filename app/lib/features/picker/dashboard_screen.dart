@@ -15,6 +15,7 @@ import '../gamification/progress_controller.dart';
 import '../motivation/quote_rotator.dart';
 import '../motivation/quote_service.dart';
 import '../tasks/tasks_controller.dart';
+import '../tasks/waiting_sheet.dart';
 import 'picker_controller.dart';
 import 'picker_engine.dart';
 
@@ -105,6 +106,7 @@ class DashboardScreen extends ConsumerWidget {
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     child: _SituationBar(),
                   ),
+                  const _CheckBackBanner(),
                   const SizedBox(height: 20),
                   AnimatedSwitcher(
                     duration: Duration(
@@ -281,8 +283,10 @@ class _TaskCard extends StatelessWidget {
     final s = context.spec;
     final t = suggestion.task;
     final now = DateTime.now();
-    final time = suggestion.plannedMin != t.estimateMin
+    final time = suggestion.isChunk
         ? '${suggestion.plannedMin} of ${t.estimateMin} min'
+        : suggestion.plannedMin != t.estimateMin
+        ? '~${suggestion.plannedMin} min'
         : formatMinutes(t.estimateMin);
     final meta = [
       time,
@@ -501,6 +505,27 @@ class _TodayLine extends ConsumerWidget {
               ],
             ),
           ),
+          if (now.hour >= 17) ...[
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => context.push('/wrapup'),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 12,
+                ),
+                child: Text(
+                  'Wrap up',
+                  style: style.copyWith(
+                    color: s.primary,
+                    decoration: TextDecoration.underline,
+                    decorationColor: s.primary,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
           InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: () => overwhelm(context, ref),
@@ -640,7 +665,10 @@ class _CommitPanel extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          TaskMeta(task: c.task, plannedMin: c.plannedMin),
+                          TaskMeta(
+                            task: c.task,
+                            plannedMin: c.isChunk ? c.plannedMin : null,
+                          ),
                         ],
                       ),
                     ),
@@ -744,6 +772,48 @@ class _NothingPanel extends ConsumerWidget {
           const SizedBox(height: 20),
           Wrap(spacing: 10, runSpacing: 10, children: actions),
         ],
+      ),
+    );
+  }
+}
+
+/// "Check back on 2 waiting tasks": shown only when a follow-up is due.
+class _CheckBackBanner extends ConsumerWidget {
+  const _CheckBackBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final now = ref.read(clockProvider)();
+    final due = ref
+        .watch(tasksProvider)
+        .where((t) => followUpDue(t, now))
+        .toList();
+    if (due.isEmpty) return const SizedBox.shrink();
+    final text = due.length == 1
+        ? 'Check back: ${due.single.waitingOn.isEmpty ? due.single.title : due.single.waitingOn}'
+        : 'Check back on ${due.length} waiting tasks';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
+      child: Panel(
+        radius: 14,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        onTap: () => context.go('/tasks'),
+        child: Row(
+          children: [
+            Icon(Icons.mark_email_unread_outlined, size: 18, color: s.warning),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 15, color: s.text2),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 20, color: s.faint),
+          ],
+        ),
       ),
     );
   }

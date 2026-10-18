@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'android_reminders.dart';
 import 'platform_stub.dart' if (dart.library.io) 'platform_io.dart';
 
-/// One scheduled "pick one thing?" prompt.
+/// One scheduled notification: a check-in nudge, a follow-up on a waiting
+/// task, or the evening wrap-up. Tapping it opens [route].
 class Nudge {
-  const Nudge(this.at, this.message);
+  const Nudge(this.at, this.message, {this.title = 'Unstuck', this.route});
   final DateTime at;
   final String message;
+  final String title;
+  final String? route;
 }
 
 /// What the app needs from system notifications. Android gets the real
@@ -35,6 +38,10 @@ abstract class Reminders {
 
   /// Replaces all previously scheduled nudges.
   Future<void> scheduleNudges(List<Nudge> nudges);
+
+  /// Routes from tapped notifications, including the one that launched the
+  /// app (delivered once, after the first listen).
+  Stream<String> get opened;
 }
 
 class NoReminders implements Reminders {
@@ -61,6 +68,8 @@ class NoReminders implements Reminders {
   Future<void> focusEnded() async {}
   @override
   Future<void> scheduleNudges(List<Nudge> nudges) async {}
+  @override
+  Stream<String> get opened => const Stream.empty();
 }
 
 final remindersProvider = Provider<Reminders>(

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -40,14 +42,36 @@ const _nudgeChannel = AndroidNotificationDetails(
 
 class AndroidReminders implements Reminders {
   final _plugin = FlutterLocalNotificationsPlugin();
+  final _opened = StreamController<String>.broadcast();
   Future<void>? _init;
 
-  Future<AndroidFlutterLocalNotificationsPlugin?> _android() async {
-    await (_init ??= _plugin.initialize(
+  Future<void> _initialize() async {
+    await _plugin.initialize(
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('ic_stat_focus'),
       ),
-    ));
+      onDidReceiveNotificationResponse: (r) {
+        final route = r.payload;
+        if (route != null && route.startsWith('/')) _opened.add(route);
+      },
+    );
+  }
+
+  @override
+  Stream<String> get opened async* {
+    await _android();
+    final launch = await _plugin.getNotificationAppLaunchDetails();
+    final route = launch?.notificationResponse?.payload;
+    if ((launch?.didNotificationLaunchApp ?? false) &&
+        route != null &&
+        route.startsWith('/')) {
+      yield route;
+    }
+    yield* _opened.stream;
+  }
+
+  Future<AndroidFlutterLocalNotificationsPlugin?> _android() async {
+    await (_init ??= _initialize());
     return _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -138,8 +162,9 @@ class AndroidReminders implements Reminders {
       if (!n.at.isAfter(now)) continue;
       await _plugin.zonedSchedule(
         id: id++,
-        title: 'Unstuck',
+        title: n.title,
         body: n.message,
+        payload: n.route,
         // An absolute instant, worked out in local time by the caller, so
         // daylight-saving changes need no time zone database here.
         scheduledDate: tz.TZDateTime.from(n.at, tz.UTC),

@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Voice capture in Quick add, only while the mic button is on. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!-- "Time's up" should arrive on time, not minutes later. Timer apps
          get USE_EXACT_ALARM without a prompt on Android 13+; Android 12
          uses SCHEDULE_EXACT_ALARM, which it grants by default. -->
@@ -19,8 +21,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
-            android:taskAffinity=""
+            android:launchMode="singleTask"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
@@ -37,7 +38,29 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- "Share → Unstuck" from any app: the text becomes a task. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
+            <!-- Shares and widget taps are handled in Dart over a method
+                 channel, not by Flutter's deep-link routing. -->
+            <meta-data
+                android:name="flutter_deeplinking_enabled"
+                android:value="false"/>
         </activity>
+        <!-- Home-screen widget: the current pick with a Start button. -->
+        <receiver
+            android:name=".PickWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pick_widget_info"/>
+        </receiver>
         <!-- Deliver scheduled notifications, and re-schedule them after a
              reboot or an app update. -->
         <receiver
@@ -73,6 +96,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Voice capture uses the phone's speech recognizer. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>

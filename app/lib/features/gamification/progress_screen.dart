@@ -5,6 +5,9 @@ import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
 import '../../widgets/task_chips.dart';
 import '../../widgets/ui.dart';
+import '../../data/models/task.dart';
+import '../insights/estimate_calibration.dart';
+import '../picker/picker_controller.dart';
 import 'achievements.dart';
 import 'progress_controller.dart';
 import 'xp_rules.dart';
@@ -138,6 +141,8 @@ class ProgressScreen extends ConsumerWidget {
               style: TextStyle(color: s.muted, fontSize: 13, height: 1.4),
             ),
           ),
+          const SizedBox(height: 22),
+          const _EstimatesCard(),
           const SizedBox(height: 26),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -297,4 +302,76 @@ String _ago(DateTime at, DateTime now) {
   if (d.inMinutes < 60) return '${d.inMinutes}m ago';
   if (d.inHours < 24) return '${d.inHours}h ago';
   return '${d.inDays}d ago';
+}
+
+/// "Tasks take you about 1.4× your guess": what the picker has learned.
+class _EstimatesCard extends ConsumerWidget {
+  const _EstimatesCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final c = ref.watch(calibrationProvider);
+    String line(Calibration k) {
+      if (!k.meaningful) return 'about what you guess';
+      return k.factor > 1
+          ? 'about ${k.factor.toStringAsFixed(1)}× your guess'
+          : 'about ${(k.factor * 100).round()}% of your guess';
+    }
+
+    final String body;
+    final rows = <(String, String)>[];
+    if (c.overall.samples < Calibration.minSamples) {
+      final left = Calibration.minSamples - c.overall.samples;
+      body =
+          'Finish $left more ${left == 1 ? 'task' : 'tasks'} with the focus '
+          'timer and Unstuck learns how long things really take you, then '
+          'picks tasks that truly fit your time.';
+    } else {
+      body =
+          'From your last ${c.overall.samples} timed tasks. The picker uses '
+          'this to fit tasks to your time.';
+      for (final w in Workspace.values) {
+        final k = c.byWorkspace[w];
+        if (k != null && k.samples >= Calibration.minSamples) {
+          rows.add((w.label, line(k)));
+        }
+      }
+      // One workspace alone just repeats the headline.
+      if (rows.length < 2) rows.clear();
+    }
+    return Panel(
+      radius: 22,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'How long things really take',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: s.onSurface,
+            ),
+          ),
+          if (c.overall.samples >= Calibration.minSamples) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Tasks take you ${line(c.overall)}',
+              style: s.display(24, weight: FontWeight.w600),
+            ),
+            for (final (label, text) in rows)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('$label: $text', style: s.mono(13, color: s.text2)),
+              ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            body,
+            style: TextStyle(fontSize: 13, color: s.muted, height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
 }

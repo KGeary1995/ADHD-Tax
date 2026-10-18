@@ -83,6 +83,8 @@ class Task {
     this.lastSkippedAt,
     this.repeat = Repeat.none,
     this.repeatFromDone = false,
+    this.waitingOn = '',
+    this.followUpAt,
   }) : assert(ugh >= 0 && ugh <= 3);
 
   final String id;
@@ -122,6 +124,12 @@ class Task {
   /// a week after last time"), not from the due date ("report every Friday").
   final bool repeatFromDone;
 
+  /// Who or what a "Waiting on someone" task is waiting for.
+  final String waitingOn;
+
+  /// When to check back on a waiting task.
+  final DateTime? followUpAt;
+
   bool get isOpen =>
       status == TaskStatus.inbox ||
       status == TaskStatus.todo ||
@@ -154,6 +162,8 @@ class Task {
     Object? lastSkippedAt = _unset,
     Repeat? repeat,
     bool? repeatFromDone,
+    String? waitingOn,
+    Object? followUpAt = _unset,
   }) {
     return Task(
       id: id,
@@ -191,6 +201,10 @@ class Task {
           : lastSkippedAt as DateTime?,
       repeat: repeat ?? this.repeat,
       repeatFromDone: repeatFromDone ?? this.repeatFromDone,
+      waitingOn: waitingOn ?? this.waitingOn,
+      followUpAt: identical(followUpAt, _unset)
+          ? this.followUpAt
+          : followUpAt as DateTime?,
     );
   }
 
@@ -220,6 +234,8 @@ class Task {
     'lastSkippedAt': lastSkippedAt?.toIso8601String(),
     'repeat': repeat.name,
     'repeatFromDone': repeatFromDone,
+    'waitingOn': waitingOn,
+    'followUpAt': followUpAt?.toIso8601String(),
   };
 
   factory Task.fromJson(Map<String, Object?> j) {
@@ -254,6 +270,8 @@ class Task {
       lastSkippedAt: date('lastSkippedAt'),
       repeat: byName(Repeat.values, 'repeat', Repeat.none),
       repeatFromDone: j['repeatFromDone'] as bool? ?? false,
+      waitingOn: j['waitingOn'] as String? ?? '',
+      followUpAt: date('followUpAt'),
     );
   }
 

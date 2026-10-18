@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../data/models/task.dart';
+import '../settings/settings_controller.dart';
 import '../tasks/tasks_controller.dart';
+import '../insights/estimate_calibration.dart';
 import 'picker_engine.dart';
 
 /// Time-available chips on the dashboard, in minutes.
@@ -75,12 +77,22 @@ class PickerInputsController extends Notifier<PickerInputs> {
 
 const pickerEngine = PickerEngine();
 
-PickerContext _context(PickerInputs i, DateTime now) => PickerContext(
+PickerContext _context(
+  PickerInputs i,
+  DateTime now, [
+  Calibrations calibration = const Calibrations(),
+]) => PickerContext(
   availableMin: i.availableMin,
   willingToLeave: i.willingToLeave,
   energy: i.energy,
   workspaces: i.workspaces,
   now: now,
+  calibration: calibration,
+);
+
+/// How long tasks really take you compared with your estimates.
+final calibrationProvider = Provider<Calibrations>(
+  (ref) => calibrate(ref.watch(tasksProvider)),
 );
 
 /// The one task the dashboard shows.
@@ -88,11 +100,33 @@ final pickResultProvider = Provider<PickResult>((ref) {
   final tasks = ref.watch(tasksProvider);
   final inputs = ref.watch(pickerInputsProvider);
   final now = ref.read(clockProvider)();
-  return pickerEngine.pick(
-    tasks,
-    _context(inputs, now),
-    exclude: inputs.rejected,
-  );
+  final ctx = _context(inputs, now, ref.watch(calibrationProvider));
+  // Chosen in last night's wrap-up: first, until done or passed on.
+  final pinnedId = ref.watch(settingsProvider.select((s) => s.pinnedFor(now)));
+  final pinned = pinnedId == null || inputs.rejected.contains(pinnedId)
+      ? null
+      : tasks
+            .where(
+              (t) =>
+                  t.id == pinnedId &&
+                  t.isOpen &&
+                  inputs.workspaces.contains(t.workspace),
+            )
+            .firstOrNull;
+  if (pinned != null) {
+    final real = ctx.realMinutes(pinned);
+    final chunk = real > inputs.availableMin && pinned.chunkable;
+    return PickResult.found(
+      Suggestion(
+        task: pinned,
+        score: double.infinity,
+        plannedMin: chunk ? inputs.availableMin : real,
+        isChunk: chunk,
+        reasons: const ['You chose this last night'],
+      ),
+    );
+  }
+  return pickerEngine.pick(tasks, ctx, exclude: inputs.rejected);
 });
 
 /// "Pick one of these 3 and commit" after too many rerolls. Rejected tasks
@@ -106,7 +140,10 @@ final commitChoicesProvider = Provider<List<Suggestion>>((ref) {
     for (final t in tasks)
       inputs.rejected.contains(t.id) ? t.copyWith(lastSkippedAt: null) : t,
   ];
-  return pickerEngine.rank(unpenalized, _context(inputs, now)).take(3).toList();
+  return pickerEngine
+      .rank(unpenalized, _context(inputs, now, ref.watch(calibrationProvider)))
+      .take(3)
+      .toList();
 });
 
 /// Overwhelm mode suggestion. Ignores the time limit: any task is fair

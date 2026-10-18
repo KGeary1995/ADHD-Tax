@@ -11,18 +11,25 @@ import '../../widgets/ui.dart';
 import '../picker/picker_controller.dart';
 import '../safety/phi_warning.dart';
 import '../tasks/tasks_controller.dart';
+import 'voice_input.dart';
 
 /// Five-second capture. Only the title is required.
 Future<void> showQuickAdd(
   BuildContext context, {
   bool brainDump = false,
+  String initialTitle = '',
+  String initialNotes = '',
 }) async {
   final startNow = await showModalBottomSheet<Task>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     constraints: const BoxConstraints(maxWidth: 640),
-    builder: (_) => QuickAddSheet(brainDump: brainDump),
+    builder: (_) => QuickAddSheet(
+      brainDump: brainDump,
+      initialTitle: initialTitle,
+      initialNotes: initialNotes,
+    ),
   );
   if (startNow != null && context.mounted) {
     openFocus(context, startNow.id, minutes: startNow.estimateMin);
@@ -30,15 +37,25 @@ Future<void> showQuickAdd(
 }
 
 class QuickAddSheet extends ConsumerStatefulWidget {
-  const QuickAddSheet({super.key, this.brainDump = false});
+  const QuickAddSheet({
+    super.key,
+    this.brainDump = false,
+    this.initialTitle = '',
+    this.initialNotes = '',
+  });
   final bool brainDump;
+
+  /// Prefilled, e.g. from text shared from another app.
+  final String initialTitle;
+  final String initialNotes;
 
   @override
   ConsumerState<QuickAddSheet> createState() => _QuickAddSheetState();
 }
 
 class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
-  final _title = TextEditingController();
+  late final _title = TextEditingController(text: widget.initialTitle);
+  late String _notes = widget.initialNotes;
   late bool _brainDump = widget.brainDump;
   int _estimate = 15;
   Priority _priority = Priority.p3;
@@ -88,6 +105,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       requiresLeavingHouse: _leave,
       ugh: _ugh,
       workspace: _workspace,
+      notes: _notes,
     );
     Navigator.pop(context, start ? t : null);
   }
@@ -103,6 +121,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       requiresLeavingHouse: _leave,
       ugh: _ugh,
       workspace: _workspace,
+      notes: _notes,
       createdAt: now,
       updatedAt: now,
     );
@@ -199,9 +218,41 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                       hintText: _brainDump
                           ? 'Everything in your head, one per line.\nDon\'t sort it. Just get it out.'
                           : 'What needs doing?',
+                      suffixIcon: VoiceButton(
+                        controller: _title,
+                        newLine: _brainDump,
+                      ),
                     ),
                   ),
-                  PhiWarning(text: _title.text, workspace: _workspace),
+                  if (_notes.isNotEmpty && !_brainDump)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.notes_rounded, size: 16, color: s.muted),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Note: $_notes',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 13, color: s.muted),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Remove note',
+                            visualDensity: VisualDensity.compact,
+                            iconSize: 18,
+                            onPressed: () => setState(() => _notes = ''),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ],
+                      ),
+                    ),
+                  PhiWarning(
+                    text: '${_title.text}\n$_notes',
+                    workspace: _workspace,
+                  ),
                   if (!_brainDump) ...[
                     section(
                       'How long?',

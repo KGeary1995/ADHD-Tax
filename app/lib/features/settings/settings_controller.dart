@@ -29,6 +29,10 @@ class AppSettings {
     this.nudgeTimes = const [8 * 60 + 45, 13 * 60 + 15],
     this.nudgeWeekdaysOnly = false,
     this.askedForNotifications = false,
+    this.wrapUp = true,
+    this.wrapUpTime = 20 * 60 + 30,
+    this.pinnedTaskId,
+    this.pinnedDay,
   });
 
   final Appearance appearance;
@@ -53,6 +57,16 @@ class AppSettings {
   /// After that it's only shown when the user asks for it in Settings.
   final bool askedForNotifications;
 
+  /// Evening "wrap up the day?" reminder (Android) at [wrapUpTime],
+  /// minutes after midnight.
+  final bool wrapUp;
+  final int wrapUpTime;
+
+  /// Tomorrow's first thing, chosen in the evening wrap-up: shown first on
+  /// Home on [pinnedDay] (yyyy-mm-dd). Device-local, like all settings.
+  final String? pinnedTaskId;
+  final String? pinnedDay;
+
   AppSettings copyWith({
     Appearance? appearance,
     CelebrationLevel? celebration,
@@ -63,6 +77,8 @@ class AppSettings {
     List<int>? nudgeTimes,
     bool? nudgeWeekdaysOnly,
     bool? askedForNotifications,
+    bool? wrapUp,
+    int? wrapUpTime,
   }) => AppSettings(
     appearance: appearance ?? this.appearance,
     celebration: celebration ?? this.celebration,
@@ -73,7 +89,34 @@ class AppSettings {
     nudgeTimes: nudgeTimes ?? this.nudgeTimes,
     nudgeWeekdaysOnly: nudgeWeekdaysOnly ?? this.nudgeWeekdaysOnly,
     askedForNotifications: askedForNotifications ?? this.askedForNotifications,
+    wrapUp: wrapUp ?? this.wrapUp,
+    wrapUpTime: wrapUpTime ?? this.wrapUpTime,
+    pinnedTaskId: pinnedTaskId,
+    pinnedDay: pinnedDay,
   );
+
+  /// Pins a task as tomorrow's first thing ([taskId] null clears it).
+  AppSettings pinForTomorrow(String? taskId, DateTime now) => AppSettings(
+    appearance: appearance,
+    celebration: celebration,
+    quoteSeconds: quoteSeconds,
+    phiGuard: phiGuard,
+    timerAlerts: timerAlerts,
+    nudges: nudges,
+    nudgeTimes: nudgeTimes,
+    nudgeWeekdaysOnly: nudgeWeekdaysOnly,
+    askedForNotifications: askedForNotifications,
+    wrapUp: wrapUp,
+    wrapUpTime: wrapUpTime,
+    pinnedTaskId: taskId,
+    pinnedDay: taskId == null
+        ? null
+        : dayKeyOf(DateTime(now.year, now.month, now.day + 1)),
+  );
+
+  /// The pinned task id, if it was pinned for [now]'s day.
+  String? pinnedFor(DateTime now) =>
+      pinnedDay == dayKeyOf(now) ? pinnedTaskId : null;
 
   Map<String, Object?> toJson() => {
     'appearance': appearance.name,
@@ -85,6 +128,10 @@ class AppSettings {
     'nudgeTimes': nudgeTimes,
     'nudgeWeekdaysOnly': nudgeWeekdaysOnly,
     'askedForNotifications': askedForNotifications,
+    'wrapUp': wrapUp,
+    'wrapUpTime': wrapUpTime,
+    'pinnedTaskId': pinnedTaskId,
+    'pinnedDay': pinnedDay,
   };
 
   factory AppSettings.fromJson(Map<String, Object?> j) => AppSettings(
@@ -104,6 +151,13 @@ class AppSettings {
         : const [8 * 60 + 45, 13 * 60 + 15],
     nudgeWeekdaysOnly: j['nudgeWeekdaysOnly'] as bool? ?? false,
     askedForNotifications: j['askedForNotifications'] as bool? ?? false,
+    wrapUp: j['wrapUp'] as bool? ?? true,
+    wrapUpTime: switch (j['wrapUpTime']) {
+      final int m when m >= 0 && m < 24 * 60 => m,
+      _ => 20 * 60 + 30,
+    },
+    pinnedTaskId: j['pinnedTaskId'] as String?,
+    pinnedDay: j['pinnedDay'] as String?,
   );
 }
 
@@ -138,3 +192,7 @@ Appearance _appearanceFromJson(Map<String, Object?> j) {
     _ => Appearance.dark,
   };
 }
+
+String dayKeyOf(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+    '${d.day.toString().padLeft(2, '0')}';

@@ -7,6 +7,7 @@ library;
 import 'dart:math' as math;
 
 import '../../data/models/task.dart';
+import '../insights/estimate_calibration.dart';
 
 class PickerContext {
   const PickerContext({
@@ -15,6 +16,7 @@ class PickerContext {
     required this.now,
     this.energy,
     this.workspaces = const {Workspace.personal, Workspace.work},
+    this.calibration = const Calibrations(),
   });
 
   final int availableMin;
@@ -24,6 +26,13 @@ class PickerContext {
   /// Null means "didn't say" — energy is then ignored in scoring.
   final Energy? energy;
   final Set<Workspace> workspaces;
+
+  /// How long tasks really take you, learned from timed sessions. Tasks
+  /// are fitted to your time by their real length, not the estimate.
+  final Calibrations calibration;
+
+  int realMinutes(Task t) =>
+      calibration.forWorkspace(t.workspace).realMinutes(t.estimateMin);
 }
 
 class PickerWeights {
@@ -98,7 +107,7 @@ class PickerEngine {
     final out = <Suggestion>[];
     for (final t in tasks) {
       if (exclude.contains(t.id) || !_isCandidate(t, ctx)) continue;
-      final fits = t.estimateMin <= ctx.availableMin;
+      final fits = ctx.realMinutes(t) <= ctx.availableMin;
       final canChunk = t.chunkable && ctx.availableMin >= minChunkMin;
       if (!fits && !canChunk) continue;
       out.add(_score(t, ctx, isChunk: !fits));
@@ -211,11 +220,16 @@ class PickerEngine {
       ),
     );
 
+    final real = ctx.realMinutes(t);
+    if (real != t.estimateMin) {
+      parts.add(_Part(0, 'Tasks like this usually take you ~$real min'));
+    }
+
     final double fit;
     if (isChunk) {
       fit = 0.5;
     } else {
-      fit = 0.3 + 0.7 * (t.estimateMin / math.max(ctx.availableMin, 1));
+      fit = 0.3 + 0.7 * (real / math.max(ctx.availableMin, 1));
     }
     parts.add(
       _Part(
@@ -278,7 +292,7 @@ class PickerEngine {
     return Suggestion(
       task: t,
       score: score,
-      plannedMin: isChunk ? ctx.availableMin : t.estimateMin,
+      plannedMin: isChunk ? ctx.availableMin : real,
       isChunk: isChunk,
       reasons: [for (final p in reasoned) p.reason!],
     );

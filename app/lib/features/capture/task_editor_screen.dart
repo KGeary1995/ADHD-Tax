@@ -40,6 +40,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   late final TextEditingController _notes;
   late final TextEditingController _location;
   late final TextEditingController _estimate;
+  late final TextEditingController _waitingOn;
 
   @override
   void initState() {
@@ -59,11 +60,19 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       ..addListener(() => setState(() {}));
     _location = TextEditingController(text: _task.location);
     _estimate = TextEditingController(text: '${_task.estimateMin}');
+    _waitingOn = TextEditingController(text: _task.waitingOn);
   }
 
   @override
   void dispose() {
-    for (final c in [_title, _firstStep, _notes, _location, _estimate]) {
+    for (final c in [
+      _title,
+      _firstStep,
+      _notes,
+      _location,
+      _estimate,
+      _waitingOn,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -80,6 +89,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       notes: _notes.text,
       location: _location.text.trim(),
       estimateMin: estimate,
+      waitingOn: _waitingOn.text.trim(),
     );
     tasks.save(t);
     _close();
@@ -128,6 +138,23 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       setState(
         () =>
             _task = _task.copyWith(dueAt: DateTime(d.year, d.month, d.day, 17)),
+      );
+    }
+  }
+
+  Future<void> _pickFollowUp() async {
+    final now = ref.read(clockProvider)();
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _task.followUpAt ?? now.add(const Duration(days: 1)),
+      firstDate: now.subtract(const Duration(days: 30)),
+      lastDate: now.add(const Duration(days: 365)),
+    );
+    if (d != null) {
+      setState(
+        () => _task = _task.copyWith(
+          followUpAt: DateTime(d.year, d.month, d.day, 9),
+        ),
       );
     }
   }
@@ -441,6 +468,45 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                         },
                       ),
                     ),
+                    if (_task.status == TaskStatus.waiting) ...[
+                      field(
+                        'Waiting on',
+                        TextField(
+                          controller: _waitingOn,
+                          decoration: const InputDecoration(
+                            hintText: 'e.g. Insurance callback, IT ticket',
+                          ),
+                        ),
+                      ),
+                      field(
+                        'Check back',
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _pickFollowUp,
+                              icon: const Icon(Icons.event_outlined),
+                              label: Text(
+                                _task.followUpAt == null
+                                    ? 'Pick a date'
+                                    : MaterialLocalizations.of(context)
+                                          .formatMediumDate(_task.followUpAt!),
+                              ),
+                            ),
+                            if (_task.followUpAt != null)
+                              TextButton(
+                                onPressed: () => setState(
+                                  () =>
+                                      _task = _task.copyWith(followUpAt: null),
+                                ),
+                                child: const Text('No reminder'),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),

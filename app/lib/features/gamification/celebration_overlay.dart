@@ -89,6 +89,7 @@ class _CelebrationOverlayState extends ConsumerState<CelebrationOverlay> {
       // Defer to after the current frame, and make sure one is coming.
       WidgetsBinding.instance
         ..addPostFrameCallback((_) {
+          if (!mounted) return;
           final cur = _current;
           // A finish shouldn't wait behind a "you started" toast.
           if (cur != null && !cur.isBig && q.length > 1) {

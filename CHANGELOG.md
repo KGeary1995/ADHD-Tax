@@ -2,7 +2,15 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-18 (Android, Mac)
+## Next build — 2026-10-18 — follow-ups, wrap-up, widget (Android, Mac)
+- **Waiting on someone**: say who it's waiting on and when to check back. On the day it jumps to **Check back** at the top of Tasks (Home shows a reminder line, Android notifies): back to your list, still waiting, or done.
+- **Real task lengths**: after 5 tasks timed with the focus timer, Unstuck learns how long things really take you and picks tasks that truly fit your time. Progress shows "Tasks take you about 1.6× your guess".
+- **Evening wrap-up** (8:30 PM reminder on Android, or **Wrap up** on Home after 5 pm): today's wins, what's still open, and tomorrow's first thing, which shows first on Home the next morning. Settings → Reminders to change the time or turn it off.
+- **Share → Unstuck** (Android): share text from any app; the first line becomes the task, the rest its note.
+- **Voice**: tap the mic in Quick add and say the task (Android, Mac, Chrome/Safari). Android and Mac ask for microphone permission the first time.
+- **Home-screen widget** (Android): the current pick with Start, and + to add.
+
+## Build 29 — 2026-10-18 (ab500f5) (Android, Mac)
 - The rotating quote is back on Home, between the task and the bottom bar. Tap it for the next one; it switches to dread-busting quotes when the pick is one you rated "Ugh" or worse.
 
 ## Build 27 — 2026-10-18 (dafab77) — new look (Android, Mac)

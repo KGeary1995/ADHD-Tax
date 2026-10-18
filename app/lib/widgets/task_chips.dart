@@ -51,6 +51,10 @@ class TaskMeta extends StatelessWidget {
 
 /// The facts [TaskMeta] lists after the due date.
 List<String> taskFacts(Task t, {int? plannedMin}) => [
+  if (t.status == TaskStatus.waiting && t.waitingOn.isNotEmpty)
+    'Waiting on ${t.waitingOn}',
+  if (t.status == TaskStatus.waiting && t.followUpAt != null)
+    'Check back ${formatDue(t.followUpAt!, DateTime.now())}',
   plannedMin != null && plannedMin != t.estimateMin
       ? '${formatMinutes(plannedMin)} of ${formatMinutes(t.estimateMin)}'
       : formatMinutes(t.estimateMin),

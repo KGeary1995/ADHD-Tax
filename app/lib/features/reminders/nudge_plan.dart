@@ -1,6 +1,7 @@
 /// When check-in nudges go off. Pure Dart.
 library;
 
+import '../../data/models/task.dart';
 import 'reminders.dart';
 
 /// Rotated so the same words don't become wallpaper.
@@ -47,3 +48,43 @@ List<Nudge> planNudges({
   }
   return out;
 }
+
+/// One reminder per waiting task with a check-back date still ahead.
+List<Nudge> planFollowUps(Iterable<Task> tasks, DateTime now) {
+  final due = [
+    for (final t in tasks)
+      if (t.status == TaskStatus.waiting &&
+          t.followUpAt != null &&
+          t.followUpAt!.isAfter(now))
+        t,
+  ]..sort((a, b) => a.followUpAt!.compareTo(b.followUpAt!));
+  return [
+    for (final t in due.take(30))
+      Nudge(
+        t.followUpAt!,
+        t.waitingOn.isEmpty
+            ? '${t.title}: any news?'
+            : '${t.title}: any news from ${t.waitingOn}?',
+        title: 'Time to check back',
+        route: '/tasks',
+      ),
+  ];
+}
+
+/// "Wrap up the day?" at [time] (minutes after midnight) for the coming
+/// [days].
+List<Nudge> planWrapUps({
+  required int time,
+  required DateTime now,
+  int days = nudgeDays,
+}) => [
+  for (var d = 0; d < days; d++)
+    if (DateTime(now.year, now.month, now.day + d, time ~/ 60, time % 60)
+        case final at when at.isAfter(now))
+      Nudge(
+        at,
+        "3 minutes: today's wins, the leftovers, and tomorrow's first thing.",
+        title: 'Wrap up the day?',
+        route: '/wrapup',
+      ),
+];

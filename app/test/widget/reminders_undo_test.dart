@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:adhd_tax/app.dart';
 import 'package:adhd_tax/data/models/task.dart';
 import 'package:adhd_tax/features/gamification/progress_controller.dart';
@@ -45,6 +47,10 @@ class FakeReminders implements Reminders {
     calls.add('nudges');
     nudges = n;
   }
+
+  final taps = StreamController<String>.broadcast();
+  @override
+  Stream<String> get opened => taps.stream;
 }
 
 const _phone = Size(390, 844);
@@ -64,8 +70,14 @@ void main() {
     expect(c.read(settingsProvider).askedForNotifications, isTrue);
     expect(fake.nudges, isNotEmpty);
 
-    // Turning nudges off clears them.
+    // The evening wrap-up is scheduled too, and opens its screen.
+    expect(fake.nudges.where((n) => n.route == '/wrapup'), isNotEmpty);
+
+    // Turning check-ins off clears them; the wrap-up has its own switch.
     c.read(settingsProvider.notifier).update((s) => s.copyWith(nudges: false));
+    await tester.pump(const Duration(seconds: 1));
+    expect(fake.nudges.where((n) => n.route == null), isEmpty);
+    c.read(settingsProvider.notifier).update((s) => s.copyWith(wrapUp: false));
     await tester.pump(const Duration(seconds: 1));
     expect(fake.nudges, isEmpty);
   });

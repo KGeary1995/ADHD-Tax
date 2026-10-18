@@ -56,6 +56,11 @@ const tasks = [
   T('5', 'Laundry', { estimateMin: 30, energy: 'low', repeat: 'weekly' }),
   T('6', 'Pick up prescription', { requiresLeavingHouse: true, location: 'Pharmacy' }),
   T('7', 'Weekly huddle notes', { workspace: 'work', repeat: 'weekly', dueAt: iso(now + 6 * day), scheduledStart: iso(now + 4 * day) }),
+  T('8', 'Prior auth for Thursday clinic', { workspace: 'work', status: 'waiting', waitingOn: 'Insurance callback', followUpAt: iso(now - 36e5) }),
+  T('9', 'Order new label printer', { workspace: 'work', status: 'waiting', waitingOn: 'IT ticket', followUpAt: iso(now + 3 * day) }),
+  // Finished with the timer, so "How long things really take" has data.
+  ...[20, 25, 30, 18, 40, 22].map((a, i) => T(`d${i}`, `Timed task ${i + 1}`, {
+    status: 'done', estimateMin: 15, actualMin: a, completedAt: iso(now - (i + 1) * day), createdAt: iso(now - (i + 2) * day) })),
 ];
 const progress = {
   xp: 640, coins: 61, started: 25, completed: 19, ughCompleted: 4, accurateEstimates: 6, oldTasksCleared: 2,

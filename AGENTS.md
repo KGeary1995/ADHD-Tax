@@ -20,11 +20,13 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Phase 2: Google sign-in + Drive sync | Code done; CI injects keys from secrets | **No.** Owner hasn't created the Google Cloud keys yet (see docs/DEPLOYMENT.md §Google) |
 | Phone layout fixes, full task form, back button | Done | Android: reported working |
 | Repeating tasks, Mark done + Undo, Android reminders | Done | Not yet reported |
+| Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | Not yet (web screenshots and tests) |
+| Android home-screen widget, Share → Unstuck | Done | **No.** Native code only compiles in CI; nothing runs it here |
 | iPhone (home-screen web app) | Done; needs Cloudflare secrets to publish | No (Chromium emulation only) |
 | Mac app | Builds and publishes on `[mac]` pushes | **Yes**: opens and works after "Open Anyway" (Build 21, still named ADHD Tax) |
 | Phase 3+ (Calendar, board/table views, AI) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-18 (redesign: one look in light and dark).
+Last updated: 2026-10-18 (follow-ups, real task lengths, wrap-up, share, voice, widget).
 
 ## Toolchain
 
@@ -41,7 +43,7 @@ Last updated: 2026-10-18 (redesign: one look in light and dark).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 131 tests, ~20 s
+flutter test                         # 145 tests, ~20 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
@@ -90,7 +92,7 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 
 - **No PHI anywhere**: no patient names, dates of birth or MRNs in code, tests, fixtures, docs, commit messages or screenshots. Demo data uses generic tasks. The in-app PHI guard (`features/safety/phi_guard.dart`) is a warning, not a control.
 - **Keep the sync data model backward compatible.** Devices run different builds. New `Task` fields must have defaults in `Task.fromJson`; never rename or reuse a field. Never rewrite or delete XP events: revoke one by tombstoning it (`ProgressController.revoke`).
-- **Pure logic stays pure Dart** (no Flutter imports): `picker_engine.dart`, `recurrence.dart`, `nudge_plan.dart`, `xp_rules.dart`, `achievements.dart`, `progress_event.dart`, `phi_guard.dart`, `quote_service.dart`, `hlc.dart`, `replica.dart`, `sync_engine.dart`. Test them with plain unit tests.
+- **Pure logic stays pure Dart** (no Flutter imports): `picker_engine.dart`, `recurrence.dart`, `nudge_plan.dart`, `xp_rules.dart`, `achievements.dart`, `progress_event.dart`, `phi_guard.dart`, `quote_service.dart`, `hlc.dart`, `replica.dart`, `sync_engine.dart`, `estimate_calibration.dart`. Test them with plain unit tests.
 - **Phone first.** Every screen must work at 360×800 with 1.3× text (`test/widget/narrow_layout_test.dart` enforces this for the capture screens). Prefer wrapping `ChoiceGroup` pills over `SegmentedButton`.
 - **One look.** Colors, fonts and type styles come from `core/theme/app_themes.dart` (`context.spec`: `display()`, `mono()`, `accent`, `primary`…) and shared pieces from `widgets/ui.dart` (`Panel`, `Group`/`GroupRow`/`SwitchRow`, `Pill`, `ChoiceGroup`, `Segmented`, `PageHeader`). Don't hard-code colors in screens, and check both light and dark. The approved design is the Claude Design canvas linked in docs/DECISIONS.md.
 - **No shame mechanics** (product principle): no red overdue walls, streaks never reset to zero, celebrations respect the Off/Subtle/Normal/Party setting, and starting earns XP.
@@ -101,6 +103,8 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - `shared_preferences_android` and `path_provider_android` are **pinned** in `dependency_overrides`; newer versions crash release builds at startup (Pigeon JNI). Don't remove the pins.
 - Android release builds must use `--no-shrink`. R8 strips plugin code that's only called from Dart.
 - Impeller is disabled in `AndroidManifest.xml` (black screen on some GPUs).
+- `MainActivity` is `singleTask` with Flutter deep linking off: shares and widget taps arrive over the `unstuck/android` channel (`features/outside/`). With the template's `singleTop` + empty `taskAffinity`, a share from another app would start a second copy of Unstuck in that app's task.
+- There's no Android SDK in cloud sessions: Kotlin and resource changes are only compiled by CI's Android job. Read them twice before pushing.
 - `main.dart` wraps startup in `runZonedGuarded` and shows `StartupErrorApp` instead of a black screen. Keep it: it's how the owner reports crashes (screenshot + "Copy details").
 - The web build uses a **custom `web/flutter_bootstrap.js`** without Flutter's service worker, which would unregister `offline.js` and reload the page in a loop.
 - Flutter web ignores iPhone safe areas and rewrites the viewport tag. `core/safe_area/` fixes both; don't remove `WebSafeArea` from `app.dart`.

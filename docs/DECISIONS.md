@@ -2,6 +2,18 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-18 — Widget shows the app's last pick; it never computes
+A home-screen widget can't run Dart, and re-implementing the picker in Kotlin would drift. The app pushes its current pick to the widget whenever it changes, so the widget can be a little stale (it reflects the situation the app last had). Good enough for a one-tap Start; tapping the card opens the app for a fresh pick.
+
+### 2026-10-18 — MainActivity is singleTask
+Needed so "Share → Unstuck" and widget taps reach the one running app (via `onNewIntent`) instead of starting a second copy inside the sharing app's task, which could write the same replicas concurrently. Trade-off: the template's empty `taskAffinity` (a task-hijacking mitigation) is gone; acceptable for a sideloaded personal app.
+
+### 2026-10-18 — Real task lengths use the median of the last 30 timed tasks
+The median ignores the odd task left running over lunch; the window follows you as you get better at estimating. Nothing changes until 5 timed tasks, or when you're within ±15%, so the picker doesn't jitter on noise. Only focus-timer minutes count (`actualMin`); tasks marked done from the list have no timing.
+
+### 2026-10-18 — Tomorrow's pick is device-local
+The wrap-up's pinned task lives in settings, not the synced replica: it's a nudge for the phone you'll pick up in the morning, and a new synced field would have to be designed for conflicting pins across devices. Revisit if the owner wraps up on the Mac and starts on the phone.
+
 ### 2026-10-18 — One look (light + dark) instead of 9 themes
 The owner said the app "feels extremely AI made". A Claude Design canvas (https://claude.ai/artifact/558G1Ms1eMZAsD1UHHwFfB) explored three directions; the owner picked a mix of B (situation as one line, quiet tiles) and C (teal task card, floating pill nav), asked for a one-line headline and a white light background. Nine themes made every screen generic, so there is now one identity: Bricolage Grotesque / Geist / Geist Mono, near-black or white, one teal. Appearance is Light / Dark / Match phone; old theme choices map to light or dark so nobody's screen flips unexpectedly. Fonts are bundled (not fetched) so the app looks the same offline and on every platform.
 

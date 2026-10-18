@@ -1,0 +1,107 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../app.dart' show routerProvider;
+import '../../data/models/task.dart';
+import '../../widgets/task_chips.dart';
+import '../capture/quick_add_sheet.dart';
+import '../picker/picker_controller.dart';
+import '../picker/picker_engine.dart';
+import 'android_bridge.dart';
+
+/// Acts on shares and widget taps, and keeps the home-screen widget
+/// showing the current pick.
+class OutsideBootstrap extends ConsumerStatefulWidget {
+  const OutsideBootstrap({super.key, required this.child});
+  final Widget child;
+
+  @override
+  ConsumerState<OutsideBootstrap> createState() => _OutsideBootstrapState();
+}
+
+class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
+  StreamSubscription<OutsideRequest>? _sub;
+  Timer? _debounce;
+  String? _lastWidget;
+
+  @override
+  void initState() {
+    super.initState();
+    // After the first frame, so the router's navigator exists.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _sub = ref.read(androidBridgeProvider).requests.listen(_handle);
+      _pushWidget(ref.read(pickResultProvider));
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _handle(OutsideRequest r) {
+    final router = ref.read(routerProvider);
+    final nav = router.routerDelegate.navigatorKey.currentContext;
+    switch (r) {
+      case SharedText():
+        if (nav == null) return;
+        final t = taskFromShare(r);
+        showQuickAdd(nav, initialTitle: t.title, initialNotes: t.notes);
+      case OpenRoute(route: '/add'):
+        if (nav != null) showQuickAdd(nav);
+      case OpenRoute(:final route) when route.startsWith('/focus/'):
+        router.push(route);
+      case OpenRoute(:final route):
+        router.go(route);
+    }
+  }
+
+  /// The widget mirrors Home's teal card.
+  void _pushWidget(PickResult result) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      final s = result.suggestion;
+      final data = s == null
+          ? {
+              'empty': result.noPickReason == NoPickReason.noOpenTasks
+                  ? 'Your list is empty. Tap + to add something.'
+                  : 'Nothing fits right now. Open Unstuck to change your situation.',
+            }
+          : _cardData(s);
+      final key = data.toString();
+      if (key == _lastWidget) return;
+      _lastWidget = key;
+      ref.read(androidBridgeProvider).updateWidget(data);
+    });
+  }
+
+  Map<String, String> _cardData(Suggestion s) {
+    final t = s.task;
+    final time = s.isChunk
+        ? '${s.plannedMin} of ${t.estimateMin} min'
+        : formatMinutes(s.plannedMin);
+    final due = t.dueAt == null
+        ? ''
+        : ' · due ${formatDue(t.dueAt!, DateTime.now())}';
+    return {
+      'title': t.title,
+      'step': t.firstStep.trim().isEmpty ? '' : 'First: ${t.firstStep.trim()}',
+      'meta': '${t.workspace.label} · $time$due',
+      'startRoute': Uri(
+        path: '/focus/${t.id}',
+        queryParameters: {'min': '${s.plannedMin}'},
+      ).toString(),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(pickResultProvider, (_, r) => _pushWidget(r));
+    return widget.child;
+  }
+}

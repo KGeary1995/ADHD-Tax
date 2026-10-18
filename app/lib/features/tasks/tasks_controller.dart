@@ -47,12 +47,14 @@ class TasksController extends Notifier<List<Task>> {
     int ugh = 0,
     Workspace workspace = Workspace.personal,
     String firstStep = '',
+    String notes = '',
   }) {
     final now = _now();
     final t = Task(
       id: _uuid.v4(),
       title: title.trim(),
       firstStep: firstStep,
+      notes: notes,
       estimateMin: estimateMin,
       priority: priority,
       requiresLeavingHouse: requiresLeavingHouse,
@@ -124,6 +126,7 @@ class TasksController extends Notifier<List<Task>> {
         actualMin: minutesWorked == 0
             ? t.actualMin
             : (t.actualMin ?? 0) + minutesWorked,
+        followUpAt: null,
         updatedAt: now,
       ),
     );
@@ -139,8 +142,22 @@ class TasksController extends Notifier<List<Task>> {
   void restore(Task before) => _write(before.copyWith(updatedAt: _now()));
 
   void reopen(String id) => _update(id, (t) {
-    return t.copyWith(status: TaskStatus.todo, completedAt: null);
+    return t.copyWith(
+      status: TaskStatus.todo,
+      completedAt: null,
+      followUpAt: null,
+    );
   });
+
+  /// Parks it as "Waiting on someone", optionally with a date to check back.
+  void setWaiting(String id, {String waitingOn = '', DateTime? followUpAt}) =>
+      _update(id, (t) {
+        return t.copyWith(
+          status: TaskStatus.waiting,
+          waitingOn: waitingOn.trim(),
+          followUpAt: followUpAt,
+        );
+      });
 
   void setStatus(String id, TaskStatus status) =>
       _update(id, (t) => t.copyWith(status: status));
