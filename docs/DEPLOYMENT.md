@@ -8,7 +8,8 @@ Everything about getting builds onto devices: CI, release links, secrets, signin
 |---|---|---|---|
 | Android | CI `android` job, every push | GitHub release **`android-latest`** (asset replaced each build) | `https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/Unstuck.apk` |
 | Mac | CI `macos` job, on `[mac]` commits, pushes to `main`, or Run workflow | GitHub release **`macos-latest`** | `https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Unstuck-macOS.zip` |
-| iPhone + web | CI `test` job builds; `web-publish` deploys | Cloudflare Pages project `unstuck` (or repo variable `CLOUDFLARE_PROJECT`) | `https://unstuck.pages.dev` (the exact address is shown in the job summary) |
+| iPhone / iPad (native) | CI `ios` job, on `[ios]` commits, pushes to `main`, or Run workflow | App Store Connect → **TestFlight** (needs the Apple secrets; until then the job only compiles) | TestFlight app on the device |
+| Web (and iPhone without an Apple account) | CI `test` job builds; `web-publish` deploys | Cloudflare Pages project `unstuck` (or repo variable `CLOUDFLARE_PROJECT`) | `https://unstuck.pages.dev` (the exact address is shown in the job summary) |
 | Windows | CI `windows` job, every push | Run artifact `unstuck-windows` only (no release yet) | Actions → run → Artifacts |
 
 The repo is **private**, so release downloads need a signed-in GitHub session.
@@ -24,6 +25,7 @@ Triggers: `push`, `pull_request`, `workflow_dispatch`. Concurrency group = `ci-<
 | `windows` | windows, after `test` | `flutter build windows --release` | artifact only |
 | `web-publish` | ubuntu, after `test`, push or dispatch | `wrangler pages project create` (first time) + `pages deploy --branch=main` | Cloudflare Pages; skipped with a notice if secrets are missing |
 | `macos` | macos-latest, after `test`; dispatch, `main`, or `[mac]` in the commit message | `flutter build macos --release` → `ditto` zip | `macos-latest` release |
+| `ios` | macos-latest, after `test`; dispatch, `main`, or `[ios]` in the commit message | Adds Google's reversed client id as a URL scheme. Without Apple secrets: `flutter build ios --no-codesign` (compile check). With them: `flutter build ios --config-only`, then `xcodebuild archive` and `-exportArchive` with `ios/ExportOptions.plist` (`destination: upload`), signing automatically through the API key (`-allowProvisioningUpdates`) | TestFlight |
 
 Every build job first writes `app/google_oauth.json` from secrets and builds with `--dart-define-from-file=google_oauth.json`. Missing secrets produce empty values, which means sync is off.
 
@@ -38,13 +40,16 @@ Every build job first writes `app/google_oauth.json` from secrets and builds wit
 | `GOOGLE_WEB_CLIENT_ID` | secret | all builds | Google Auth Platform → Clients → Web application |
 | `GOOGLE_DESKTOP_CLIENT_ID` | secret | all builds (used by Mac/Windows) | Clients → Desktop app |
 | `GOOGLE_DESKTOP_CLIENT_SECRET` | secret | all builds (used by Mac/Windows) | Clients → Desktop app |
+| `GOOGLE_IOS_CLIENT_ID` | secret | all builds (used by iOS) | Clients → iOS, bundle id `com.adhdtax.adhdTax` |
+| `APPLE_TEAM_ID` | secret | `ios` | developer.apple.com → Membership details |
+| `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` | secret | `ios` | App Store Connect → Users and Access → Integrations → Team Keys, **Admin** access; `ASC_KEY_P8` is the whole `.p8` file |
 | `CLOUDFLARE_API_TOKEN` | secret | `web-publish` | Cloudflare → My Profile → API Tokens → custom token, permission *Account · Cloudflare Pages · Edit* |
 | `CLOUDFLARE_ACCOUNT_ID` | secret | `web-publish` | Cloudflare → Workers & Pages (right sidebar) |
 | `CLOUDFLARE_PROJECT` | variable (optional) | `web-publish` | Defaults to `unstuck` |
 
 The Google client ids and the desktop "secret" end up inside the shipped apps. That's normal for installed and browser apps (Google documents installed-app secrets as non-confidential). They're kept as secrets only to keep them out of the repo history.
 
-**Status as of 2026-10-18:** none of these secrets exist yet, so builds have sync off and the iPhone web app isn't published.
+**Status as of 2026-10-18:** none of these secrets exist yet, so builds have sync off, the iPhone web app isn't published, and the iOS job only compiles.
 
 ## Android signing
 
@@ -53,6 +58,14 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 - SHA-1: `E9:F6:E9:C8:17:8A:B9:27:E7:9A:28:87:EC:67:D5:04:4F:F5:1F:BA`.
 - Before any public or Play Store release, move to a secret-backed key. Changing keys means users must uninstall (losing local-only data), and the Android OAuth client must be re-registered with the new SHA-1.
 - Release flags that matter: `--no-shrink` (R8 broke plugins), Impeller disabled in the manifest, core-library desugaring enabled (flutter_local_notifications).
+
+## iOS distribution (TestFlight)
+
+- Bundle ids: app `com.adhdtax.adhdTax`, widget `…​.Widget`, share extension `…​.Share`; App Group `group.com.adhdtax.adhdTax` (entitlements in `ios/Runner`, `ios/UnstuckWidget`, `ios/UnstuckShare`). The owner registers the app's App ID and the App Group once (README → Install on iPhone and iPad); automatic signing creates the extension IDs, the distribution certificate and the profiles.
+- The extension targets were added with `app/tool/ios/add_extensions.rb` (Ruby `xcodeproj` gem). Re-run it rather than hand-editing `project.pbxproj` if the targets ever go missing.
+- Build numbers are the CI run number, so every upload is newer than the last, which TestFlight requires.
+- Internal testers (the owner) get builds without Apple review. External testers or the App Store would need review, a privacy policy and screenshots.
+- `ITSAppUsesNonExemptEncryption = false` in Info.plist skips the export-compliance question on every upload.
 
 ## Mac distribution
 

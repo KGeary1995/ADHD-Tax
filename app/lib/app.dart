@@ -11,6 +11,7 @@ import 'features/capture/task_editor_screen.dart';
 import 'features/focus/focus_screen.dart';
 import 'features/gamification/celebration_overlay.dart';
 import 'features/gamification/progress_screen.dart';
+import 'features/outside/device_bridge.dart';
 import 'features/outside/outside_bootstrap.dart';
 import 'features/picker/dashboard_screen.dart';
 import 'features/reminders/reminder_bootstrap.dart';
@@ -60,6 +61,14 @@ GoRouter buildRouter() => GoRouter(
       },
     ),
     GoRoute(path: '/wrapup', builder: (_, _) => const WrapUpScreen()),
+    // The iOS widget's + button (unstuck://app/add): Home, then Quick add.
+    GoRoute(
+      path: '/add',
+      redirect: (_, _) {
+        quickAddRequested.value = true;
+        return '/';
+      },
+    ),
     GoRoute(
       path: '/task/:id',
       builder: (_, state) => TaskEditorScreen(

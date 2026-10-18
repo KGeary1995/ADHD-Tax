@@ -53,9 +53,36 @@ Open this link on the phone (signed in to GitHub, since the repo is private):
 
 Tap the downloaded file to install it. The first time, Android asks you to allow installs from Chrome or Files; Play Protect may also say it doesn't recognize the app, and **More details → Install anyway** gets past that. Every push rebuilds that same link, and new versions install over the old one without losing your tasks.
 
-## Install on iPhone
+## Install on iPhone and iPad (native app, TestFlight)
 
-The iPhone version is the web app, added to the home screen. It opens full screen with its own icon and works offline. Timer alerts and check-in nudges are Android-only, because iPhone web apps can't schedule notifications; the focus timer still runs on screen.
+The native app has everything the Android app has: timer alerts, check-ins, follow-up and wrap-up reminders, home-screen widgets (small, medium, large), **Share → Unstuck**, voice, and Google sign-in that stays signed in. It installs through Apple's **TestFlight** app, not the App Store.
+
+**One-time Apple setup (about 30 minutes, plus Apple's approval wait).**
+
+1. **Join the Apple Developer Program** ($99/year) at [developer.apple.com/programs/enroll](https://developer.apple.com/programs/enroll/). Approval can take a day or two. Then open [developer.apple.com/account](https://developer.apple.com/account) → **Membership details** and copy your **Team ID**.
+2. **Register the app's identifiers** at [developer.apple.com/account/resources](https://developer.apple.com/account/resources/identifiers/list):
+   - **Identifiers → + → App Groups → Continue.** Description `Unstuck`, identifier `group.com.adhdtax.adhdTax`.
+   - **Identifiers → + → App IDs → App → Continue.** Description `Unstuck`, **Explicit** Bundle ID `com.adhdtax.adhdTax`. Under Capabilities tick **App Groups**, then **Edit/Configure** and choose `group.com.adhdtax.adhdTax`. Register.
+   - (The widget and share extensions' IDs are created automatically by the first build.)
+3. **Create the app** in [App Store Connect](https://appstoreconnect.apple.com/apps): **+ → New App**. Platform **iOS**, Name **Unstuck** (if it's taken, anything, e.g. *Unstuck Focus*; only you see it), language English, Bundle ID `com.adhdtax.adhdTax`, SKU `unstuck`, User Access **Full Access**.
+4. **Create an API key** for the builds: App Store Connect → **Users and Access → Integrations → App Store Connect API → Team Keys → +**. Name `GitHub CI`, Access **Admin** (needed to create signing certificates). **Download** the `.p8` file (only possible once) and copy the **Key ID** and the **Issuer ID** shown above the list.
+5. In GitHub, open this repo → **Settings → Secrets and variables → Actions → New repository secret**, and add:
+
+   | Secret | Value |
+   |---|---|
+   | `APPLE_TEAM_ID` | your Team ID (step 1) |
+   | `ASC_KEY_ID` | the key's Key ID |
+   | `ASC_ISSUER_ID` | the Issuer ID |
+   | `ASC_KEY_P8` | open the `.p8` file in a text editor and paste all of it, including the BEGIN/END lines |
+
+6. Start a build: **Actions → CI → Run workflow** (or ask Claude for an `[ios]` build). When **Build iOS app** finishes, the build shows in App Store Connect → **TestFlight** after Apple processes it (10–30 minutes).
+7. **TestFlight → Internal Testing → +** (create a group, e.g. "Me"), add yourself. Install the **TestFlight** app on your iPhone/iPad, accept the invite, tap **Install**. Later builds show up there to update with one tap.
+
+**Widgets:** long-press the home screen → **+** → Unstuck. **Share:** in any app's share sheet, choose Unstuck (you may need **More** the first time), edit the text, tap **Add**; the next time you open Unstuck, Quick add opens with it.
+
+### iPhone web app (no Apple account)
+
+The web app still works on any phone: added to the home screen it opens full screen with its own icon and works offline. It has no reminders, widgets or Share, because iPhone web apps can't do those.
 
 **One-time hosting setup (about 10 minutes, free, no credit card).** CI publishes the web app to Cloudflare Pages once it has two secrets:
 
@@ -110,13 +137,14 @@ Sync needs your own Google Cloud sign-in keys. They're free, and the app can onl
    - **Data Access → Add or remove scopes:** tick `.../auth/drive.appdata` and `.../auth/drive.file`, then **Update → Save**. Both are "non-sensitive", so Google doesn't need to review the app.
    - **Audience → Publish app**, so the status is **In production**. If you leave it in Testing, Google signs you out every 7 days and sync quietly stops.
 
-**B. Create three sign-in clients** (**Google Auth Platform → Clients → Create client**)
+**B. Create four sign-in clients** (**Google Auth Platform → Clients → Create client**)
 
 | Application type | Fill in | Copy |
 |---|---|---|
-| **Web application** (used by iPhone, web *and* Android) | **Authorized JavaScript origins:** your iPhone web app address (e.g. `https://unstuck.pages.dev`) and `http://localhost:8080` | Client ID |
+| **Web application** (used by the web app, Android *and* the iPhone app) | **Authorized JavaScript origins:** your iPhone web app address (e.g. `https://unstuck.pages.dev`) and `http://localhost:8080` | Client ID |
 | **Android** | Package name `com.adhdtax.adhd_tax`, SHA-1 `E9:F6:E9:C8:17:8A:B9:27:E7:9A:28:87:EC:67:D5:04:4F:F5:1F:BA` | nothing |
 | **Desktop app** (used by Mac and Windows) | Name only | Client ID **and** Client secret |
+| **iOS** (the native iPhone/iPad app) | Bundle ID `com.adhdtax.adhdTax` | Client ID |
 
 **C. Give the keys to the builds**
 
@@ -127,6 +155,7 @@ In GitHub, open this repo → **Settings → Secrets and variables → Actions �
 | `GOOGLE_WEB_CLIENT_ID` | the Web application's Client ID |
 | `GOOGLE_DESKTOP_CLIENT_ID` | the Desktop app's Client ID |
 | `GOOGLE_DESKTOP_CLIENT_SECRET` | the Desktop app's Client secret |
+| `GOOGLE_IOS_CLIENT_ID` | the iOS client's Client ID |
 
 The next build of each app includes them. Then, in each app, go to **Settings → Accounts & sync → Connect**: your personal Google account for **Personal**, and your clinic account for **Work**.
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,27 +35,34 @@ class OpenRoute extends OutsideRequest {
   final String route;
 }
 
-/// The Android side of the app (MainActivity / PickWidget). Everywhere
-/// else it does nothing.
-abstract class AndroidBridge {
+/// The native side of the phone apps: MainActivity / PickWidget on
+/// Android, AppDelegate / the widget and share extensions on iOS. Desktop
+/// and web get [NoDeviceBridge].
+abstract class DeviceBridge {
   /// Requests: the one that launched the app first, then any that arrive
   /// while it runs.
   Stream<OutsideRequest> get requests;
+
+  /// Asks again for anything waiting, e.g. text the iOS share extension
+  /// queued while the app was in the background.
+  Future<void> poll();
 
   /// Redraws the home-screen widget with [data] (all strings).
   Future<void> updateWidget(Map<String, String> data);
 }
 
-class NoAndroidBridge implements AndroidBridge {
-  const NoAndroidBridge();
+class NoDeviceBridge implements DeviceBridge {
+  const NoDeviceBridge();
   @override
   Stream<OutsideRequest> get requests => const Stream.empty();
+  @override
+  Future<void> poll() async {}
   @override
   Future<void> updateWidget(Map<String, String> data) async {}
 }
 
-class ChannelAndroidBridge implements AndroidBridge {
-  ChannelAndroidBridge() {
+class ChannelDeviceBridge implements DeviceBridge {
+  ChannelDeviceBridge() {
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'request') {
         final r = OutsideRequest.fromMap(call.arguments);
@@ -66,17 +74,29 @@ class ChannelAndroidBridge implements AndroidBridge {
   static const _channel = MethodChannel('unstuck/android');
   final _incoming = StreamController<OutsideRequest>.broadcast();
 
-  @override
-  Stream<OutsideRequest> get requests async* {
+  Future<OutsideRequest?> _take() async {
     try {
-      final first = OutsideRequest.fromMap(
+      return OutsideRequest.fromMap(
         await _channel.invokeMethod<Object?>('takeLaunchRequest'),
       );
-      if (first != null) yield first;
     } on PlatformException {
-      // Older native side: nothing to hand over.
+      return null;
+    } on MissingPluginException {
+      return null;
     }
+  }
+
+  @override
+  Stream<OutsideRequest> get requests async* {
+    final first = await _take();
+    if (first != null) yield first;
     yield* _incoming.stream;
+  }
+
+  @override
+  Future<void> poll() async {
+    final r = await _take();
+    if (r != null) _incoming.add(r);
   }
 
   @override
@@ -85,13 +105,21 @@ class ChannelAndroidBridge implements AndroidBridge {
       await _channel.invokeMethod<void>('updateWidget', data);
     } on PlatformException {
       // The widget is a nice-to-have; never let it break the app.
+    } on MissingPluginException {
+      // Same.
     }
   }
 }
 
-final androidBridgeProvider = Provider<AndroidBridge>(
-  (ref) => isAndroidDevice ? ChannelAndroidBridge() : const NoAndroidBridge(),
+final deviceBridgeProvider = Provider<DeviceBridge>(
+  (ref) => isAndroidDevice || isIOSDevice
+      ? ChannelDeviceBridge()
+      : const NoDeviceBridge(),
 );
+
+/// Set by the `/add` route (an iOS widget's + opens unstuck://app/add);
+/// OutsideBootstrap opens Quick add when it sees it.
+final quickAddRequested = ValueNotifier<bool>(false);
 
 /// Splits shared text into a task title and notes: the subject or first
 /// line becomes the title, the rest goes to notes. Pure.

@@ -1,4 +1,4 @@
-import 'package:adhd_tax/features/outside/android_bridge.dart';
+import 'package:adhd_tax/features/outside/device_bridge.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import 'platform_stub.dart' if (dart.library.io) 'platform_io.dart';
 import 'reminders.dart';
 
 const _focusId = 1;
@@ -10,6 +11,25 @@ const _timesUpId = 2;
 
 /// Nudges use ids from here up, so they can be replaced as a set.
 const _firstNudgeId = 100;
+
+/// iOS keeps at most 64 pending notifications per app; leave room for the
+/// focus timer's "time's up".
+const _iosMaxNudges = 60;
+
+const _darwinQuiet = DarwinNotificationDetails(
+  presentAlert: true,
+  presentBanner: true,
+  presentList: true,
+  presentSound: false,
+);
+
+const _darwinAlert = DarwinNotificationDetails(
+  presentAlert: true,
+  presentBanner: true,
+  presentList: true,
+  presentSound: true,
+  interruptionLevel: InterruptionLevel.active,
+);
 
 const _focusChannel = AndroidNotificationDetails(
   'focus',
@@ -40,7 +60,10 @@ const _nudgeChannel = AndroidNotificationDetails(
   category: AndroidNotificationCategory.reminder,
 );
 
-class AndroidReminders implements Reminders {
+/// Real notifications on Android, iPhone and iPad. Android also gets an
+/// ongoing countdown while you focus; iOS has no such notification, so it
+/// only gets the "time's up" alert.
+class DeviceReminders implements Reminders {
   final _plugin = FlutterLocalNotificationsPlugin();
   final _opened = StreamController<String>.broadcast();
   Future<void>? _init;
@@ -49,6 +72,12 @@ class AndroidReminders implements Reminders {
     await _plugin.initialize(
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('ic_stat_focus'),
+        // Asked for in requestPermission, at a moment that makes sense.
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+        ),
       ),
       onDidReceiveNotificationResponse: (r) {
         final route = r.payload;
@@ -81,17 +110,33 @@ class AndroidReminders implements Reminders {
   @override
   bool get supported => true;
 
-  @override
-  Future<bool> permissionGranted() async =>
-      await (await _android())?.areNotificationsEnabled() ?? false;
+  IOSFlutterLocalNotificationsPlugin? get _ios => _plugin
+      .resolvePlatformSpecificImplementation<
+        IOSFlutterLocalNotificationsPlugin
+      >();
 
   @override
-  Future<bool> requestPermission() async =>
-      await (await _android())?.requestNotificationsPermission() ?? false;
+  Future<bool> permissionGranted() async {
+    final android = await _android();
+    if (isIOSDevice) {
+      return (await _ios?.checkPermissions())?.isEnabled ?? false;
+    }
+    return await android?.areNotificationsEnabled() ?? false;
+  }
+
+  @override
+  Future<bool> requestPermission() async {
+    final android = await _android();
+    if (isIOSDevice) {
+      return await _ios?.requestPermissions(alert: true, sound: true) ?? false;
+    }
+    return await android?.requestNotificationsPermission() ?? false;
+  }
 
   /// Exact when Android allows it, otherwise as close as it will.
   Future<AndroidScheduleMode> _mode() async =>
-      await (await _android())?.canScheduleExactNotifications() ?? false
+      !isIOSDevice &&
+          (await (await _android())?.canScheduleExactNotifications() ?? false)
       ? AndroidScheduleMode.exactAllowWhileIdle
       : AndroidScheduleMode.inexactAllowWhileIdle;
 
@@ -101,14 +146,19 @@ class AndroidReminders implements Reminders {
     required DateTime endsAt,
   }) async {
     await _android();
-    await _plugin.show(
-      id: _focusId,
-      title: title,
-      body: 'Focus session running',
-      notificationDetails: NotificationDetails(
-        android: _ongoing(when: endsAt.millisecondsSinceEpoch, countdown: true),
-      ),
-    );
+    if (!isIOSDevice) {
+      await _plugin.show(
+        id: _focusId,
+        title: title,
+        body: 'Focus session running',
+        notificationDetails: NotificationDetails(
+          android: _ongoing(
+            when: endsAt.millisecondsSinceEpoch,
+            countdown: true,
+          ),
+        ),
+      );
+    }
     await _plugin.cancel(id: _timesUpId);
     if (!endsAt.isAfter(DateTime.now())) return;
     await _plugin.zonedSchedule(
@@ -116,7 +166,10 @@ class AndroidReminders implements Reminders {
       title: "Time's up",
       body: '$title\nFinished, or want a little more time?',
       scheduledDate: tz.TZDateTime.from(endsAt, tz.UTC),
-      notificationDetails: const NotificationDetails(android: _timesUpChannel),
+      notificationDetails: const NotificationDetails(
+        android: _timesUpChannel,
+        iOS: _darwinAlert,
+      ),
       androidScheduleMode: await _mode(),
     );
   }
@@ -128,6 +181,7 @@ class AndroidReminders implements Reminders {
   }) async {
     await _android();
     await _plugin.cancel(id: _timesUpId);
+    if (isIOSDevice) return;
     final min = (left.inSeconds / 60).ceil().clamp(0, 24 * 60);
     await _plugin.show(
       id: _focusId,
@@ -157,9 +211,15 @@ class AndroidReminders implements Reminders {
       if (p.id >= _firstNudgeId) await _plugin.cancel(id: p.id);
     }
     final now = DateTime.now();
+    final upcoming = [
+      for (final n in nudges)
+        if (n.at.isAfter(now)) n,
+    ]..sort((a, b) => a.at.compareTo(b.at));
+    // iOS drops anything past its limit, so keep the soonest; the rest are
+    // scheduled when the app next opens.
+    final keep = isIOSDevice ? upcoming.take(_iosMaxNudges) : upcoming;
     var id = _firstNudgeId;
-    for (final n in nudges) {
-      if (!n.at.isAfter(now)) continue;
+    for (final n in keep) {
       await _plugin.zonedSchedule(
         id: id++,
         title: n.title,
@@ -168,7 +228,10 @@ class AndroidReminders implements Reminders {
         // An absolute instant, worked out in local time by the caller, so
         // daylight-saving changes need no time zone database here.
         scheduledDate: tz.TZDateTime.from(n.at, tz.UTC),
-        notificationDetails: const NotificationDetails(android: _nudgeChannel),
+        notificationDetails: const NotificationDetails(
+          android: _nudgeChannel,
+          iOS: _darwinQuiet,
+        ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );
     }

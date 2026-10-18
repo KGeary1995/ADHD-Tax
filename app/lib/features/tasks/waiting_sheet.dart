@@ -156,7 +156,7 @@ class _WaitingSheetState extends ConsumerState<_WaitingSheet> {
                 at == null
                     ? 'It waits in your list until you move it back.'
                     : 'It comes back to the top of Tasks '
-                          '${formatDue(at, now)}, with a reminder on Android.',
+                          '${formatDue(at, now)}, with a reminder on your phone.',
                 style: TextStyle(fontSize: 13, color: s.muted, height: 1.4),
               ),
               const SizedBox(height: 22),

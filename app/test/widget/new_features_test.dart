@@ -4,7 +4,7 @@ import 'package:adhd_tax/app.dart';
 import 'package:adhd_tax/core/providers.dart';
 import 'package:adhd_tax/data/models/task.dart';
 import 'package:adhd_tax/features/focus/focus_screen.dart';
-import 'package:adhd_tax/features/outside/android_bridge.dart';
+import 'package:adhd_tax/features/outside/device_bridge.dart';
 import 'package:adhd_tax/features/settings/settings_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +14,7 @@ import 'app_flow_test.dart' show pumpApp;
 
 const _phone = Size(390, 844);
 
-class FakeBridge implements AndroidBridge {
+class FakeBridge implements DeviceBridge {
   final incoming = StreamController<OutsideRequest>.broadcast();
   final widgetUpdates = <Map<String, String>>[];
   @override
@@ -22,6 +22,8 @@ class FakeBridge implements AndroidBridge {
   @override
   Future<void> updateWidget(Map<String, String> data) async =>
       widgetUpdates.add(data);
+  @override
+  Future<void> poll() async {}
 }
 
 void main() {
@@ -120,7 +122,7 @@ void main() {
     final c = await pumpApp(
       tester,
       size: _phone,
-      overrides: [androidBridgeProvider.overrideWithValue(bridge)],
+      overrides: [deviceBridgeProvider.overrideWithValue(bridge)],
     );
     await tester.pump(const Duration(seconds: 1));
     expect(bridge.widgetUpdates.last['empty'], contains('list is empty'));

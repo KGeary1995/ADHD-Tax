@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'android_reminders.dart';
+import 'device_reminders.dart';
 import 'platform_stub.dart' if (dart.library.io) 'platform_io.dart';
 
 /// One scheduled notification: a check-in nudge, a follow-up on a waiting
@@ -13,8 +13,9 @@ class Nudge {
   final String? route;
 }
 
-/// What the app needs from system notifications. Android gets the real
-/// thing; desktop and web keep the timer on screen and do nothing here.
+/// What the app needs from system notifications. Android, iPhone and iPad
+/// get the real thing; desktop and web keep the timer on screen and do
+/// nothing here.
 abstract class Reminders {
   bool get supported;
 
@@ -73,5 +74,6 @@ class NoReminders implements Reminders {
 }
 
 final remindersProvider = Provider<Reminders>(
-  (ref) => isAndroidDevice ? AndroidReminders() : const NoReminders(),
+  (ref) =>
+      isAndroidDevice || isIOSDevice ? DeviceReminders() : const NoReminders(),
 );

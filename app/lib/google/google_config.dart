@@ -10,6 +10,10 @@ class GoogleConfig {
   /// server client id that Google Sign-In requires.
   static const webClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
 
+  /// "iOS" client for iPhone and iPad. Its reversed id must also be a URL
+  /// scheme in ios/Runner/Info.plist; CI adds it (see ci.yml, "ios").
+  static const iosClientId = String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
+
   /// "Desktop app" client for Windows, macOS and Linux. Google documents
   /// that installed-app secrets aren't confidential; PKCE protects the flow.
   static const desktopClientId = String.fromEnvironment(

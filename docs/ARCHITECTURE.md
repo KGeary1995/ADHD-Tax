@@ -113,7 +113,7 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
 
 ## Reminders (`features/reminders/`)
 
-- `Reminders` interface; `AndroidReminders` (flutter_local_notifications) on real Android devices, `NoReminders` everywhere else, including `flutter test`, which runs on the host. The platform switch is a conditional import (`platform_io.dart` / `platform_stub.dart`).
+- `Reminders` interface; `DeviceReminders` (flutter_local_notifications) on real Android and iOS devices, `NoReminders` everywhere else, including `flutter test`, which runs on the host. The platform switch is a conditional import (`platform_io.dart` / `platform_stub.dart`).
 - **Focus**: an ongoing notification with a countdown chronometer, plus a "time's up" alert scheduled with an exact alarm (`USE_EXACT_ALARM` on Android 13+, `SCHEDULE_EXACT_ALARM` on Android 12). On time-up in the foreground both are cleared, since the dialog is the alert. In the background the alert stays.
 - **Nudges**: `nudge_plan.dart` (pure) computes absolute times for the next 14 days from settings (times, weekdays only), skipping 90 minutes after `lastActiveAt`. The same scheduled set also holds follow-ups on waiting tasks (`planFollowUps`) and the evening wrap-up (`planWrapUps`). Each `Nudge` carries a route; tapping the notification opens it (`Reminders.opened`). `ReminderBootstrap` re-plans on launch, resume and relevant changes, and asks for notification permission once on first launch. Times are absolute UTC instants, so no time-zone database is needed and daylight-saving changes are handled by re-planning.
 - Status-bar icon: `android/app/src/main/res/drawable/ic_stat_focus.xml`, kept from resource shrinking by `res/raw/keep.xml`.
@@ -124,10 +124,18 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
 
 ## Outside the app (`features/outside/`, Android)
 
-`MainActivity.kt` (launchMode `singleTask`, Flutter deep linking off) talks to Dart over the `unstuck/android` method channel:
+`DeviceBridge` (`device_bridge.dart`) is the Dart end of the `unstuck/android` method channel on both phones (the name predates iOS). `OutsideBootstrap` acts on its requests, polls it on resume, and pushes the current pick for the widgets.
+
+**iOS** (`ios/Runner/AppDelegate.swift`, `ios/UnstuckWidget`, `ios/UnstuckShare`):
+- The share extension (Apple's compose sheet) queues `{subject, text}` in the App Group `group.com.adhdtax.adhdTax`; `takeLaunchRequest` hands one over per call, and the app opens Quick add with it on resume.
+- `updateWidget` stores the pick in the App Group and reloads WidgetKit timelines. The SwiftUI widget (small, medium, large with "Next up") only displays it.
+- Widget taps open `unstuck://app/<route>`, which Flutter's deep linking hands to go_router directly; `/add` is a redirect that sets `quickAddRequested`.
+- Notifications use the same `DeviceReminders` as Android (no ongoing countdown on iOS; at most 60 scheduled, soonest first, because iOS keeps 64).
+
+**Android** — `MainActivity.kt` (launchMode `singleTask`, Flutter deep linking off) talks to Dart over the channel:
 - **Share → Unstuck**: an `ACTION_SEND text/plain` intent becomes a `SharedText` request; `taskFromShare` turns the subject or first line into the title and the rest into notes, and Quick add opens prefilled.
 - **Home-screen widgets** (`PickWidget.kt`, `res/layout/pick_widget*.xml`, `res/xml/pick_widget*_info.xml`): RemoteViews copies of Home's teal card in four sizes, each its own provider so the launcher lists them: `PickWidgetSmall` 2×1, `PickWidgetSquare` 2×2, `PickWidget` 4×2 (the original class name, so placed widgets survive), `PickWidgetLarge` 4×3 with "Next up" (`nextUpProvider`, two more that fit). One renderer fills whichever views a layout has; RemoteViews skips the rest. They never compute anything; `OutsideBootstrap` pushes the current pick (`updateWidget`) whenever it changes, so they show the last pick from when the app was open. Taps open `/` (card), `/focus/<id>?min=N` (Start, or a Next-up row) or `/add` (+) through the same channel.
-- Elsewhere `NoAndroidBridge` does nothing. Tests use a fake bridge.
+- Elsewhere `NoDeviceBridge` does nothing. Tests use a fake bridge.
 
 ## Capture (`features/capture/`)
 

@@ -119,6 +119,16 @@ save(rounded, 64, "web/favicon.png")
 for n in (16, 32, 64, 128, 256, 512, 1024):
     save(mac, n, f"macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_{n}.png")
 
+# iPhone/iPad: full-bleed and opaque (the App Store rejects transparency);
+# iOS rounds the corners itself.
+ios_set = "ios/Runner/Assets.xcassets/AppIcon.appiconset"
+for size, scale in (
+    (20, 1), (20, 2), (20, 3), (29, 1), (29, 2), (29, 3), (40, 1), (40, 2),
+    (40, 3), (60, 2), (60, 3), (76, 1), (76, 2), (83.5, 2), (1024, 1),
+):
+    label = f"{size:g}x{size:g}"
+    save(bleed, round(size * scale), f"{ios_set}/Icon-App-{label}@{scale}x.png", flatten=True)
+
 android = art(False, margin=0.06)
 for folder, n in (("mdpi", 48), ("hdpi", 72), ("xhdpi", 96), ("xxhdpi", 144), ("xxxhdpi", 192)):
     save(android, n, f"android/app/src/main/res/mipmap-{folder}/ic_launcher.png")

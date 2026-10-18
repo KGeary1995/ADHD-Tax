@@ -6,7 +6,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 
 **Unstuck** (formerly *ADHD Tax*; the repo and internal ids keep the old name) is a task-initiation app for an ADHD user who struggles to *start* tasks. It picks one task for you (based on time available, energy, whether you can leave the house), shrinks it to a first step, runs a visual focus timer, and rewards starting with XP. Personal and Work tasks are kept apart and each syncs to its own Google account through Drive.
 
-- **One Flutter codebase** in `app/` → Android (APK, sideloaded), Mac, Windows, web. **iPhone uses the web build** added to the home screen (no App Store / TestFlight; the owner chose the free route).
+- **One Flutter codebase** in `app/` → Android (APK, sideloaded), iPhone/iPad (native, TestFlight), Mac, Windows, web. The web build is also the no-account iPhone option.
 - **No backend server.** Data lives on each device and syncs through a hidden Google Drive app-data folder per Google account.
 - **Naming:** the user-visible name is **Unstuck**. Internal identifiers keep the old name **on purpose**: the Android applicationId `com.adhdtax.adhd_tax`, the Mac bundle id `com.adhdtax.adhdTax`, the Dart package `adhd_tax`, the repo `KGeary1995/ADHD-Tax`, the web token key `adhdtax.googleToken.*`, and the repeat-copy id seed `adhd-tax:repeat:` (pinned by a test). Changing them installs a separate, empty app, breaks Google Sign-In's Android client, or duplicates repeating tasks across devices. See docs/DECISIONS.md.
 - **Owner context:** the user works in ophthalmology clinic operations. Work tasks must never contain patient information (PHI). See "Rules" below.
@@ -22,11 +22,12 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Repeating tasks, Mark done + Undo, Android reminders | Done | Not yet reported |
 | Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | Not yet (web screenshots and tests) |
 | Android home-screen widget, Share → Unstuck | Done | **No.** Native code only compiles in CI; nothing runs it here |
-| iPhone (home-screen web app) | Done; needs Cloudflare secrets to publish | No (Chromium emulation only) |
+| iPhone/iPad native app (notifications, widgets, Share, voice) | Code done; CI compiles it on `[ios]` pushes; TestFlight upload needs the Apple secrets | **No.** Owner is enrolling in the Apple Developer Program |
+| iPhone web app (home-screen) | Done; needs Cloudflare secrets to publish | No (Chromium emulation only) |
 | Mac app | Builds and publishes on `[mac]` pushes | **Yes**: opens and works after "Open Anyway" (Build 21, still named ADHD Tax) |
 | Phase 3+ (Calendar, board/table views, AI) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-18 (follow-ups, real task lengths, wrap-up, share, voice, widget).
+Last updated: 2026-10-18 (native iOS app).
 
 ## Toolchain
 
@@ -36,7 +37,8 @@ Last updated: 2026-10-18 (follow-ups, real task lengths, wrap-up, share, voice, 
 | Java | 17 (Temurin) | Android builds |
 | Node | 22 | Cloudflare deploy (`wrangler@4.145.0`) and the screenshot tool |
 | Python 3 + Pillow | any recent | Only for `app/tool/make_icons.py` |
-| Xcode | CI's `macos-latest` | Mac builds happen in CI; no Mac needed locally |
+| Xcode | CI's `macos-latest` | Mac and iOS builds happen in CI; no Mac needed locally |
+| Ruby + `xcodeproj` gem | any | Only for `app/tool/ios/add_extensions.rb` (adds the iOS widget/share targets) |
 
 ## Commands (run from `app/`)
 
@@ -84,6 +86,7 @@ app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks
    - **Windows**: builds an artifact (not published as a release).
    - **web-publish**: deploys to Cloudflare Pages if the Cloudflare secrets exist (otherwise it posts a notice).
    - **macOS**: only on `workflow_dispatch`, pushes to `main`, or **commit messages containing `[mac]`** (macOS runners cost 10× minutes). Publishes to the `macos-latest` release.
+   - **iOS**: only on `workflow_dispatch`, pushes to `main`, or **commit messages containing `[ios]`**. Compiles without Apple secrets; with them, uploads to TestFlight.
 4. Tell the owner: "reinstall from the same link". The build number is the CI run number.
 
 Details, secrets and failure modes: docs/DEPLOYMENT.md.
@@ -104,7 +107,8 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - Android release builds must use `--no-shrink`. R8 strips plugin code that's only called from Dart.
 - Impeller is disabled in `AndroidManifest.xml` (black screen on some GPUs).
 - `MainActivity` is `singleTask` with Flutter deep linking off: shares and widget taps arrive over the `unstuck/android` channel (`features/outside/`). With the template's `singleTop` + empty `taskAffinity`, a share from another app would start a second copy of Unstuck in that app's task.
-- There's no Android SDK in cloud sessions: Kotlin and resource changes are only compiled by CI's Android job. Read them twice before pushing.
+- There's no Android SDK or Xcode in cloud sessions: Kotlin, Swift, resource and Xcode-project changes are only compiled by CI (Android job; iOS job on `[ios]`). Read them twice before pushing. Change the iOS targets through `tool/ios/add_extensions.rb`, not by hand.
+- iOS: the widget and share extension share data with the app through the App Group `group.com.adhdtax.adhdTax`; all three entitlements files must list it.
 - `main.dart` wraps startup in `runZonedGuarded` and shows `StartupErrorApp` instead of a black screen. Keep it: it's how the owner reports crashes (screenshot + "Copy details").
 - The web build uses a **custom `web/flutter_bootstrap.js`** without Flutter's service worker, which would unregister `offline.js` and reload the page in a loop.
 - Flutter web ignores iPhone safe areas and rewrites the viewport tag. `core/safe_area/` fixes both; don't remove `WebSafeArea` from `app.dart`.

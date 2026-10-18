@@ -9,7 +9,7 @@ import '../../widgets/task_chips.dart';
 import '../capture/quick_add_sheet.dart';
 import '../picker/picker_controller.dart';
 import '../picker/picker_engine.dart';
-import 'android_bridge.dart';
+import 'device_bridge.dart';
 
 /// Acts on shares and widget taps, and keeps the home-screen widget
 /// showing the current pick.
@@ -25,20 +25,40 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
   StreamSubscription<OutsideRequest>? _sub;
   Timer? _debounce;
   String? _lastWidget;
+  late final AppLifecycleListener _lifecycle;
 
   @override
   void initState() {
     super.initState();
+    _lifecycle = AppLifecycleListener(
+      onResume: () => ref.read(deviceBridgeProvider).poll(),
+    );
+    quickAddRequested.addListener(_quickAddFromRoute);
     // After the first frame, so the router's navigator exists.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _sub = ref.read(androidBridgeProvider).requests.listen(_handle);
+      _sub = ref.read(deviceBridgeProvider).requests.listen(_handle);
       _pushWidget();
+      _quickAddFromRoute();
     });
+  }
+
+  void _quickAddFromRoute() {
+    if (!quickAddRequested.value || !mounted) return;
+    final nav = ref
+        .read(routerProvider)
+        .routerDelegate
+        .navigatorKey
+        .currentContext;
+    if (nav == null) return;
+    quickAddRequested.value = false;
+    showQuickAdd(nav);
   }
 
   @override
   void dispose() {
+    _lifecycle.dispose();
+    quickAddRequested.removeListener(_quickAddFromRoute);
     _sub?.cancel();
     _debounce?.cancel();
     super.dispose();
@@ -88,7 +108,7 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
       final key = data.toString();
       if (key == _lastWidget) return;
       _lastWidget = key;
-      ref.read(androidBridgeProvider).updateWidget(data);
+      ref.read(deviceBridgeProvider).updateWidget(data);
     });
   }
 

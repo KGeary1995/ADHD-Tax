@@ -2,6 +2,9 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-18 — Native iOS app through TestFlight
+The owner chose native for iPhone and iPad once the web app's limits were clear (no reminders, widgets or Share). Distribution is TestFlight internal testing: no App Store review, $99/yr. CI signs with Xcode automatic signing through an App Store Connect API key, so no certificates live in the repo or need a Mac. The share extension queues text in the App Group and the app opens Quick add on its next resume, because extensions can't open their app. Widget taps use `unstuck://app/<route>` and Flutter's own deep linking (go_router routes, plus a `/add` redirect), while Android keeps the method channel. The web app stays as the no-account option. Supersedes "iPhone = home-screen web app".
+
 ### 2026-10-18 — Widget shows the app's last pick; it never computes
 A home-screen widget can't run Dart, and re-implementing the picker in Kotlin would drift. The app pushes its current pick to the widget whenever it changes, so the widget can be a little stale (it reflects the situation the app last had). Good enough for a one-tap Start; tapping the card opens the app for a fresh pick.
 

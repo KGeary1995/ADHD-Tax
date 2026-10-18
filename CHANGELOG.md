@@ -2,7 +2,10 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-18 (Android)
+## Next build — 2026-10-18 (iPhone/iPad)
+- **Native iPhone and iPad app** (via TestFlight once the Apple Developer account is set up): reminders, widgets in three sizes, Share → Unstuck, voice, and Google sign-in that stays signed in. Setup steps in the README.
+
+## Build 33 — 2026-10-18 (1f2d7f2) (Android)
 - **Widget sizes**: besides the 4×2 card, pick **Unstuck start** (2×1: the task and a Start button), **Unstuck square** (2×2) or **Unstuck card + next up** (4×3: two more tasks that fit right now, each one tap to start). All can be resized.
 
 ## Build 31 — 2026-10-18 (dfb4094) — follow-ups, wrap-up, widget (Android, Mac)

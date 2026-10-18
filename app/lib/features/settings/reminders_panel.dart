@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_themes.dart';
 import '../../widgets/ui.dart';
+import '../reminders/platform_stub.dart'
+    if (dart.library.io) '../reminders/platform_io.dart';
 import '../reminders/reminders.dart';
 import 'settings_controller.dart';
 
@@ -25,7 +27,7 @@ class _RemindersPanelState extends ConsumerState<RemindersPanel> {
   void initState() {
     super.initState();
     _check();
-    // Back from Android's settings screen: the answer may have changed.
+    // Back from the phone's settings screen: the answer may have changed.
     _lifecycle = AppLifecycleListener(onResume: _check);
   }
 
@@ -76,7 +78,7 @@ class _RemindersPanelState extends ConsumerState<RemindersPanel> {
         label: 'Reminders',
         children: [
           GroupRow(
-            title: 'Reminders come to the Android app',
+            title: 'Reminders come to the phone apps',
             subtitle:
                 'Timer alerts and check-in nudges go to your phone. Here, '
                 'the focus timer stays on screen.',
@@ -111,9 +113,12 @@ class _RemindersPanelState extends ConsumerState<RemindersPanel> {
                     Expanded(
                       child: Text(
                         _blocked
-                            ? 'Android didn\'t show the prompt. Turn them on '
-                                  'in Android Settings → Apps → Unstuck → '
-                                  'Notifications.'
+                            ? isIOSDevice
+                                  ? 'Turn them on in iPhone Settings → '
+                                        'Unstuck → Notifications.'
+                                  : 'Android didn\'t show the prompt. Turn '
+                                        'them on in Android Settings → Apps → '
+                                        'Unstuck → Notifications.'
                             : 'Notifications are off for Unstuck, so none '
                                   'of these will reach you.',
                         style: TextStyle(color: s.text2, fontSize: 14),
