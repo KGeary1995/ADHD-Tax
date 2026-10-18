@@ -93,12 +93,25 @@ class TaskChips extends StatelessWidget {
             label: _due(t.dueAt!, t.hardDeadline),
             color: t.hardDeadline ? s.danger : null,
           ),
+        if (t.repeat != Repeat.none)
+          InfoChip(icon: Icons.repeat, label: t.repeat.short),
+        if (t.isOpen &&
+            t.scheduledStart != null &&
+            t.scheduledStart!.isAfter(DateTime.now()))
+          InfoChip(
+            icon: Icons.schedule,
+            label: 'From ${_date(t.scheduledStart!)}',
+          ),
       ],
     );
   }
 }
 
 String _due(DateTime d, bool hard) {
+  return '${hard ? 'Hard: ' : ''}${_date(d)}';
+}
+
+String _date(DateTime d) {
   const months = [
     'Jan',
     'Feb',
@@ -113,7 +126,7 @@ String _due(DateTime d, bool hard) {
     'Nov',
     'Dec',
   ];
-  return '${hard ? 'Hard: ' : ''}${months[d.month - 1]} ${d.day}';
+  return '${months[d.month - 1]} ${d.day}';
 }
 
 class SectionLabel extends StatelessWidget {

@@ -8,6 +8,7 @@ import '../../data/models/task.dart';
 import '../../widgets/backdrop.dart';
 import '../../widgets/task_chips.dart';
 import '../safety/phi_warning.dart';
+import '../tasks/task_actions.dart';
 import '../tasks/tasks_controller.dart';
 
 /// Full task editor. `taskId == 'new'` creates a task.
@@ -106,8 +107,10 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         ],
       ),
     );
-    if (ok == true) {
-      ref.read(tasksProvider.notifier).delete(_task.id);
+    if (ok == true && mounted) {
+      // The saved version, not unsaved edits, is what Undo brings back.
+      final saved = ref.read(tasksProvider.notifier).byId(_task.id);
+      if (saved != null) deleteWithUndo(context, ref, saved);
       _close();
     }
   }
@@ -375,6 +378,43 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                       value: _task.hardDeadline,
                       onChanged: (v) => setState(
                         () => _task = _task.copyWith(hardDeadline: v),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  field(
+                    'Repeats',
+                    DropdownButtonFormField<Repeat>(
+                      initialValue: _task.repeat,
+                      isExpanded: true,
+                      items: [
+                        for (final r in Repeat.values)
+                          DropdownMenuItem(value: r, child: Text(r.label)),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) {
+                          setState(() => _task = _task.copyWith(repeat: v));
+                        }
+                      },
+                    ),
+                    help: _task.repeat == Repeat.none
+                        ? null
+                        : 'When you finish it, the next one is added '
+                              'automatically.',
+                  ),
+                  if (_task.repeat != Repeat.none)
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Count from when I finish it'),
+                      subtitle: Text(
+                        _task.repeatFromDone
+                            ? 'Like watering plants: the next one is a full '
+                                  'period after you actually did it.'
+                            : 'Keeps a fixed schedule, like a report due '
+                                  'every Friday.',
+                      ),
+                      value: _task.repeatFromDone,
+                      onChanged: (v) => setState(
+                        () => _task = _task.copyWith(repeatFromDone: v),
                       ),
                     ),
                   if (!_isNew) ...[

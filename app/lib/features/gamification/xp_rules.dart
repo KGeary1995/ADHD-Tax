@@ -43,7 +43,7 @@ XpAward startXp(Task t) {
 XpAward completionXp(
   Task t, {
   required DateTime now,
-  required int actualMin,
+  required int? actualMin,
   required bool firstOfDay,
 }) {
   final base = (10 + t.estimateMin / 2).clamp(10, 80).toDouble();
@@ -51,7 +51,8 @@ XpAward completionXp(
   final lines = <XpLine>[XpLine('Finished', (base * mult).round())];
 
   if (firstOfDay) lines.add(const XpLine('First win of the day', 15));
-  if (actualMin <= t.estimateMin) {
+  // Untimed ("Mark done" without a focus session): nothing to beat.
+  if (actualMin != null && actualMin <= t.estimateMin) {
     lines.add(const XpLine('Beat your estimate', 10));
   }
   if (now.difference(t.createdAt).inDays >= 7) {

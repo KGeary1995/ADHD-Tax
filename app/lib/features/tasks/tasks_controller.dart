@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/providers.dart';
 import '../../data/models/task.dart';
 import '../../sync/replicas_controller.dart';
+import 'recurrence.dart';
 
 const _uuid = Uuid();
 
@@ -110,13 +111,32 @@ class TasksController extends Notifier<List<Task>> {
     return t.copyWith(actualMin: (t.actualMin ?? 0) + minutesWorked);
   });
 
-  void complete(String id, {required int minutesWorked}) => _update(id, (t) {
-    return t.copyWith(
-      status: TaskStatus.done,
-      completedAt: _now(),
-      actualMin: (t.actualMin ?? 0) + minutesWorked,
+  /// Marks it done. A repeating task also gets its next copy, which is
+  /// returned so an undo can take it back.
+  Task? complete(String id, {required int minutesWorked}) {
+    final t = byId(id);
+    if (t == null) return null;
+    final now = _now();
+    _write(
+      t.copyWith(
+        status: TaskStatus.done,
+        completedAt: now,
+        actualMin: minutesWorked == 0
+            ? t.actualMin
+            : (t.actualMin ?? 0) + minutesWorked,
+        updatedAt: now,
+      ),
     );
-  });
+    final next = nextOccurrence(t, now);
+    if (next == null) return null;
+    // Already there if another device finished this one first.
+    if (byId(next.id) == null) _write(next);
+    return next;
+  }
+
+  /// Puts back a task exactly as it was before a change: undo for done,
+  /// archive and delete. Also revives a deleted one.
+  void restore(Task before) => _write(before.copyWith(updatedAt: _now()));
 
   void reopen(String id) => _update(id, (t) {
     return t.copyWith(status: TaskStatus.todo, completedAt: null);

@@ -23,6 +23,11 @@ class AppSettings {
     this.celebration = CelebrationLevel.normal,
     this.quoteSeconds = 20,
     this.phiGuard = true,
+    this.timerAlerts = true,
+    this.nudges = true,
+    this.nudgeTimes = const [8 * 60 + 45, 13 * 60 + 15],
+    this.nudgeWeekdaysOnly = false,
+    this.askedForNotifications = false,
   });
 
   final String themeId;
@@ -32,16 +37,41 @@ class AppSettings {
   /// Warn when Work tasks look like they contain patient info.
   final bool phiGuard;
 
+  /// Countdown in the notification shade and a "time's up" alert during
+  /// focus sessions (Android).
+  final bool timerAlerts;
+
+  /// "Pick one thing?" prompts at [nudgeTimes] (Android).
+  final bool nudges;
+
+  /// Minutes after midnight, local time.
+  final List<int> nudgeTimes;
+  final bool nudgeWeekdaysOnly;
+
+  /// Android's notification prompt has been shown once, on first launch.
+  /// After that it's only shown when the user asks for it in Settings.
+  final bool askedForNotifications;
+
   AppSettings copyWith({
     String? themeId,
     CelebrationLevel? celebration,
     int? quoteSeconds,
     bool? phiGuard,
+    bool? timerAlerts,
+    bool? nudges,
+    List<int>? nudgeTimes,
+    bool? nudgeWeekdaysOnly,
+    bool? askedForNotifications,
   }) => AppSettings(
     themeId: themeId ?? this.themeId,
     celebration: celebration ?? this.celebration,
     quoteSeconds: quoteSeconds ?? this.quoteSeconds,
     phiGuard: phiGuard ?? this.phiGuard,
+    timerAlerts: timerAlerts ?? this.timerAlerts,
+    nudges: nudges ?? this.nudges,
+    nudgeTimes: nudgeTimes ?? this.nudgeTimes,
+    nudgeWeekdaysOnly: nudgeWeekdaysOnly ?? this.nudgeWeekdaysOnly,
+    askedForNotifications: askedForNotifications ?? this.askedForNotifications,
   );
 
   Map<String, Object?> toJson() => {
@@ -49,6 +79,11 @@ class AppSettings {
     'celebration': celebration.name,
     'quoteSeconds': quoteSeconds,
     'phiGuard': phiGuard,
+    'timerAlerts': timerAlerts,
+    'nudges': nudges,
+    'nudgeTimes': nudgeTimes,
+    'nudgeWeekdaysOnly': nudgeWeekdaysOnly,
+    'askedForNotifications': askedForNotifications,
   };
 
   factory AppSettings.fromJson(Map<String, Object?> j) => AppSettings(
@@ -58,6 +93,16 @@ class AppSettings {
         CelebrationLevel.normal,
     quoteSeconds: j['quoteSeconds'] as int? ?? 20,
     phiGuard: j['phiGuard'] as bool? ?? true,
+    timerAlerts: j['timerAlerts'] as bool? ?? true,
+    nudges: j['nudges'] as bool? ?? true,
+    nudgeTimes: j['nudgeTimes'] is List
+        ? [
+            for (final m in j['nudgeTimes'] as List)
+              if (m is int && m >= 0 && m < 24 * 60) m,
+          ]
+        : const [8 * 60 + 45, 13 * 60 + 15],
+    nudgeWeekdaysOnly: j['nudgeWeekdaysOnly'] as bool? ?? false,
+    askedForNotifications: j['askedForNotifications'] as bool? ?? false,
   );
 }
 

@@ -20,6 +20,9 @@ Runs on Android, Windows, macOS and the web from one Flutter codebase. The full 
 | **Celebrations** | Confetti plus an XP breakdown card when you finish, and a small toast when you start (it never covers the screen at that moment). Intensity runs Off / Subtle / Normal / Party. |
 | **Motivational quotes** | 114 bundled quotes in five categories. The category depends on the moment: dread-busting for a task you rated "Ugh", self-compassion after a skip, momentum during focus. |
 | **9 themes** | Professional (Slate, Graphite, Clinic Calm), futuristic (Neon Grid, Holo Glass, Mission Control, Terminal), and accessibility (Low-Stim, High Contrast). |
+| **Repeating tasks** | Every day, weekday, week, 2 weeks or month, on a fixed schedule ("report every Friday") or counted from when you finish ("water plants a week after last time"). The next one waits in **Coming up** until its day, so finishing laundry doesn't put laundry straight back in front of you. |
+| **Reminders (Android)** | A countdown in your notifications while you focus, plus a "time's up" alert even if you've switched apps. Check-in nudges ("pick one thing?") at times you choose, skipped for 90 minutes after you've started or finished something. Settings → Reminders. |
+| **Undo** | **Mark done**, Archive and Delete from the task list each show an Undo bar. Undoing a done also takes back its XP and the next copy of a repeating task. |
 | **Patient-info guard** | Work tasks that look like PHI (DOB, MRN, "pt Jane Doe") show a warning to use initials or a ticket number instead. |
 
 ### Sync between devices (Phase 2)
@@ -115,9 +118,10 @@ app/lib/
     tasks/         task list + state
     gamification/  XP rules, levels, streaks, achievements, celebrations
     motivation/    quote service + rotator
+    reminders/     focus timer notifications, check-in nudges
     safety/        PHI guard
     settings/      themes, celebration intensity, preferences
-app/test/          103 unit, widget, phone-layout and multi-device sync tests
+app/test/          129 unit, widget, phone-layout and multi-device sync tests
 docs/PLAN.md       full product plan and roadmap
 ```
 

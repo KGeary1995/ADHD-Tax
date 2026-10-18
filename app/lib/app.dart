@@ -12,6 +12,7 @@ import 'features/gamification/celebration_overlay.dart';
 import 'features/gamification/level_badge.dart';
 import 'features/gamification/progress_screen.dart';
 import 'features/picker/dashboard_screen.dart';
+import 'features/reminders/reminder_bootstrap.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/tasks/task_list_screen.dart';
@@ -89,7 +90,9 @@ class AdhdTaxApp extends ConsumerWidget {
       routerConfig: ref.watch(routerProvider),
       builder: (context, child) => ThemedBackdrop(
         child: SyncBootstrap(
-          child: CelebrationOverlay(child: child ?? const SizedBox.shrink()),
+          child: ReminderBootstrap(
+            child: CelebrationOverlay(child: child ?? const SizedBox.shrink()),
+          ),
         ),
       ),
     );

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
 import '../../data/models/task.dart';
 import '../../widgets/backdrop.dart';
 import '../../widgets/task_chips.dart';
 import '../capture/quick_add_sheet.dart';
 import '../focus/focus_route.dart';
+import 'task_actions.dart';
 import 'tasks_controller.dart';
 
 final _workspaceFilterProvider = NotifierProvider<_WorkspaceFilter, Workspace?>(
@@ -44,14 +46,17 @@ class TaskListScreen extends ConsumerWidget {
 
     final doing = all.where((t) => t.status == TaskStatus.doing).toList()
       ..sort(byUrgency);
-    final next =
-        all
-            .where(
-              (t) =>
-                  t.status == TaskStatus.todo || t.status == TaskStatus.inbox,
-            )
-            .toList()
-          ..sort(byUrgency);
+    final now = ref.read(clockProvider)();
+    bool later(Task t) =>
+        t.scheduledStart != null && t.scheduledStart!.isAfter(now);
+    final open = all.where(
+      (t) => t.status == TaskStatus.todo || t.status == TaskStatus.inbox,
+    );
+    final next = open.where((t) => !later(t)).toList()..sort(byUrgency);
+    // Snoozed, and the next copy of repeating tasks: out of the way until
+    // their day.
+    final comingUp = open.where(later).toList()
+      ..sort((a, b) => a.scheduledStart!.compareTo(b.scheduledStart!));
     final waiting = all.where((t) => t.status == TaskStatus.waiting).toList();
     final done = all.where((t) => t.status == TaskStatus.done).toList()
       ..sort(
@@ -134,6 +139,7 @@ class TaskListScreen extends ConsumerWidget {
           _Section(title: 'In progress', tasks: doing),
           _Section(title: 'Up next', tasks: next),
           _Section(title: 'Waiting on someone', tasks: waiting),
+          _Section(title: 'Coming up', tasks: comingUp),
           if (done.isNotEmpty)
             Panel(
               padding: EdgeInsets.zero,
@@ -240,15 +246,18 @@ class _TaskTile extends ConsumerWidget {
                 ctl.setStatus(task.id, TaskStatus.waiting);
               case 'todo':
                 ctl.reopen(task.id);
+              case 'done':
+                markDoneWithUndo(context, ref, task);
               case 'archive':
-                ctl.setStatus(task.id, TaskStatus.archived);
+                archiveWithUndo(context, ref, task);
               case 'delete':
-                ctl.delete(task.id);
+                deleteWithUndo(context, ref, task);
             }
           },
           itemBuilder: (_) => [
             const PopupMenuItem(value: 'edit', child: Text('Edit')),
             if (!isDone) ...[
+              const PopupMenuItem(value: 'done', child: Text('Mark done')),
               const PopupMenuItem(value: 'five', child: Text('Just 5 minutes')),
               if (task.status != TaskStatus.waiting)
                 const PopupMenuItem(

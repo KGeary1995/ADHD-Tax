@@ -14,3 +14,10 @@
 
 # shared_preferences (Jetpack DataStore backend).
 -keep class androidx.datastore.** { *; }
+
+# flutter_local_notifications: stores scheduled notifications with Gson,
+# which needs the generic type signatures R8 would otherwise drop.
+-keep class com.dexterous.** { *; }
+-keepattributes Signature
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken

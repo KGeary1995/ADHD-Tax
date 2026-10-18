@@ -8,6 +8,7 @@ import 'package:adhd_tax/features/settings/settings_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 const _quotes = [
@@ -21,6 +22,7 @@ const _quotes = [
 Future<ProviderContainer> pumpApp(
   WidgetTester tester, {
   Size size = const Size(1400, 1000),
+  List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -30,6 +32,7 @@ Future<ProviderContainer> pumpApp(
     overrides: [
       keyValueStoreProvider.overrideWithValue(MemoryStore()),
       quoteServiceProvider.overrideWithValue(QuoteService(_quotes)),
+      ...overrides,
     ],
   );
   addTearDown(container.dispose);

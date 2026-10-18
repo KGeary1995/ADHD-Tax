@@ -12,6 +12,8 @@ import '../../widgets/task_chips.dart';
 import '../gamification/progress_controller.dart';
 import '../motivation/quote_rotator.dart';
 import '../motivation/quote_service.dart';
+import '../reminders/reminders.dart';
+import '../settings/settings_controller.dart';
 import '../tasks/tasks_controller.dart';
 import 'visual_timer.dart';
 
@@ -45,6 +47,10 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
 
   DateTime _now() => ref.read(clockProvider)();
 
+  // Read up front: dispose() can't use ref.
+  late final Reminders _reminders;
+  late final bool _alerts;
+
   Duration get _elapsed => _runningSince == null
       ? _banked
       : _banked + _now().difference(_runningSince!);
@@ -56,6 +62,8 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
   @override
   void initState() {
     super.initState();
+    _reminders = ref.read(remindersProvider);
+    _alerts = ref.read(settingsProvider).timerAlerts;
     _runningSince = _now();
     _tick = Timer.periodic(const Duration(seconds: 1), (_) => _onTick());
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -66,13 +74,31 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
       ref
           .read(progressProvider.notifier)
           .recordStart(task, panic: widget.panic);
+      _syncNotification();
     });
   }
 
   @override
   void dispose() {
     _tick?.cancel();
+    if (_alerts) _reminders.focusEnded();
     super.dispose();
+  }
+
+  /// Mirrors the timer in the notification shade, with a "time's up" alert
+  /// that still arrives if you've switched to another app.
+  void _syncNotification() {
+    if (!_alerts || _finished) return;
+    final task = ref.read(tasksProvider.notifier).byId(widget.taskId);
+    if (task == null) return;
+    if (_runningSince == null) {
+      _reminders.focusPaused(title: task.startLine, left: _remaining);
+    } else {
+      _reminders.focusRunning(
+        title: task.startLine,
+        endsAt: DateTime.now().add(_remaining),
+      );
+    }
   }
 
   void _onTick() {
@@ -81,6 +107,14 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
     if (!_prompted && _remaining <= Duration.zero && _runningSince != null) {
       _prompted = true;
       SystemSound.play(SystemSoundType.alert);
+      if (_alerts) {
+        // Looking at the app: the dialog is the alert, so drop the
+        // notification. In the background, the notification is how you
+        // find out, so leave it.
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed
+            ? _reminders.focusEnded()
+            : _reminders.focusTimeUp();
+      }
       _timeUp();
     }
   }
@@ -94,12 +128,16 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
         _runningSince = null;
       }
     });
+    _syncNotification();
   }
 
-  void _addTime(int min) => setState(() {
-    _target += Duration(minutes: min);
-    if (_remaining > Duration.zero) _prompted = false;
-  });
+  void _addTime(int min) {
+    setState(() {
+      _target += Duration(minutes: min);
+      if (_remaining > Duration.zero) _prompted = false;
+    });
+    _syncNotification();
+  }
 
   Future<void> _timeUp() async {
     final task = ref.read(tasksProvider.notifier).byId(widget.taskId);
@@ -151,6 +189,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           _target = _elapsed + Duration(minutes: rest);
           _prompted = false;
         });
+        _syncNotification();
       case 'more':
         _addTime(10);
       case 'done':
@@ -198,6 +237,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
 
   void _leave() {
     _tick?.cancel();
+    if (_alerts) _reminders.focusEnded();
     if (context.canPop()) {
       context.pop();
     } else {

@@ -20,6 +20,9 @@ class CelebrationEvent {
     required this.levelBefore,
     required this.levelAfter,
     this.achievements = const [],
+    this.quick = false,
+    this.eventId = '',
+    this.workspace = Workspace.personal,
   });
 
   final CelebrationKind kind;
@@ -29,12 +32,21 @@ class CelebrationEvent {
   final int levelAfter;
   final List<Achievement> achievements;
 
+  /// Marked done from the list rather than at the end of a focus session.
+  final bool quick;
+
+  /// The XP event behind it, so it can be taken back by an undo.
+  final String eventId;
+  final Workspace workspace;
+
   bool get leveledUp => levelAfter > levelBefore;
 
   /// Finishes get the full card. Starts always get a toast: interrupting
   /// the moment someone finally starts would defeat the point.
   bool get isBig => switch (kind) {
-    CelebrationKind.completed => true,
+    // A quick "Mark done" gets the toast (which still lists achievements
+    // and level-ups), so the card never covers its Undo.
+    CelebrationKind.completed => !quick,
     CelebrationKind.partial => leveledUp || achievements.isNotEmpty,
     CelebrationKind.started => false,
   };
@@ -51,6 +63,11 @@ class CelebrationQueue extends Notifier<List<CelebrationEvent>> {
   List<CelebrationEvent> build() => const [];
 
   void push(CelebrationEvent e) => state = [...state, e];
+
+  void remove(CelebrationEvent e) => state = [
+    for (final x in state)
+      if (!identical(x, e)) x,
+  ];
 
   void pop() {
     if (state.isNotEmpty) state = state.sublist(1);
@@ -100,9 +117,10 @@ class ProgressController extends Notifier<ProgressStats> {
     );
   }
 
+  /// [actualMin] is null when it was marked done without being timed.
   CelebrationEvent recordCompletion(
     Task t, {
-    required int actualMin,
+    required int? actualMin,
     bool keptGoingAfterFive = false,
   }) {
     final now = _now();
@@ -120,12 +138,16 @@ class ProgressController extends Notifier<ProgressStats> {
       (e) => e.copyWith(
         completed: 1,
         ughCompleted: t.ugh >= 2 ? 1 : 0,
-        accurate: (actualMin - t.estimateMin).abs() <= tolerance ? 1 : 0,
+        accurate:
+            actualMin != null && (actualMin - t.estimateMin).abs() <= tolerance
+            ? 1
+            : 0,
         oldCleared: now.difference(t.createdAt).inDays >= 7 ? 1 : 0,
-        focusMinutes: actualMin,
+        focusMinutes: actualMin ?? 0,
         keptGoing: keptGoingAfterFive ? 1 : 0,
         errands: t.requiresLeavingHouse ? 1 : 0,
       ),
+      quick: actualMin == null,
     );
   }
 
@@ -144,6 +166,19 @@ class ProgressController extends Notifier<ProgressStats> {
         keptGoing: keptGoingAfterFive ? 1 : 0,
       ),
     );
+  }
+
+  /// Takes back the XP from an undone action, on every device.
+  void revoke(CelebrationEvent e) {
+    if (e.eventId.isEmpty) return;
+    ref.read(celebrationQueueProvider.notifier).remove(e);
+    ref
+        .read(replicasProvider.notifier)
+        .write(
+          e.workspace,
+          (r, now) => r.delete(collEvents, e.eventId, now),
+          events: true,
+        );
   }
 
   /// Starts progress over on every device. Old events stay (they're what
@@ -165,8 +200,9 @@ class ProgressController extends Notifier<ProgressStats> {
     Task t,
     XpAward award,
     CelebrationKind kind,
-    ProgressEvent Function(ProgressEvent) counters,
-  ) {
+    ProgressEvent Function(ProgressEvent) counters, {
+    bool quick = false,
+  }) {
     final now = _now();
     final event = counters(
       ProgressEvent(
@@ -202,6 +238,9 @@ class ProgressController extends Notifier<ProgressStats> {
       levelBefore: before.level,
       levelAfter: after.level,
       achievements: unlocked,
+      quick: quick,
+      eventId: event.id,
+      workspace: t.workspace,
     );
     ref.read(celebrationQueueProvider.notifier).push(celebration);
     return celebration;

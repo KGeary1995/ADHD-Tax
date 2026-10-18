@@ -6,6 +6,7 @@ import '../../widgets/backdrop.dart';
 import '../../widgets/task_chips.dart';
 import '../gamification/progress_controller.dart';
 import 'accounts_panel.dart';
+import 'reminders_panel.dart';
 import 'settings_controller.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -64,6 +65,9 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
           ],
+          const SectionLabel('Reminders'),
+          const RemindersPanel(),
+          const SizedBox(height: 20),
           const SectionLabel('Celebrations'),
           Panel(
             padding: const EdgeInsets.symmetric(vertical: 8),

@@ -32,6 +32,22 @@ enum Workspace {
   final String label;
 }
 
+/// How often a task comes back after it's done.
+enum Repeat {
+  none("Doesn't repeat", ''),
+  daily('Every day', 'Daily'),
+  weekdays('Every weekday (Mon–Fri)', 'Weekdays'),
+  weekly('Every week', 'Weekly'),
+  biweekly('Every 2 weeks', 'Every 2 wks'),
+  monthly('Every month', 'Monthly');
+
+  const Repeat(this.label, this.short);
+  final String label;
+
+  /// For chips.
+  final String short;
+}
+
 /// How much the user does not want to do a task.
 const ughLabels = ['Fine', 'Meh', 'Ugh', 'Dreading it'];
 
@@ -65,6 +81,8 @@ class Task {
     this.actualMin,
     this.skipCount = 0,
     this.lastSkippedAt,
+    this.repeat = Repeat.none,
+    this.repeatFromDone = false,
   }) : assert(ugh >= 0 && ugh <= 3);
 
   final String id;
@@ -98,6 +116,11 @@ class Task {
   final int? actualMin;
   final int skipCount;
   final DateTime? lastSkippedAt;
+  final Repeat repeat;
+
+  /// Count the next one from when this one was finished ("water the plants
+  /// a week after last time"), not from the due date ("report every Friday").
+  final bool repeatFromDone;
 
   bool get isOpen =>
       status == TaskStatus.inbox ||
@@ -129,6 +152,8 @@ class Task {
     Object? actualMin = _unset,
     int? skipCount,
     Object? lastSkippedAt = _unset,
+    Repeat? repeat,
+    bool? repeatFromDone,
   }) {
     return Task(
       id: id,
@@ -164,6 +189,8 @@ class Task {
       lastSkippedAt: identical(lastSkippedAt, _unset)
           ? this.lastSkippedAt
           : lastSkippedAt as DateTime?,
+      repeat: repeat ?? this.repeat,
+      repeatFromDone: repeatFromDone ?? this.repeatFromDone,
     );
   }
 
@@ -191,6 +218,8 @@ class Task {
     'actualMin': actualMin,
     'skipCount': skipCount,
     'lastSkippedAt': lastSkippedAt?.toIso8601String(),
+    'repeat': repeat.name,
+    'repeatFromDone': repeatFromDone,
   };
 
   factory Task.fromJson(Map<String, Object?> j) {
@@ -223,6 +252,8 @@ class Task {
       actualMin: j['actualMin'] as int?,
       skipCount: j['skipCount'] as int? ?? 0,
       lastSkippedAt: date('lastSkippedAt'),
+      repeat: byName(Repeat.values, 'repeat', Repeat.none),
+      repeatFromDone: j['repeatFromDone'] as bool? ?? false,
     );
   }
 
