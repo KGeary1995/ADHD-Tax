@@ -87,11 +87,11 @@ void main() {
     await tester.pump();
     expect(fake.calls.last, 'running:Find the card');
 
-    await tester.tap(find.text('Pause'));
+    await tester.tap(find.byTooltip('Pause'));
     await tester.pump();
     expect(fake.calls.last, 'paused:Find the card');
 
-    await tester.tap(find.text('Resume'));
+    await tester.tap(find.byTooltip('Resume'));
     await tester.pump();
     expect(fake.calls.last, 'running:Find the card');
 
@@ -151,7 +151,7 @@ void main() {
     expect(open, hasLength(1), reason: 'next week\'s copy');
     expect(open.single.scheduledStart, isNotNull);
     expect(c.read(progressProvider).xp, greaterThan(xpBefore));
-    expect(find.text('COMING UP · 1'), findsOneWidget);
+    expect(find.text('Coming up  1'), findsOneWidget);
     expect(find.textContaining('next one'), findsOneWidget);
 
     await tester.tap(find.text('Undo'));

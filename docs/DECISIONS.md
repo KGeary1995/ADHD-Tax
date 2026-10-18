@@ -2,6 +2,9 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-18 — One look (light + dark) instead of 9 themes
+The owner said the app "feels extremely AI made". A Claude Design canvas (https://claude.ai/artifact/558G1Ms1eMZAsD1UHHwFfB) explored three directions; the owner picked a mix of B (situation as one line, quiet tiles) and C (teal task card, floating pill nav), asked for a one-line headline and a white light background. Nine themes made every screen generic, so there is now one identity: Bricolage Grotesque / Geist / Geist Mono, near-black or white, one teal. Appearance is Light / Dark / Match phone; old theme choices map to light or dark so nobody's screen flips unexpectedly. Fonts are bundled (not fetched) so the app looks the same offline and on every platform.
+
 ### 2026-10-18 — Renamed to Unstuck; internal ids keep "adhd tax"
 The owner wanted a name that says what the app does and is neutral on a work phone at the clinic ("ADHD Tax" announced ADHD to anyone glancing at the screen). Only user-visible strings changed: app labels, window titles, in-app text, notifications, backup filenames, release asset names (`Unstuck.apk`, `Unstuck-macOS.zip`) and the Cloudflare project default (`unstuck`, set before it was ever deployed, so no iPhone data was tied to the old address). The Android applicationId, Mac bundle id, Dart package, repo name, web token key and repeat-copy id seed keep the old name: changing them would install a separate empty app, break update-over-install and the Google Android OAuth client, or make devices on different builds create duplicate repeating tasks. *Revisit only with a planned migration (e.g. before a store release).*
 

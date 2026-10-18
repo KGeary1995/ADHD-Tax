@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../core/theme/app_themes.dart';
 
 const _settingsKey = 'settings.v1';
 
@@ -19,7 +20,7 @@ enum CelebrationLevel {
 
 class AppSettings {
   const AppSettings({
-    this.themeId = 'graphite',
+    this.appearance = Appearance.system,
     this.celebration = CelebrationLevel.normal,
     this.quoteSeconds = 20,
     this.phiGuard = true,
@@ -30,7 +31,7 @@ class AppSettings {
     this.askedForNotifications = false,
   });
 
-  final String themeId;
+  final Appearance appearance;
   final CelebrationLevel celebration;
   final int quoteSeconds;
 
@@ -53,7 +54,7 @@ class AppSettings {
   final bool askedForNotifications;
 
   AppSettings copyWith({
-    String? themeId,
+    Appearance? appearance,
     CelebrationLevel? celebration,
     int? quoteSeconds,
     bool? phiGuard,
@@ -63,7 +64,7 @@ class AppSettings {
     bool? nudgeWeekdaysOnly,
     bool? askedForNotifications,
   }) => AppSettings(
-    themeId: themeId ?? this.themeId,
+    appearance: appearance ?? this.appearance,
     celebration: celebration ?? this.celebration,
     quoteSeconds: quoteSeconds ?? this.quoteSeconds,
     phiGuard: phiGuard ?? this.phiGuard,
@@ -75,7 +76,7 @@ class AppSettings {
   );
 
   Map<String, Object?> toJson() => {
-    'themeId': themeId,
+    'appearance': appearance.name,
     'celebration': celebration.name,
     'quoteSeconds': quoteSeconds,
     'phiGuard': phiGuard,
@@ -87,7 +88,7 @@ class AppSettings {
   };
 
   factory AppSettings.fromJson(Map<String, Object?> j) => AppSettings(
-    themeId: j['themeId'] as String? ?? 'graphite',
+    appearance: _appearanceFromJson(j),
     celebration:
         CelebrationLevel.values.asNameMap()[j['celebration']] ??
         CelebrationLevel.normal,
@@ -124,4 +125,16 @@ class SettingsController extends Notifier<AppSettings> {
         .read(keyValueStoreProvider)
         .write(_settingsKey, jsonEncode(state.toJson()));
   }
+}
+
+/// Before the redesign there were nine themes and no appearance setting.
+/// Keep people on the brightness they had chosen.
+Appearance _appearanceFromJson(Map<String, Object?> j) {
+  final saved = Appearance.values.asNameMap()[j['appearance']];
+  if (saved != null) return saved;
+  return switch (j['themeId']) {
+    null => Appearance.system,
+    'slate' || 'clinic_calm' || 'low_stim' => Appearance.light,
+    _ => Appearance.dark,
+  };
 }

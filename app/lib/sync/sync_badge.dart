@@ -42,6 +42,27 @@ class SyncBadge extends ConsumerWidget {
   }
 }
 
+/// A sync icon on Home only when a workspace needs attention (failed, or
+/// signed out by Google). Quiet otherwise.
+class SyncAlert extends ConsumerWidget {
+  const SyncAlert({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final troubled =
+        [for (final ws in Workspace.values) ref.watch(syncProvider(ws))].where(
+          (s) =>
+              s.phase == SyncPhase.error || s.phase == SyncPhase.needsReconnect,
+        );
+    if (troubled.isEmpty) return const SizedBox.shrink();
+    return IconButton(
+      tooltip: 'Sync needs attention',
+      onPressed: () => context.go('/settings'),
+      icon: SyncIcon(sync: troubled.first, size: 22),
+    );
+  }
+}
+
 /// Keeps both workspaces' sync running for the app's lifetime and syncs
 /// when the app comes back to the foreground.
 class SyncBootstrap extends ConsumerStatefulWidget {

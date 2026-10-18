@@ -1,235 +1,208 @@
 import 'package:flutter/material.dart';
 
-/// Visual personality on top of a ColorScheme: glow, glass, background
-/// treatment, celebration palette, motion.
-enum BackdropStyle { plain, gradient, grid, scanlines }
+/// Unstuck has one look in a light and a dark version. [Appearance] picks
+/// which; "Match phone" follows the system setting.
+enum Appearance {
+  light('Light'),
+  dark('Dark'),
+  system('Match phone');
 
+  const Appearance(this.label);
+  final String label;
+
+  ThemeMode get mode => switch (this) {
+    Appearance.light => ThemeMode.light,
+    Appearance.dark => ThemeMode.dark,
+    Appearance.system => ThemeMode.system,
+  };
+}
+
+/// Font families bundled in assets/fonts (all SIL Open Font License).
+abstract final class Fonts {
+  /// Headlines and big numbers.
+  static const display = 'Bricolage';
+
+  /// Everything else.
+  static const ui = 'Geist';
+
+  /// Times, counts and other numbers that line up.
+  static const mono = 'GeistMono';
+}
+
+/// The design tokens for one brightness. Widgets read it through
+/// `context.spec`.
 class ThemeSpec {
   const ThemeSpec({
-    required this.id,
-    required this.name,
-    required this.tagline,
-    required this.group,
     required this.brightness,
-    required this.primary,
-    required this.secondary,
     required this.background,
     required this.surface,
-    required this.surfaceAlt,
+    required this.border,
+    required this.hairline,
+    required this.outline,
+    required this.selected,
+    required this.track,
     required this.onSurface,
+    required this.text2,
     required this.muted,
-    this.onPrimary,
-    this.backgroundEnd,
-    this.backdrop = BackdropStyle.plain,
-    this.glow = false,
-    this.glass = false,
-    this.reduceMotion = false,
-    this.radius = 14,
-    this.fontFamily,
-    this.fontFamilyFallback,
-    this.success = const Color(0xFF22C55E),
-    this.warning = const Color(0xFFF59E0B),
-    this.danger = const Color(0xFFEF4444),
+    required this.faint,
+    required this.primary,
+    required this.ink,
+    required this.onInk,
+    required this.nav,
+    required this.navBorder,
+    required this.navIcon,
+    required this.navIconActive,
+    required this.warning,
+    required this.danger,
   });
 
-  final String id;
-  final String name;
-  final String tagline;
-  final String group;
   final Brightness brightness;
-  final Color primary;
-  final Color secondary;
+
+  /// The page.
   final Color background;
-  final Color? backgroundEnd;
+
+  /// Cards, grouped settings, tiles, sheets.
   final Color surface;
-  final Color surfaceAlt;
+
+  /// Card edge. Transparent in light mode, where fills do the separating.
+  final Color border;
+
+  /// Dividers between rows.
+  final Color hairline;
+
+  /// Outline of unselected pills and secondary buttons.
+  final Color outline;
+
+  /// The selected segment of a segmented control.
+  final Color selected;
+
+  /// Empty part of progress bars and the focus ring; off switches.
+  final Color track;
+
   final Color onSurface;
+
+  /// Body text on tiles and pills.
+  final Color text2;
+
+  /// Labels and metadata.
   final Color muted;
-  final Color? onPrimary;
-  final BackdropStyle backdrop;
-  final bool glow;
-  final bool glass;
-  final bool reduceMotion;
-  final double radius;
-  final String? fontFamily;
-  final List<String>? fontFamilyFallback;
-  final Color success;
+
+  /// Placeholders, separators, counts next to headings.
+  final Color faint;
+
+  /// Brand teal as text or an icon on [background] (darker in light mode
+  /// so it stays readable on white).
+  final Color primary;
+
+  /// The near-black of the Start button on the teal card, and of the nav
+  /// pill in light mode.
+  final Color ink;
+  final Color onInk;
+
+  final Color nav;
+  final Color navBorder;
+  final Color navIcon;
+  final Color navIconActive;
+
+  /// Due dates and gentle heads-ups. Never used for shame.
   final Color warning;
   final Color danger;
 
+  /// Brand teal as a fill: the task card, selected pills, the Add button.
+  Color get accent => const Color(0xFF5FD8BE);
+
+  /// Text and icons on [accent].
+  Color get onAccent => const Color(0xFF062520);
+
+  /// Secondary text on [accent].
+  Color get onAccentMuted => const Color(0xFF0B4038);
+
+  bool get isDark => brightness == Brightness.dark;
+
   List<Color> get confettiColors => [
-    primary,
-    secondary,
-    success,
-    warning,
-    onSurface,
+    accent,
+    const Color(0xFFF2B45A),
+    const Color(0xFFF2F5F4),
+    const Color(0xFF8BE7D3),
+    const Color(0xFF2E9C86),
   ];
+
+  /// Bricolage Grotesque, tight, for headings.
+  TextStyle display(
+    double size, {
+    Color? color,
+    FontWeight weight = FontWeight.w800,
+  }) => TextStyle(
+    fontFamily: Fonts.display,
+    fontSize: size,
+    fontWeight: weight,
+    height: 1.05,
+    letterSpacing: -size * 0.03,
+    color: color ?? onSurface,
+  );
+
+  /// Geist Mono for numbers that should line up.
+  TextStyle mono(
+    double size, {
+    Color? color,
+    FontWeight weight = FontWeight.w400,
+  }) => TextStyle(
+    fontFamily: Fonts.mono,
+    fontSize: size,
+    fontWeight: weight,
+    color: color ?? muted,
+  );
 }
 
-const _mono = ['Cascadia Mono', 'Consolas', 'Menlo', 'Roboto Mono'];
+const darkSpec = ThemeSpec(
+  brightness: Brightness.dark,
+  background: Color(0xFF0D1012),
+  surface: Color(0xFF151A1D),
+  border: Color(0xFF1F2629),
+  hairline: Color(0xFF1F2629),
+  outline: Color(0xFF2A3336),
+  selected: Color(0xFF2A3336),
+  track: Color(0xFF1F272A),
+  onSurface: Color(0xFFF2F5F4),
+  text2: Color(0xFFC9D2CF),
+  muted: Color(0xFF94A19E),
+  faint: Color(0xFF6E7A77),
+  primary: Color(0xFF5FD8BE),
+  ink: Color(0xFF0D1012),
+  onInk: Color(0xFFF2F5F4),
+  nav: Color(0xFF161C1F),
+  navBorder: Color(0xFF252D30),
+  navIcon: Color(0xFF6E7A77),
+  navIconActive: Color(0xFFF2F5F4),
+  warning: Color(0xFFF2B45A),
+  danger: Color(0xFFF08A7A),
+);
 
-const themeSpecs = <ThemeSpec>[
-  ThemeSpec(
-    id: 'slate',
-    name: 'Slate',
-    tagline: 'Clean, bright, boardroom-ready.',
-    group: 'Professional',
-    brightness: Brightness.light,
-    primary: Color(0xFF2563EB),
-    secondary: Color(0xFF0EA5E9),
-    background: Color(0xFFF4F6FA),
-    surface: Color(0xFFFFFFFF),
-    surfaceAlt: Color(0xFFE9EDF4),
-    onSurface: Color(0xFF0F172A),
-    muted: Color(0xFF64748B),
-  ),
-  ThemeSpec(
-    id: 'graphite',
-    name: 'Graphite',
-    tagline: 'Focused dark mode for long days.',
-    group: 'Professional',
-    brightness: Brightness.dark,
-    primary: Color(0xFF7C9CFF),
-    secondary: Color(0xFF34D399),
-    background: Color(0xFF0F1115),
-    surface: Color(0xFF171A21),
-    surfaceAlt: Color(0xFF222630),
-    onSurface: Color(0xFFE6E8EE),
-    muted: Color(0xFF9097A6),
-    onPrimary: Color(0xFF0B1020),
-  ),
-  ThemeSpec(
-    id: 'clinic_calm',
-    name: 'Clinic Calm',
-    tagline: 'Soft teal. Low glare under fluorescent lights.',
-    group: 'Professional',
-    brightness: Brightness.light,
-    primary: Color(0xFF0F766E),
-    secondary: Color(0xFF3B82F6),
-    background: Color(0xFFEFF6F5),
-    surface: Color(0xFFFFFFFF),
-    surfaceAlt: Color(0xFFDDEDEB),
-    onSurface: Color(0xFF12302D),
-    muted: Color(0xFF5B7471),
-  ),
-  ThemeSpec(
-    id: 'neon_grid',
-    name: 'Neon Grid',
-    tagline: 'Cyberpunk magenta and cyan on a synthwave grid.',
-    group: 'Futuristic',
-    brightness: Brightness.dark,
-    primary: Color(0xFFFF2BD6),
-    secondary: Color(0xFF00F0FF),
-    background: Color(0xFF0B0221),
-    backgroundEnd: Color(0xFF240B4D),
-    surface: Color(0xCC140A2E),
-    surfaceAlt: Color(0xFF231048),
-    onSurface: Color(0xFFF5E9FF),
-    muted: Color(0xFFB59BD6),
-    onPrimary: Color(0xFF12001A),
-    backdrop: BackdropStyle.grid,
-    glow: true,
-    success: Color(0xFF39FF14),
-    warning: Color(0xFFFFE600),
-  ),
-  ThemeSpec(
-    id: 'holo_glass',
-    name: 'Holo Glass',
-    tagline: 'Frosted glass panels over a deep-ocean gradient.',
-    group: 'Futuristic',
-    brightness: Brightness.dark,
-    primary: Color(0xFF7DF9FF),
-    secondary: Color(0xFFB388FF),
-    background: Color(0xFF0F2027),
-    backgroundEnd: Color(0xFF2C5364),
-    surface: Color(0x33FFFFFF),
-    surfaceAlt: Color(0x22FFFFFF),
-    onSurface: Color(0xFFF0FBFF),
-    muted: Color(0xFFB3D4DE),
-    onPrimary: Color(0xFF00222A),
-    backdrop: BackdropStyle.gradient,
-    glass: true,
-    radius: 20,
-  ),
-  ThemeSpec(
-    id: 'mission_control',
-    name: 'Mission Control',
-    tagline: 'HUD amber on deep space. Houston, we have focus.',
-    group: 'Futuristic',
-    brightness: Brightness.dark,
-    primary: Color(0xFFFFB547),
-    secondary: Color(0xFF4FD1C5),
-    background: Color(0xFF070B12),
-    backgroundEnd: Color(0xFF0E1726),
-    surface: Color(0xFF0F1824),
-    surfaceAlt: Color(0xFF162234),
-    onSurface: Color(0xFFE8EEF6),
-    muted: Color(0xFF8DA2BC),
-    onPrimary: Color(0xFF1A1000),
-    backdrop: BackdropStyle.gradient,
-    glow: true,
-    radius: 6,
-  ),
-  ThemeSpec(
-    id: 'terminal',
-    name: 'Terminal',
-    tagline: 'Green phosphor. For people who think in commands.',
-    group: 'Futuristic',
-    brightness: Brightness.dark,
-    primary: Color(0xFF33FF66),
-    secondary: Color(0xFFFFB000),
-    background: Color(0xFF040804),
-    surface: Color(0xFF0A120A),
-    surfaceAlt: Color(0xFF102010),
-    onSurface: Color(0xFFC8FFC8),
-    muted: Color(0xFF6FA86F),
-    onPrimary: Color(0xFF001A06),
-    backdrop: BackdropStyle.scanlines,
-    glow: true,
-    radius: 2,
-    fontFamily: 'monospace',
-    fontFamilyFallback: _mono,
-  ),
-  ThemeSpec(
-    id: 'low_stim',
-    name: 'Low-Stim',
-    tagline: 'Muted and still, for overstimulated days.',
-    group: 'Accessibility',
-    brightness: Brightness.light,
-    primary: Color(0xFF5E7F64),
-    secondary: Color(0xFF7D8F9C),
-    background: Color(0xFFF2F0EB),
-    surface: Color(0xFFFAF9F6),
-    surfaceAlt: Color(0xFFE8E5DE),
-    onSurface: Color(0xFF2E2C28),
-    muted: Color(0xFF77736B),
-    reduceMotion: true,
-    success: Color(0xFF6E9A72),
-    warning: Color(0xFFC09A5B),
-    danger: Color(0xFFB0645A),
-  ),
-  ThemeSpec(
-    id: 'high_contrast',
-    name: 'High Contrast',
-    tagline: 'Maximum legibility.',
-    group: 'Accessibility',
-    brightness: Brightness.dark,
-    primary: Color(0xFFFFE600),
-    secondary: Color(0xFF00E5FF),
-    background: Color(0xFF000000),
-    surface: Color(0xFF000000),
-    surfaceAlt: Color(0xFF1A1A1A),
-    onSurface: Color(0xFFFFFFFF),
-    muted: Color(0xFFDDDDDD),
-    onPrimary: Color(0xFF000000),
-    radius: 8,
-  ),
-];
+const lightSpec = ThemeSpec(
+  brightness: Brightness.light,
+  background: Color(0xFFFFFFFF),
+  surface: Color(0xFFF1F4F3),
+  border: Color(0x00000000),
+  hairline: Color(0xFFE3E7E4),
+  outline: Color(0xFFDCE1DE),
+  selected: Color(0xFFFFFFFF),
+  track: Color(0xFFE3E7E4),
+  onSurface: Color(0xFF111416),
+  text2: Color(0xFF2E3533),
+  muted: Color(0xFF5E6866),
+  faint: Color(0xFF8C9693),
+  primary: Color(0xFF0B7563),
+  ink: Color(0xFF111416),
+  onInk: Color(0xFFF3F4F1),
+  nav: Color(0xFF111416),
+  navBorder: Color(0xFF111416),
+  navIcon: Color(0xFF8C9693),
+  navIconActive: Color(0xFFFFFFFF),
+  warning: Color(0xFF9A5B00),
+  danger: Color(0xFFB4432F),
+);
 
-ThemeSpec themeSpecById(String id) =>
-    themeSpecs.firstWhere((t) => t.id == id, orElse: () => themeSpecs.first);
-
-/// Exposes [ThemeSpec] extras to widgets via `Theme.of(context)`.
+/// Exposes [ThemeSpec] to widgets via `Theme.of(context)`.
 class AppThemeExt extends ThemeExtension<AppThemeExt> {
   const AppThemeExt(this.spec);
   final ThemeSpec spec;
@@ -244,113 +217,207 @@ class AppThemeExt extends ThemeExtension<AppThemeExt> {
 
 extension AppThemeContext on BuildContext {
   ThemeSpec get spec => Theme.of(this).extension<AppThemeExt>()!.spec;
+
+  /// The system "reduce motion" setting.
+  bool get reduceMotion => MediaQuery.maybeDisableAnimationsOf(this) ?? false;
 }
 
 ThemeData buildTheme(ThemeSpec s) {
-  final onPrimary =
-      s.onPrimary ??
-      (s.brightness == Brightness.dark ? Colors.black : Colors.white);
   final scheme = ColorScheme(
     brightness: s.brightness,
-    primary: s.primary,
-    onPrimary: onPrimary,
-    secondary: s.secondary,
-    onSecondary: onPrimary,
-    // Selected chips and segments: a tint of the brand color, not M3's
-    // auto-derived container color.
-    secondaryContainer: s.primary.withValues(alpha: 0.22),
+    primary: s.accent,
+    onPrimary: s.onAccent,
+    secondary: s.primary,
+    onSecondary: s.onAccent,
+    secondaryContainer: s.selected,
     onSecondaryContainer: s.onSurface,
     error: s.danger,
     onError: Colors.white,
-    surface: s.surface,
+    surface: s.background,
     onSurface: s.onSurface,
     onSurfaceVariant: s.muted,
-    surfaceContainerHighest: s.surfaceAlt,
-    surfaceContainerHigh: s.surfaceAlt,
-    surfaceContainer: s.surfaceAlt,
+    surfaceContainerLowest: s.background,
     surfaceContainerLow: s.surface,
-    outline: s.muted.withValues(alpha: 0.5),
-    outlineVariant: s.muted.withValues(alpha: 0.25),
+    surfaceContainer: s.surface,
+    surfaceContainerHigh: s.surface,
+    surfaceContainerHighest: s.surface,
+    outline: s.outline,
+    outlineVariant: s.hairline,
+    inverseSurface: s.onSurface,
+    onInverseSurface: s.background,
+    inversePrimary: s.primary,
   );
-  final shape = RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(s.radius),
-  );
+  const stadium = StadiumBorder();
+  const ui = TextStyle(fontFamily: Fonts.ui);
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
     brightness: s.brightness,
-    fontFamily: s.fontFamily,
-    fontFamilyFallback: s.fontFamilyFallback,
-    scaffoldBackgroundColor: Colors.transparent,
-    visualDensity: VisualDensity.standard,
+    fontFamily: Fonts.ui,
+    scaffoldBackgroundColor: s.background,
+    canvasColor: s.background,
+    splashFactory: InkSparkle.splashFactory,
   );
   return base.copyWith(
     extensions: [AppThemeExt(s)],
-    canvasColor: s.background,
+    textTheme: base.textTheme.apply(
+      bodyColor: s.onSurface,
+      displayColor: s.onSurface,
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: s.background,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: s.onSurface,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      titleTextStyle: s.display(22),
+    ),
     dialogTheme: DialogThemeData(
-      backgroundColor: s.glass ? s.background : s.surface,
-      shape: shape,
+      backgroundColor: s.isDark ? s.surface : s.background,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+      titleTextStyle: s.display(24),
     ),
     bottomSheetTheme: BottomSheetThemeData(
-      backgroundColor: s.glass ? s.background : s.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(s.radius)),
+      backgroundColor: s.isDark ? s.surface : s.background,
+      surfaceTintColor: Colors.transparent,
+      showDragHandle: true,
+      dragHandleColor: s.isDark ? const Color(0xFF343E41) : s.outline,
+      dragHandleSize: const Size(40, 5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
     ),
-    cardTheme: CardThemeData(color: s.surface, shape: shape, elevation: 0),
-    chipTheme: base.chipTheme.copyWith(
+    popupMenuTheme: PopupMenuThemeData(
+      color: s.isDark ? s.surface : s.background,
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(s.radius / 1.5),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: s.isDark ? s.outline : s.hairline),
       ),
-      side: BorderSide(color: s.muted.withValues(alpha: 0.3)),
+      textStyle: ui.copyWith(fontSize: 15, color: s.onSurface),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: s.isDark ? const Color(0xFFF2F5F4) : s.ink,
+      contentTextStyle: ui.copyWith(
+        fontSize: 15,
+        color: s.isDark ? s.background : s.onInk,
+      ),
+      actionTextColor: s.isDark ? const Color(0xFF0B7563) : s.accent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+    tooltipTheme: TooltipThemeData(
+      decoration: BoxDecoration(
+        color: s.isDark ? const Color(0xFFF2F5F4) : s.ink,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      textStyle: ui.copyWith(
+        fontSize: 13,
+        color: s.isDark ? s.background : s.onInk,
+      ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(s.radius),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        backgroundColor: s.accent,
+        foregroundColor: s.onAccent,
+        shape: stadium,
+        minimumSize: const Size(64, 52),
+        padding: const EdgeInsets.symmetric(horizontal: 22),
+        textStyle: ui.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(s.radius),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        foregroundColor: s.onSurface,
+        side: BorderSide(color: s.outline),
+        shape: stadium,
+        minimumSize: const Size(64, 52),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        textStyle: ui.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
       ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: s.primary,
+        shape: stadium,
+        minimumSize: const Size(48, 44),
+        textStyle: ui.copyWith(fontSize: 15, fontWeight: FontWeight.w500),
+      ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(foregroundColor: s.muted),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: s.surfaceAlt.withValues(alpha: s.glass ? 0.4 : 0.6),
+      fillColor: s.isDark ? s.background : s.surface,
+      hintStyle: ui.copyWith(color: s.faint),
+      labelStyle: ui.copyWith(color: s.muted),
+      floatingLabelStyle: ui.copyWith(color: s.primary),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(s.radius),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: s.isDark ? s.outline : s.surface),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: s.isDark ? s.outline : s.surface),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: s.accent, width: 1.5),
       ),
     ),
-    navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: Colors.transparent,
-      indicatorColor: s.primary.withValues(alpha: 0.18),
-      selectedIconTheme: IconThemeData(color: s.primary),
-      selectedLabelTextStyle: TextStyle(
-        color: s.primary,
-        fontWeight: FontWeight.w600,
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (st) => st.contains(WidgetState.selected)
+            ? s.onAccent
+            : (s.isDark ? s.muted : Colors.white),
       ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (st) => st.contains(WidgetState.selected)
+            ? s.accent
+            : (s.isDark ? s.outline : const Color(0xFFCDD3D0)),
+      ),
+      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+      thumbIcon: const WidgetStatePropertyAll(null),
     ),
-    navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: s.glass ? s.background : s.surface,
-      indicatorColor: s.primary.withValues(alpha: 0.18),
+    checkboxTheme: CheckboxThemeData(
+      shape: const CircleBorder(),
+      fillColor: WidgetStateProperty.resolveWith(
+        (st) => st.contains(WidgetState.selected) ? s.accent : null,
+      ),
+      checkColor: WidgetStatePropertyAll(s.onAccent),
+      side: BorderSide(color: s.faint, width: 2),
     ),
-    dividerTheme: DividerThemeData(color: s.muted.withValues(alpha: 0.2)),
-    pageTransitionsTheme: s.reduceMotion
-        ? const PageTransitionsTheme(
-            builders: {
-              TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
-              TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
-              TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
-              TargetPlatform.macOS: FadeForwardsPageTransitionsBuilder(),
-            },
-          )
-        : null,
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: s.accent,
+      linearTrackColor: s.track,
+      circularTrackColor: s.track,
+    ),
+    sliderTheme: SliderThemeData(
+      activeTrackColor: s.accent,
+      inactiveTrackColor: s.track,
+      thumbColor: s.accent,
+    ),
+    listTileTheme: ListTileThemeData(
+      iconColor: s.muted,
+      textColor: s.onSurface,
+      titleTextStyle: ui.copyWith(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: s.onSurface,
+      ),
+      subtitleTextStyle: ui.copyWith(fontSize: 13, color: s.muted),
+    ),
+    datePickerTheme: DatePickerThemeData(
+      backgroundColor: s.isDark ? s.surface : s.background,
+      surfaceTintColor: Colors.transparent,
+      headerBackgroundColor: s.isDark ? s.surface : s.background,
+    ),
+    timePickerTheme: TimePickerThemeData(
+      backgroundColor: s.isDark ? s.surface : s.background,
+    ),
+    dividerTheme: DividerThemeData(color: s.hairline, space: 1, thickness: 1),
   );
 }

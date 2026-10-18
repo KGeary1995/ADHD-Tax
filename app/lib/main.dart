@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +29,7 @@ Future<void> _start() async {
   // of an empty box in release builds. Self-contained, since it may replace
   // the whole app.
   ErrorWidget.builder = (details) => BuildErrorPanel(details: details);
+  LicenseRegistry.addLicense(_fontLicenses);
 
   try {
     final prefs = await SharedPreferences.getInstance();
@@ -46,5 +48,16 @@ Future<void> _start() async {
     );
   } on Object catch (error, stack) {
     runApp(StartupErrorApp(error: error, stack: stack, onRetry: _start));
+  }
+}
+
+Stream<LicenseEntry> _fontLicenses() async* {
+  for (final (package, file) in [
+    ('Bricolage Grotesque', 'OFL-BricolageGrotesque.txt'),
+    ('Geist', 'OFL-Geist.txt'),
+    ('Geist Mono', 'OFL-GeistMono.txt'),
+  ]) {
+    final text = await rootBundle.loadString('assets/fonts/$file');
+    yield LicenseEntryWithLineBreaks([package], text);
   }
 }

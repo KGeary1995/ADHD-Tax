@@ -24,9 +24,8 @@ class PhiWarning extends ConsumerWidget {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: s.warning.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(s.radius / 1.5),
-        border: Border.all(color: s.warning.withValues(alpha: 0.5)),
+        color: s.warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,7 +35,7 @@ class PhiWarning extends ConsumerWidget {
           Expanded(
             child: Text(
               '$phiWarning\nDetected: ${hits.map((h) => h.kind).join(', ')}',
-              style: TextStyle(color: s.onSurface, fontSize: 13),
+              style: TextStyle(color: s.onSurface, fontSize: 13, height: 1.4),
             ),
           ),
         ],

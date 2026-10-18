@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
 import '../../data/models/task.dart';
-import '../../widgets/backdrop.dart';
 import '../../widgets/task_chips.dart';
+import '../../widgets/ui.dart';
 import '../safety/phi_warning.dart';
 import '../tasks/task_actions.dart';
 import '../tasks/tasks_controller.dart';
@@ -142,11 +142,14 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionLabel(label),
+          FieldLabel(label),
           child,
           if (help != null) ...[
             const SizedBox(height: 4),
-            Text(help, style: TextStyle(color: s.muted, fontSize: 12)),
+            Text(
+              help,
+              style: TextStyle(color: s.muted, fontSize: 13, height: 1.4),
+            ),
           ],
         ],
       ),
@@ -154,7 +157,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
         title: Text(_isNew ? 'New task' : 'Edit task'),
         actions: [
           if (!_isNew)
@@ -167,6 +169,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton(
               onPressed: _title.text.trim().isEmpty ? null : _save,
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
               child: const Text('Save'),
             ),
           ),
@@ -250,11 +253,11 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         for (final m in estimatePresets)
-                          ChoiceChip(
-                            label: Text(formatMinutes(m)),
+                          Pill(
+                            label: shortMinutes(m),
+                            mono: true,
                             selected: int.tryParse(_estimate.text) == m,
-                            onSelected: (_) =>
-                                setState(() => _estimate.text = '$m'),
+                            onTap: () => setState(() => _estimate.text = '$m'),
                           ),
                         SizedBox(
                           width: 120,

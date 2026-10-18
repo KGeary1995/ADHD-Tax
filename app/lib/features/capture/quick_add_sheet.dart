@@ -7,6 +7,7 @@ import '../../core/theme/app_themes.dart';
 import '../../data/models/task.dart';
 import '../focus/focus_route.dart';
 import '../../widgets/task_chips.dart';
+import '../../widgets/ui.dart';
 import '../picker/picker_controller.dart';
 import '../safety/phi_warning.dart';
 import '../tasks/tasks_controller.dart';
@@ -114,7 +115,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   Widget build(BuildContext context) {
     final s = context.spec;
     final narrow = MediaQuery.sizeOf(context).width < 420;
-    final side = narrow ? 16.0 : 20.0;
+    final side = narrow ? 18.0 : 22.0;
     // Sits on top of the keyboard when it's open, above the system
     // navigation bar when it isn't.
     final bottom = MediaQuery.viewInsetsOf(context).bottom > 0
@@ -122,10 +123,19 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
         : MediaQuery.viewPaddingOf(context).bottom;
 
     Widget section(String label, Widget child) => Padding(
-      padding: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.only(top: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [SectionLabel(label), child],
+        children: [FieldLabel(label), child],
+      ),
+    );
+
+    final link = TextButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      textStyle: const TextStyle(
+        fontFamily: Fonts.ui,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
       ),
     );
 
@@ -137,49 +147,50 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
         children: [
           Flexible(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(side, 20, side, 8),
+              padding: EdgeInsets.fromLTRB(side, 0, side, 8),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    _brainDump ? 'Brain dump' : 'Quick add',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: s.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
                   Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     spacing: 8,
-                    runSpacing: 8,
                     children: [
-                      FilterChip(
-                        label: const Text('Brain dump'),
-                        avatar: const Icon(
-                          Icons.psychology_alt_outlined,
-                          size: 18,
-                        ),
-                        selected: _brainDump,
-                        onSelected: (v) => setState(() => _brainDump = v),
+                      Text(
+                        _brainDump ? 'Brain dump' : 'Add a task',
+                        style: s.display(26),
                       ),
-                      if (!_brainDump)
-                        ActionChip(
-                          label: const Text('Full task form'),
-                          avatar: const Icon(Icons.open_in_full, size: 18),
-                          tooltip:
-                              'First step, due date, notes, energy and more',
-                          onPressed: _openFullForm,
-                        ),
+                      Wrap(
+                        children: [
+                          TextButton(
+                            style: link,
+                            onPressed: () =>
+                                setState(() => _brainDump = !_brainDump),
+                            child: Text(_brainDump ? 'One task' : 'Brain dump'),
+                          ),
+                          if (!_brainDump)
+                            Tooltip(
+                              message:
+                                  'First step, due date, notes, energy and '
+                                  'more',
+                              child: TextButton(
+                                style: link,
+                                onPressed: _openFullForm,
+                                child: const Text('Full form'),
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   TextField(
                     controller: _title,
                     autofocus: true,
                     minLines: _brainDump ? 5 : 1,
                     maxLines: _brainDump ? 12 : 1,
+                    style: TextStyle(fontSize: 17, color: s.onSurface),
                     textInputAction: _brainDump
                         ? TextInputAction.newline
                         : TextInputAction.done,
@@ -191,22 +202,14 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     ),
                   ),
                   PhiWarning(text: _title.text, workspace: _workspace),
-                  section(
-                    'Workspace',
-                    ChoiceGroup(
-                      values: Workspace.values,
-                      selected: _workspace,
-                      labelOf: (w) => w.label,
-                      onSelected: (w) => setState(() => _workspace = w),
-                    ),
-                  ),
                   if (!_brainDump) ...[
                     section(
                       'How long?',
                       ChoiceGroup(
                         values: estimatePresets,
                         selected: _estimate,
-                        labelOf: formatMinutes,
+                        mono: true,
+                        labelOf: shortMinutes,
                         onSelected: (m) => setState(() => _estimate = m),
                       ),
                     ),
@@ -228,17 +231,33 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                         onSelected: (i) => setState(() => _ugh = i),
                       ),
                     ),
-                    section(
-                      'Errand',
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        secondary: const Icon(Icons.directions_car_outlined),
-                        title: const Text('Need to leave the house'),
-                        value: _leave,
-                        onChanged: (v) => setState(() => _leave = v),
-                      ),
-                    ),
                   ],
+                  const SizedBox(height: 18),
+                  // Where it goes and whether it's an errand: two yes/no
+                  // facts, kept apart from the dread scale above.
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      SizedBox(
+                        width: 220,
+                        child: Segmented<Workspace>(
+                          values: Workspace.values,
+                          selected: _workspace,
+                          inset: s.isDark,
+                          labelOf: (w) => w.label,
+                          onSelected: (w) => setState(() => _workspace = w),
+                        ),
+                      ),
+                      if (!_brainDump)
+                        Pill(
+                          label: 'Leave the house',
+                          icon: Icons.directions_car_outlined,
+                          selected: _leave,
+                          onTap: () => setState(() => _leave = !_leave),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -246,22 +265,27 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
           // Pinned below the scrolling fields so the buttons stay visible
           // however long the form gets.
           Padding(
-            padding: EdgeInsets.fromLTRB(side, 8, side, 16),
+            padding: EdgeInsets.fromLTRB(side, 12, side, 16),
             child: Row(
               children: [
                 if (!_brainDump) ...[
                   Expanded(
-                    child: OutlinedButton.icon(
+                    child: OutlinedButton(
                       onPressed: _canSave ? () => _save(start: true) : null,
-                      icon: const Icon(Icons.play_arrow),
-                      label: Text(narrow ? 'Add & start' : 'Add & start now'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 56),
+                      ),
+                      child: const Text('Add & start'),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                 ],
                 Expanded(
                   child: FilledButton(
                     onPressed: _canSave ? _save : null,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 56),
+                    ),
                     child: Text(_brainDump ? 'Capture all' : 'Add'),
                   ),
                 ),

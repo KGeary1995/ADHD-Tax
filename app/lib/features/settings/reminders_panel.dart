@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_themes.dart';
-import '../../widgets/backdrop.dart';
+import '../../widgets/ui.dart';
 import '../reminders/reminders.dart';
 import 'settings_controller.dart';
 
@@ -72,16 +72,16 @@ class _RemindersPanelState extends ConsumerState<RemindersPanel> {
     final supported = ref.watch(remindersProvider).supported;
 
     if (!supported) {
-      return Panel(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: ListTile(
-          leading: Icon(Icons.notifications_off_outlined, color: s.muted),
-          title: const Text('Reminders are set up in the Android app'),
-          subtitle: const Text(
-            'Timer alerts and check-in nudges come to your phone. Here, the '
-            'focus timer stays on screen.',
+      return const Group(
+        label: 'Reminders',
+        children: [
+          GroupRow(
+            title: 'Reminders come to the Android app',
+            subtitle:
+                'Timer alerts and check-in nudges go to your phone. Here, '
+                'the focus timer stays on screen.',
           ),
-        ),
+        ],
       );
     }
 
@@ -90,96 +90,141 @@ class _RemindersPanelState extends ConsumerState<RemindersPanel> {
     String label(int m) =>
         loc.formatTimeOfDay(TimeOfDay(hour: m ~/ 60, minute: m % 60));
 
-    return Panel(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_granted == false)
-            Container(
-              margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: s.warning.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(s.radius / 1.5),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _blocked
-                        ? 'Android didn\'t show the prompt. Turn them on in '
-                              'Android Settings → Apps → Unstuck → '
-                              'Notifications.'
-                        : 'Notifications are off for Unstuck, so none of '
-                              'these will reach you.',
-                    style: TextStyle(color: s.onSurface),
-                  ),
-                  if (!_blocked) ...[
-                    const SizedBox(height: 8),
-                    FilledButton.icon(
-                      onPressed: _ask,
-                      icon: const Icon(Icons.notifications_active_outlined),
-                      label: const Text('Allow notifications'),
+    return Group(
+      label: 'Reminders',
+      children: [
+        if (_granted == false)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.notifications_off_outlined,
+                      size: 20,
+                      color: s.warning,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _blocked
+                            ? 'Android didn\'t show the prompt. Turn them on '
+                                  'in Android Settings → Apps → Unstuck → '
+                                  'Notifications.'
+                            : 'Notifications are off for Unstuck, so none '
+                                  'of these will reach you.',
+                        style: TextStyle(color: s.text2, fontSize: 14),
+                      ),
                     ),
                   ],
+                ),
+                if (!_blocked) ...[
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: _ask,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 44),
+                    ),
+                    child: const Text('Allow notifications'),
+                  ),
                 ],
-              ),
+              ],
             ),
-          SwitchListTile(
-            title: const Text('Focus timer alerts'),
-            subtitle: const Text(
-              'A countdown in your notifications while you focus, and an '
-              "alert when time's up, even if you've switched apps.",
-            ),
-            value: settings.timerAlerts,
-            onChanged: (v) => ctl.update((x) => x.copyWith(timerAlerts: v)),
           ),
-          SwitchListTile(
-            title: const Text('Check-in nudges'),
-            subtitle: const Text(
-              'A gentle "pick one thing?" at the times below. Skipped if '
-              'you started or finished something in the last 90 minutes.',
-            ),
-            value: settings.nudges,
-            onChanged: (v) => ctl.update((x) => x.copyWith(nudges: v)),
-          ),
-          if (settings.nudges) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final m in times)
-                    InputChip(
-                      label: Text(label(m)),
-                      onDeleted: () => ctl.update(
-                        (x) => x.copyWith(
-                          nudgeTimes: [
-                            for (final t in x.nudgeTimes)
-                              if (t != m) t,
-                          ],
+        SwitchRow(
+          title: 'Focus timer alerts',
+          subtitle: 'Countdown and a "time\'s up" alert',
+          value: settings.timerAlerts,
+          onChanged: (v) => ctl.update((x) => x.copyWith(timerAlerts: v)),
+        ),
+        SwitchRow(
+          title: 'Check-in nudges',
+          subtitle: settings.nudges && times.isNotEmpty
+              ? times.map(label).join(' · ')
+              : 'A gentle "pick one thing?" during the day',
+          subtitleMono: settings.nudges && times.isNotEmpty,
+          value: settings.nudges,
+          onChanged: (v) => ctl.update((x) => x.copyWith(nudges: v)),
+        ),
+        if (settings.nudges) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Skipped if you started something in the last 90 minutes.',
+                  style: TextStyle(fontSize: 13, color: s.muted),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final m in times)
+                      _TimePill(
+                        label: label(m),
+                        onRemove: () => ctl.update(
+                          (x) => x.copyWith(
+                            nudgeTimes: [
+                              for (final t in x.nudgeTimes)
+                                if (t != m) t,
+                            ],
+                          ),
                         ),
                       ),
-                      deleteButtonTooltipMessage: 'Remove',
-                    ),
-                  if (times.length < _maxNudges)
-                    ActionChip(
-                      avatar: const Icon(Icons.add, size: 18),
-                      label: const Text('Add a time'),
-                      onPressed: () => _addTime(times),
-                    ),
-                ],
-              ),
+                    if (times.length < _maxNudges)
+                      Pill(
+                        label: 'Add a time',
+                        icon: Icons.add_rounded,
+                        selected: false,
+                        onTap: () => _addTime(times),
+                      ),
+                  ],
+                ),
+              ],
             ),
-            SwitchListTile(
-              title: const Text('Weekdays only'),
-              value: settings.nudgeWeekdaysOnly,
-              onChanged: (v) =>
-                  ctl.update((x) => x.copyWith(nudgeWeekdaysOnly: v)),
-            ),
-          ],
+          ),
+          SwitchRow(
+            title: 'Weekdays only',
+            value: settings.nudgeWeekdaysOnly,
+            onChanged: (v) =>
+                ctl.update((x) => x.copyWith(nudgeWeekdaysOnly: v)),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TimePill extends StatelessWidget {
+  const _TimePill({required this.label, required this.onRemove});
+  final String label;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.only(left: 14),
+      decoration: ShapeDecoration(
+        shape: StadiumBorder(side: BorderSide(color: s.outline)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: s.mono(14, color: s.text2)),
+          IconButton(
+            tooltip: 'Remove',
+            onPressed: onRemove,
+            iconSize: 16,
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.close_rounded),
+          ),
         ],
       ),
     );

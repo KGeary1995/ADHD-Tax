@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_themes.dart';
-import '../../widgets/backdrop.dart';
+import '../../widgets/ui.dart';
 import '../motivation/quote_rotator.dart';
 import '../motivation/quote_service.dart';
 import '../settings/settings_controller.dart';
@@ -169,50 +169,64 @@ class _XpToast extends StatelessWidget {
         'Level ${event.levelAfter} · ${rankForLevel(event.levelAfter)}',
       for (final a in event.achievements) '${a.icon} ${a.title}',
     ];
+    // Inverted, like a snackbar: reads as a passing note, not a card.
+    final bg = s.isDark ? const Color(0xFFF2F5F4) : s.ink;
+    final fg = s.isDark ? s.background : s.onInk;
+    final xp = s.isDark ? const Color(0xFF0B7563) : s.accent;
     return Material(
       color: Colors.transparent,
-      child: ConstrainedBox(
+      child: Container(
         constraints: const BoxConstraints(maxWidth: 420),
-        child: Panel(
-          highlight: true,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '+${event.award.total} XP',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: s.primary,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Flexible(
-                    child: Text(
-                      label,
-                      style: TextStyle(color: s.onSurface, fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-              for (final x in extras)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: ShapeDecoration(
+          color: bg,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          shadows: const [
+            BoxShadow(
+              color: Color(0x33000000),
+              blurRadius: 24,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '+${event.award.total} XP',
+                  style: s.mono(16, color: xp, weight: FontWeight.w500),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
                   child: Text(
-                    x,
+                    label,
                     style: TextStyle(
-                      color: s.secondary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
+                      color: fg,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
-            ],
-          ),
+              ],
+            ),
+            for (final x in extras)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  x,
+                  style: TextStyle(
+                    color: fg,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -235,130 +249,166 @@ class _CelebrationCard extends StatelessWidget {
       child: GestureDetector(
         onTap: () {}, // Don't dismiss when tapping the card itself.
         child: Container(
-          margin: const EdgeInsets.all(24),
+          margin: const EdgeInsets.all(20),
           constraints: const BoxConstraints(maxWidth: 440),
           child: Panel(
-            highlight: true,
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  event.leveledUp ? '🆙' : '🎉',
-                  style: const TextStyle(fontSize: 52),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  event.leveledUp
-                      ? 'Level ${event.levelAfter}! ${rankForLevel(event.levelAfter)}'
-                      : cheer,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: s.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  event.taskTitle,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: s.muted),
-                ),
-                const SizedBox(height: 18),
-                for (final l in event.award.lines)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
+            radius: 30,
+            color: s.isDark ? s.surface : s.background,
+            padding: EdgeInsets.zero,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // The teal header carries the number: what you earned.
+                  Container(
+                    color: s.accent,
+                    padding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            l.label,
-                            style: TextStyle(color: s.onSurface),
+                        Text(
+                          event.leveledUp
+                              ? 'Level ${event.levelAfter} · '
+                                    '${rankForLevel(event.levelAfter)}'
+                              : '+${event.award.total} XP',
+                          style: s.mono(
+                            14,
+                            color: s.onAccentMuted,
+                            weight: FontWeight.w500,
                           ),
                         ),
+                        const SizedBox(height: 10),
                         Text(
-                          '+${l.amount}',
+                          event.leveledUp
+                              ? 'Level ${event.levelAfter}!'
+                              : cheer,
+                          style: s.display(32, color: s.onAccent),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          event.taskTitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: s.primary,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: s.onAccentMuted,
                           ),
                         ),
                       ],
                     ),
                   ),
-                const Divider(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Total',
-                        style: TextStyle(
-                          color: s.onSurface,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '+${event.award.total} XP · +${event.award.coins} 🪙',
-                      style: TextStyle(
-                        color: s.primary,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                for (final a in event.achievements) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: s.secondary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(s.radius),
-                    ),
-                    child: Row(
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(a.icon, style: const TextStyle(fontSize: 28)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Achievement: ${a.title}',
+                        for (final l in event.award.lines)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    l.label,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: s.text2,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '+${l.amount}',
+                                  style: s.mono(15, color: s.onSurface),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const Divider(height: 22),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Total',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
                                   color: s.onSurface,
                                 ),
                               ),
-                              Text(
-                                a.description,
-                                style: TextStyle(color: s.muted, fontSize: 13),
+                            ),
+                            Text(
+                              '+${event.award.total} XP · '
+                              '+${event.award.coins} coins',
+                              style: s.mono(
+                                15,
+                                color: s.primary,
+                                weight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        for (final a in event.achievements) ...[
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: s.accent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  a.icon,
+                                  style: const TextStyle(fontSize: 20),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Achievement: ${a.title}',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: s.onSurface,
+                                      ),
+                                    ),
+                                    Text(
+                                      a.description,
+                                      style: TextStyle(
+                                        color: s.muted,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
+                        ],
+                        const SizedBox(height: 22),
+                        const QuoteRotator(
+                          context: QuoteContext.celebration,
+                          align: TextAlign.center,
+                        ),
+                        const SizedBox(height: 22),
+                        FilledButton(
+                          onPressed: onClose,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 56),
+                          ),
+                          child: const Text('Keep the streak going'),
                         ),
                       ],
                     ),
                   ),
                 ],
-                const SizedBox(height: 18),
-                const QuoteRotator(
-                  context: QuoteContext.celebration,
-                  align: TextAlign.center,
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: onClose,
-                    child: const Text('Keep the streak going'),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

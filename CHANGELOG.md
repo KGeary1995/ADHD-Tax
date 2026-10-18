@@ -2,7 +2,16 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-18 — renamed to **Unstuck** (Android, Mac)
+## Next build — 2026-10-18 — new look (Android, Mac)
+- Redesigned from scratch: one calm look in **light and dark** (Settings → Appearance: Light / Dark / Match phone). Your old theme choice carries over as light or dark.
+- Home: "One thing. Right now.", your situation on one line (tap to change), the task as a big teal card with **Start** and **5 min**, then **Not this one / Smaller / Later**.
+- Floating bottom bar with the **+** button to add a task (replaces "Quick add").
+- Tasks: tap the circle to mark done; due dates in amber.
+- Focus: a ring timer, Pause / +5 / Done.
+- Settings: grouped Reminders, Sync and Feel sections. Progress: level card and stats.
+- New bundled fonts (Bricolage Grotesque, Geist, Geist Mono).
+
+## Build 25 — 2026-10-18 (3819fb9) — renamed to **Unstuck** (Android, Mac)
 - New name everywhere you see it (formerly ADHD Tax). Tasks, XP and settings carry over: the internal ids didn't change.
 - New icon: a tangle straightening into an arrow.
 - Downloads are now `Unstuck.apk` and `Unstuck-macOS.zip`. The release pages (`android-latest`, `macos-latest`) are the same.

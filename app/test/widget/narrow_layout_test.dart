@@ -1,6 +1,7 @@
 import 'package:adhd_tax/app.dart';
 import 'package:adhd_tax/features/capture/quick_add_sheet.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
+import 'package:adhd_tax/widgets/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,21 +32,19 @@ void main() {
         expect(tester.takeException(), isNull);
 
         for (final label in [
-          'WORKSPACE',
-          'HOW LONG?',
-          'PRIORITY',
-          'HOW MUCH DO YOU DREAD IT?',
-          'ERRAND',
+          'How long?',
+          'Priority',
+          'How much do you dread it?',
+          'Personal',
+          'Work',
         ]) {
           expect(find.text(label), findsOneWidget, reason: label);
         }
-        // A yes/no switch of its own, not a chip among the dread levels.
+        // A yes/no toggle of its own, outside the dread levels' group.
+        final errand = find.widgetWithText(Pill, 'Leave the house');
+        expect(errand, findsOneWidget);
         expect(
-          find.widgetWithText(SwitchListTile, 'Need to leave the house'),
-          findsOneWidget,
-        );
-        expect(
-          find.widgetWithText(ChoiceChip, 'Need to leave the house'),
+          find.ancestor(of: errand, matching: find.byType(ChoiceGroup<int>)),
           findsNothing,
         );
       });
@@ -92,7 +91,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         await tester.scrollUntilVisible(
-          find.text('STATUS'),
+          find.text('Status'),
           200,
           scrollable: _editorScroll,
         );
@@ -109,7 +108,7 @@ void main() {
     final router = c.read(routerProvider);
     String where() => router.routerDelegate.currentConfiguration.uri.path;
 
-    await tester.tap(find.text('Tasks').last);
+    await tester.tap(find.byTooltip('Tasks'));
     await tester.pumpAndSettle();
     expect(where(), '/tasks');
 
@@ -126,15 +125,13 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Renew license');
     await tester.tap(find.text('Critical'));
     await tester.pump();
-    await tester.tap(find.text('Full task form'));
+    await tester.tap(find.text('Full form'));
     await tester.pumpAndSettle();
 
     expect(find.text('New task'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Renew license'), findsOneWidget);
     expect(
-      tester
-          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Critical'))
-          .selected,
+      tester.widget<Pill>(find.widgetWithText(Pill, 'Critical')).selected,
       isTrue,
     );
 

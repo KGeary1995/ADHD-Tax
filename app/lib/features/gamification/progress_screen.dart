@@ -3,11 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
-import '../../data/models/task.dart';
-import '../../widgets/backdrop.dart';
 import '../../widgets/task_chips.dart';
+import '../../widgets/ui.dart';
 import 'achievements.dart';
-import 'level_badge.dart';
 import 'progress_controller.dart';
 import 'xp_rules.dart';
 
@@ -20,155 +18,208 @@ class ProgressScreen extends ConsumerWidget {
     final p = ref.watch(progressProvider);
     final now = ref.read(clockProvider)();
     final streak = streakWithGrace(p.activeDays, now);
+    final level = p.level;
+    final toNext = xpForLevel(level + 1) - p.xp;
+    final motion = context.reduceMotion ? 0 : 800;
 
     final stats = [
-      ('Started', '${p.started}', Icons.bolt),
-      ('Finished', '${p.completed}', Icons.check_circle_outline),
-      ('Frogs eaten', '${p.ughCompleted}', Icons.sentiment_very_dissatisfied),
-      ('Focus time', formatMinutes(p.focusMinutes), Icons.timer_outlined),
-      ('Day streak', '$streak', Icons.local_fire_department_outlined),
-      ('Coins', '${p.coins}', Icons.toll_outlined),
+      ('${p.started}', 'Tasks started'),
+      ('${p.completed}', 'Finished'),
+      (shortMinutes(p.focusMinutes), 'Focused'),
+      (streak == 1 ? '1 day' : '$streak days', 'Streak'),
+      ('${p.ughCompleted}', 'Dreaded ones done'),
+      ('${p.coins}', 'Coins'),
+    ];
+    final sorted = [
+      ...achievements.where((a) => p.unlocked.containsKey(a.id)),
+      ...achievements.where((a) => !p.unlocked.containsKey(a.id)),
     ];
 
     return ContentWidth(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 96),
+        padding: EdgeInsets.fromLTRB(14, 24, 14, navClearance(context)),
         children: [
-          Text(
-            'Progress',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              color: s.onSurface,
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: PageHeader('Progress'),
+          ),
+          const SizedBox(height: 22),
+          Panel(
+            radius: 26,
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(child: Text('Level $level', style: s.display(44))),
+                    Text(
+                      rankForLevel(level),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: s.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Semantics(
+                  label: 'XP to the next level',
+                  value: '${(levelProgress(p.xp) * 100).round()}%',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(5),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(end: levelProgress(p.xp)),
+                      duration: Duration(milliseconds: motion),
+                      builder: (_, v, _) => LinearProgressIndicator(
+                        value: v,
+                        minHeight: 10,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${p.xp} XP', style: s.mono(13)),
+                    Text('$toNext to level ${level + 1}', style: s.mono(13)),
+                  ],
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          const Panel(highlight: true, child: LevelBadge()),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, c) {
-              final cols = c.maxWidth > 760
-                  ? 6
-                  : c.maxWidth > 420
-                  ? 3
-                  : 2;
-              return GridView.count(
-                crossAxisCount: cols,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.25,
-                children: [
-                  for (final (label, value, icon) in stats)
-                    Panel(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 14, 8, 0),
+            child: LayoutBuilder(
+              builder: (context, c) {
+                final cols = c.maxWidth > 520 ? 3 : 2;
+                final w = (c.maxWidth - (cols - 1) * 20) / cols;
+                return Wrap(
+                  spacing: 20,
+                  children: [
+                    for (final (value, label) in stats)
+                      Container(
+                        width: w,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          border: Border(bottom: BorderSide(color: s.hairline)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              value,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: s.display(30, weight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              label,
+                              style: TextStyle(fontSize: 14, color: s.muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
+            child: Text(
+              'Streaks have 2 grace days a week. Missing a day never sends '
+              'you back to zero.',
+              style: TextStyle(color: s.muted, fontSize: 13, height: 1.4),
+            ),
+          ),
+          const SizedBox(height: 26),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text.rich(
+                  TextSpan(
+                    text: 'Achievements',
+                    children: [
+                      TextSpan(
+                        text:
+                            '  ${p.unlocked.length} of ${achievements.length}',
+                        style: TextStyle(
+                          color: s.faint,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: s.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                for (final (i, a) in sorted.indexed)
+                  _AchievementRow(
+                    achievement: a,
+                    unlocked: p.unlocked.containsKey(a.id),
+                    last: i == sorted.length - 1,
+                  ),
+                if (p.recent.isNotEmpty) ...[
+                  const SizedBox(height: 26),
+                  const SectionTitle('Recent XP'),
+                  for (final r in p.recent.take(15))
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border(bottom: BorderSide(color: s.hairline)),
+                      ),
+                      child: Row(
                         children: [
-                          Icon(icon, color: s.secondary, size: 20),
-                          Text(
-                            value,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: s.onSurface,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  r.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: s.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _ago(r.at, now),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: s.muted,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           Text(
-                            label,
-                            style: TextStyle(color: s.muted, fontSize: 12),
+                            '+${r.amount}',
+                            style: s.mono(
+                              15,
+                              color: s.primary,
+                              weight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       ),
                     ),
                 ],
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Streaks include 2 grace days a week. Missing a day never resets you to zero.',
-            style: TextStyle(color: s.muted, fontSize: 12),
-          ),
-          const SizedBox(height: 24),
-          SectionLabel(
-            'Achievements · ${p.unlocked.length}/${achievements.length}',
-          ),
-          LayoutBuilder(
-            builder: (context, c) {
-              final cols = c.maxWidth > 760
-                  ? 3
-                  : c.maxWidth > 480
-                  ? 2
-                  : 1;
-              final width = (c.maxWidth - (cols - 1) * 12) / cols;
-              return Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  for (final a in achievements)
-                    SizedBox(
-                      width: width,
-                      child: _AchievementTile(
-                        achievement: a,
-                        unlockedAt: p.unlocked[a.id],
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          if (p.recent.isNotEmpty) ...[
-            const SectionLabel('Recent XP'),
-            Panel(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                children: [
-                  for (final r in p.recent.take(15))
-                    ListTile(
-                      dense: true,
-                      title: Text(
-                        r.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: s.onSurface),
-                      ),
-                      subtitle: Text(
-                        _ago(r.at, now),
-                        style: TextStyle(color: s.muted),
-                      ),
-                      trailing: Text(
-                        '+${r.amount}',
-                        style: TextStyle(
-                          color: s.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ),
-          ],
-          const SizedBox(height: 24),
-          const SectionLabel('Ranks'),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (var i = 0; i < ranks.length; i++)
-                InfoChip(
-                  icon: p.level >= i * 5 + 1
-                      ? Icons.military_tech
-                      : Icons.lock_outline,
-                  label: '${ranks[i]} · Lv ${i * 5 + 1}',
-                  color: p.level >= i * 5 + 1 ? s.primary : null,
-                ),
-            ],
           ),
         ],
       ),
@@ -176,47 +227,65 @@ class ProgressScreen extends ConsumerWidget {
   }
 }
 
-class _AchievementTile extends StatelessWidget {
-  const _AchievementTile({required this.achievement, this.unlockedAt});
+class _AchievementRow extends StatelessWidget {
+  const _AchievementRow({
+    required this.achievement,
+    required this.unlocked,
+    required this.last,
+  });
   final Achievement achievement;
-  final DateTime? unlockedAt;
+  final bool unlocked;
+  final bool last;
 
   @override
   Widget build(BuildContext context) {
     final s = context.spec;
-    final unlocked = unlockedAt != null;
-    return Opacity(
-      opacity: unlocked ? 1 : 0.55,
-      child: Panel(
-        highlight: unlocked,
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Text(
-              unlocked ? achievement.icon : '🔒',
-              style: const TextStyle(fontSize: 28),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    achievement.title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: s.onSurface,
-                    ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        border: last ? null : Border(bottom: BorderSide(color: s.hairline)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: unlocked
+                ? BoxDecoration(color: s.accent, shape: BoxShape.circle)
+                : BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: s.outline, width: 1.5),
                   ),
-                  Text(
-                    achievement.description,
-                    style: TextStyle(color: s.muted, fontSize: 12),
+            child: unlocked
+                ? Text(achievement.icon, style: const TextStyle(fontSize: 20))
+                : Icon(Icons.lock_outline_rounded, size: 18, color: s.faint),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  achievement.title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: unlocked ? s.onSurface : s.text2,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  achievement.description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: unlocked ? s.muted : s.faint,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

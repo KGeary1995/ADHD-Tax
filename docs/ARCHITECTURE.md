@@ -27,7 +27,7 @@ No server. Every device holds the full data for each workspace it has, and devic
 1. `runZonedGuarded` → `_start()`: `SharedPreferences.getInstance()` and load `assets/quotes/quotes.json`. Any failure shows `StartupErrorApp` (`startup_error.dart`), a plain MaterialApp with the error text, **Copy details** and **Try again**. `ErrorWidget.builder` is replaced by `BuildErrorPanel`, so a widget that throws shows a readable error instead of a grey box.
 2. `ProviderScope` overrides `keyValueStoreProvider` (`PrefsStore`) and `quoteServiceProvider`.
 3. `AdhdTaxApp` builds `MaterialApp.router` (go_router). The `builder` wraps every route in:
-   `WebSafeArea` → `ThemedBackdrop` → `SyncBootstrap` → `ReminderBootstrap` → `CelebrationOverlay` → page.
+   `WebSafeArea` → `SyncBootstrap` → `ReminderBootstrap` → `CelebrationOverlay` → page.
 
 Routes (`app.dart`): a `ShellRoute` with the bottom bar / side rail (`AppShell`) holds `/` (dashboard), `/tasks`, `/progress` and `/settings`. Outside the shell are `/focus/:id?min=&five=1&panic=1` and `/task/:id` (`id = new` creates; `state.extra` may carry a draft `Task` from Quick add). Tabs use `go()`, so `AppShell` has a `PopScope` that sends Android back to `/` before exiting.
 
@@ -122,7 +122,11 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
 
 ## Theming (`core/theme/app_themes.dart`)
 
-`ThemeSpec` tokens (colors, radius, glow, glass, motion, confetti colors) for 9 themes: Slate, Graphite, Clinic Calm, Neon Grid, Holo Glass, Mission Control, Terminal, Low-Stim, High Contrast. Widgets read tokens via `context.spec`. `widgets/backdrop.dart` draws per-theme backgrounds and `Panel`s.
+One look in two brightnesses: `darkSpec` and `lightSpec` (`ThemeSpec` tokens: background, surface, hairline, outline, text levels, teal `accent` fill vs `primary` teal text, the near-black `ink` of the Start button, nav colors). `AppSettings.appearance` (Light / Dark / Match phone) picks `ThemeMode`; old `themeId` values map to light or dark on load. Widgets read tokens via `context.spec`, plus `s.display(size)` (Bricolage Grotesque) and `s.mono(size)` (Geist Mono); body text is Geist. Fonts are bundled TTFs in `app/assets/fonts/` (OFL, registered with `LicenseRegistry` in `main.dart`). Reduced motion follows the OS (`context.reduceMotion`).
+
+Shared pieces live in `widgets/ui.dart`: `Panel` (card), `Group`/`GroupRow`/`SwitchRow` (settings-style lists), `Pill`/`ChoiceGroup` (wrapping single choice), `Segmented`, `PageHeader`, `SectionTitle`, `FieldLabel`, `UnstuckMark`/`Wordmark` (the logo drawn in code), `navClearance()`. `widgets/task_chips.dart` has `TaskMeta` (the one-line "Due 5 pm · 1h · Critical" summary) and date/duration formatters.
+
+Navigation (`app.dart`): phones get a floating pill nav (`extendBody`, so screens pad with `navClearance`) with the teal Add button; at ≥760 px a slim rail. Tab buttons are icon-only with tooltips (tests find them with `find.byTooltip('Tasks')`).
 
 ## Web and iPhone specifics (`app/web/`, `core/safe_area/`)
 
@@ -137,6 +141,6 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
 |---|---|
 | `core/`, `data/`, `features/` | Pure logic: HLC, Task JSON, picker scoring, XP, achievements fold, quotes, PHI guard, recurrence, nudge planning |
 | `sync/` | Replica merge laws, sync engine against `FakeRemote` (multi-device convergence, ping-pong, offline edits, corrupt files), sync controller with a fake auth |
-| `widget/` | Full-app flows (`pumpApp`), every theme on a phone, phone-width overflow at 1.0×/1.3× text, back navigation, Quick add → full form, reminders with `FakeReminders`, Mark done/Delete with Undo, startup error screen |
+| `widget/` | Full-app flows (`pumpApp`), light/dark/system on a phone, settings migration, phone-width overflow at 1.0×/1.3× text, back navigation, Quick add → full form, reminders with `FakeReminders`, Mark done/Delete with Undo, startup error screen |
 
 Inject time with `clockProvider` and storage with `keyValueStoreProvider` (`MemoryStore`).

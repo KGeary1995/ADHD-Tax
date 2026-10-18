@@ -60,7 +60,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The dashboard picks the only task.
-    expect(find.text('Your next task'.toUpperCase()), findsOneWidget);
+    expect(find.text('Start'), findsOneWidget);
     expect(find.text('Call insurance about claim'), findsOneWidget);
 
     await tester.tap(find.text('Start'));
@@ -69,12 +69,12 @@ void main() {
     await tester.pump();
 
     // Focus screen, with XP awarded just for starting.
-    expect(find.text('Done!'), findsOneWidget);
+    expect(find.text('Done'), findsOneWidget);
     expect(find.textContaining('+10 XP'), findsOneWidget);
     expect(find.textContaining('First Spark'), findsOneWidget);
     expect(c.read(progressProvider).started, 1);
 
-    await tester.tap(find.text('Done!'));
+    await tester.tap(find.text('Done'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump();
@@ -110,22 +110,40 @@ void main() {
     }
   });
 
-  testWidgets('every theme renders the dashboard on a phone', (tester) async {
-    final c = await pumpApp(tester, size: const Size(400, 860));
+  testWidgets('light and dark both render the dashboard on a phone', (
+    tester,
+  ) async {
+    final c = await pumpApp(tester, size: const Size(360, 800));
     c.read(tasksProvider.notifier).create(title: 'Dreaded thing', ugh: 3);
-    for (final spec in themeSpecs) {
+    for (final a in Appearance.values) {
       c
           .read(settingsProvider.notifier)
-          .update((s) => s.copyWith(themeId: spec.id));
+          .update((s) => s.copyWith(appearance: a));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull, reason: spec.id);
-      expect(find.text('Dreaded thing'), findsOneWidget, reason: spec.id);
+      expect(tester.takeException(), isNull, reason: a.name);
+      expect(find.text('Dreaded thing'), findsOneWidget, reason: a.name);
     }
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.themeMode, ThemeMode.system);
+  });
+
+  test('old theme choices map onto light or dark', () {
+    Appearance from(Map<String, Object?> j) =>
+        AppSettings.fromJson(j).appearance;
+    expect(from({}), Appearance.system);
+    expect(from({'themeId': 'slate'}), Appearance.light);
+    expect(from({'themeId': 'graphite'}), Appearance.dark);
+    expect(from({'themeId': 'neon_grid'}), Appearance.dark);
+    expect(from({'themeId': 'slate', 'appearance': 'dark'}), Appearance.dark);
+    final round = AppSettings.fromJson(
+      const AppSettings(appearance: Appearance.light).toJson(),
+    );
+    expect(round.appearance, Appearance.light);
   });
 
   testWidgets('PHI guard warns on Work tasks only', (tester) async {
     await pumpApp(tester);
-    await tester.tap(find.text('Quick add'));
+    await tester.tap(find.byTooltip('Add a task'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Call pt John Smith');
     await tester.pump();

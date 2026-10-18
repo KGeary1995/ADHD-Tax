@@ -16,6 +16,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Area | State | Verified on a real device? |
 |---|---|---|
 | Phase 1: offline app (picker, focus, XP, themes, quotes) | Done | Android: yes (Build 9+) |
+| Redesign: one look, light + dark, bundled fonts, floating nav | Done | Not yet (web screenshots only) |
 | Phase 2: Google sign-in + Drive sync | Code done; CI injects keys from secrets | **No.** Owner hasn't created the Google Cloud keys yet (see docs/DEPLOYMENT.md §Google) |
 | Phone layout fixes, full task form, back button | Done | Android: reported working |
 | Repeating tasks, Mark done + Undo, Android reminders | Done | Not yet reported |
@@ -23,7 +24,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Mac app | Builds and publishes on `[mac]` pushes | **Yes**: opens and works after "Open Anyway" (Build 21, still named ADHD Tax) |
 | Phase 3+ (Calendar, board/table views, AI) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-18 (rename to Unstuck + new icon).
+Last updated: 2026-10-18 (redesign: one look in light and dark).
 
 ## Toolchain
 
@@ -40,7 +41,7 @@ Last updated: 2026-10-18 (rename to Unstuck + new icon).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 129 tests, ~20 s
+flutter test                         # 131 tests, ~20 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
@@ -90,7 +91,8 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - **No PHI anywhere**: no patient names, dates of birth or MRNs in code, tests, fixtures, docs, commit messages or screenshots. Demo data uses generic tasks. The in-app PHI guard (`features/safety/phi_guard.dart`) is a warning, not a control.
 - **Keep the sync data model backward compatible.** Devices run different builds. New `Task` fields must have defaults in `Task.fromJson`; never rename or reuse a field. Never rewrite or delete XP events: revoke one by tombstoning it (`ProgressController.revoke`).
 - **Pure logic stays pure Dart** (no Flutter imports): `picker_engine.dart`, `recurrence.dart`, `nudge_plan.dart`, `xp_rules.dart`, `achievements.dart`, `progress_event.dart`, `phi_guard.dart`, `quote_service.dart`, `hlc.dart`, `replica.dart`, `sync_engine.dart`. Test them with plain unit tests.
-- **Phone first.** Every screen must work at 360×800 with 1.3× text (`test/widget/narrow_layout_test.dart` enforces this for the capture screens). Prefer wrapping `ChoiceGroup` chips over `SegmentedButton`.
+- **Phone first.** Every screen must work at 360×800 with 1.3× text (`test/widget/narrow_layout_test.dart` enforces this for the capture screens). Prefer wrapping `ChoiceGroup` pills over `SegmentedButton`.
+- **One look.** Colors, fonts and type styles come from `core/theme/app_themes.dart` (`context.spec`: `display()`, `mono()`, `accent`, `primary`…) and shared pieces from `widgets/ui.dart` (`Panel`, `Group`/`GroupRow`/`SwitchRow`, `Pill`, `ChoiceGroup`, `Segmented`, `PageHeader`). Don't hard-code colors in screens, and check both light and dark. The approved design is the Claude Design canvas linked in docs/DECISIONS.md.
 - **No shame mechanics** (product principle): no red overdue walls, streaks never reset to zero, celebrations respect the Off/Subtle/Normal/Party setting, and starting earns XP.
 - Commit messages explain *why*. Update `CHANGELOG.md` for anything the owner will notice.
 

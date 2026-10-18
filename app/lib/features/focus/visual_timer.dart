@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_themes.dart';
 
-/// Time-Timer style disc: a colored wedge that shrinks as time runs out.
-/// Makes remaining time visible at a glance, which helps with time blindness.
+/// A thick ring that empties as time runs out, with the time in the
+/// middle. Makes remaining time visible at a glance (time blindness).
 class VisualTimer extends StatelessWidget {
   const VisualTimer({
     super.key,
     required this.remaining,
     required this.total,
-    this.size = 300,
+    this.size = 290,
     this.paused = false,
   });
 
@@ -30,43 +30,52 @@ class VisualTimer extends StatelessWidget {
     final shown = over ? -remaining : remaining;
     final mm = shown.inMinutes.toString().padLeft(2, '0');
     final ss = (shown.inSeconds % 60).toString().padLeft(2, '0');
+    final caption = paused
+        ? 'paused'
+        : over
+        ? 'over time. Finish up'
+        : 'left of ${total.inMinutes} min';
 
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _DiscPainter(
-          fraction: fraction,
-          wedge: over ? s.warning : s.primary,
-          track: s.surfaceAlt,
-          tick: s.muted,
-          glow: s.glow,
-        ),
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: s.background.withValues(alpha: 0.75),
-              borderRadius: BorderRadius.circular(s.radius),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${over ? '+' : ''}$mm:$ss',
-                  style: TextStyle(
-                    fontSize: size / 6.5,
-                    fontWeight: FontWeight.w800,
-                    color: s.onSurface,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+    return Semantics(
+      label: over
+          ? '${shown.inMinutes} minutes over time'
+          : '${shown.inMinutes} minutes ${shown.inSeconds % 60} seconds left',
+      excludeSemantics: true,
+      child: SizedBox.square(
+        dimension: size,
+        child: CustomPaint(
+          painter: _RingPainter(
+            fraction: fraction,
+            color: over ? s.warning : s.accent,
+            track: s.isDark ? const Color(0xFF1C2326) : s.track,
+            stroke: size * 0.055,
+          ),
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(size * 0.12),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${over ? '+' : ''}$mm:$ss',
+                      style: s
+                          .mono(
+                            size * 0.207,
+                            color: s.onSurface,
+                            weight: FontWeight.w500,
+                          )
+                          .copyWith(letterSpacing: -size * 0.007),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      caption,
+                      style: TextStyle(color: s.muted, fontSize: 14),
+                    ),
+                  ],
                 ),
-                if (paused || over)
-                  Text(
-                    paused ? 'paused' : 'over time — finish up',
-                    style: TextStyle(color: s.muted, fontSize: 13),
-                  ),
-              ],
+              ),
             ),
           ),
         ),
@@ -75,54 +84,40 @@ class VisualTimer extends StatelessWidget {
   }
 }
 
-class _DiscPainter extends CustomPainter {
-  _DiscPainter({
+class _RingPainter extends CustomPainter {
+  _RingPainter({
     required this.fraction,
-    required this.wedge,
+    required this.color,
     required this.track,
-    required this.tick,
-    required this.glow,
+    required this.stroke,
   });
 
   final double fraction;
-  final Color wedge;
+  final Color color;
   final Color track;
-  final Color tick;
-  final bool glow;
+  final double stroke;
 
   @override
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
-    final r = size.shortestSide / 2;
-    canvas.drawCircle(c, r, Paint()..color = track);
-
-    final rect = Rect.fromCircle(center: c, radius: r * 0.9);
-    final sweep = 2 * math.pi * fraction;
-    if (glow && fraction > 0) {
+    final r = size.shortestSide / 2 - stroke / 2 - 1;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(c, r, paint..color = track);
+    if (fraction > 0) {
       canvas.drawArc(
-        rect,
+        Rect.fromCircle(center: c, radius: r),
         -math.pi / 2,
-        sweep,
-        true,
-        Paint()
-          ..color = wedge.withValues(alpha: 0.5)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
+        2 * math.pi * fraction,
+        false,
+        paint..color = color,
       );
-    }
-    canvas.drawArc(rect, -math.pi / 2, sweep, true, Paint()..color = wedge);
-
-    // Minute ticks around the rim.
-    final tickPaint = Paint()
-      ..color = tick.withValues(alpha: 0.5)
-      ..strokeWidth = 2;
-    for (var i = 0; i < 12; i++) {
-      final a = i * math.pi / 6;
-      final dir = Offset(math.sin(a), -math.cos(a));
-      canvas.drawLine(c + dir * r * 0.93, c + dir * r * 0.99, tickPaint);
     }
   }
 
   @override
-  bool shouldRepaint(_DiscPainter old) =>
-      old.fraction != fraction || old.wedge != wedge || old.track != track;
+  bool shouldRepaint(_RingPainter old) =>
+      old.fraction != fraction || old.color != color || old.track != track;
 }

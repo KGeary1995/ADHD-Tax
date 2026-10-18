@@ -21,7 +21,7 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **XP, levels, achievements** | XP for *starting*, more for finishing, bonuses for dreaded tasks, old tasks, beating your estimate and errands. 18 achievements, ranks every 5 levels, and coins for the reward shop that's coming. Streaks include 2 grace days a week and never reset to zero. |
 | **Celebrations** | Confetti plus an XP breakdown card when you finish, and a small toast when you start (it never covers the screen at that moment). Intensity runs Off / Subtle / Normal / Party. |
 | **Motivational quotes** | 114 bundled quotes in five categories. The category depends on the moment: dread-busting for a task you rated "Ugh", self-compassion after a skip, momentum during focus. |
-| **9 themes** | Professional (Slate, Graphite, Clinic Calm), futuristic (Neon Grid, Holo Glass, Mission Control, Terminal), and accessibility (Low-Stim, High Contrast). |
+| **Light and dark** | One calm look in light and dark, or matching your phone (Settings → Appearance). |
 | **Repeating tasks** | Every day, weekday, week, 2 weeks or month, on a fixed schedule ("report every Friday") or counted from when you finish ("water plants a week after last time"). The next one waits in **Coming up** until its day, so finishing laundry doesn't put laundry straight back in front of you. |
 | **Reminders (Android)** | A countdown in your notifications while you focus, plus a "time's up" alert even if you've switched apps. Check-in nudges ("pick one thing?") at times you choose, skipped for 90 minutes after you've started or finished something. Settings → Reminders. |
 | **Undo** | **Mark done**, Archive and Delete from the task list each show an Undo bar. Undoing a done also takes back its XP and the next copy of a repeating task. |
@@ -155,7 +155,7 @@ For a build on your own computer, put the same three values in `app/google_oauth
 
 ```
 app/lib/
-  core/            theme engine (9 themes), shared providers
+  core/            theme (light + dark tokens, fonts), shared providers
   data/            Task model, local storage
   sync/            replica (CRDT), sync engine, sync controller + badge
   google/          sign-in per platform, Drive app-data store
@@ -168,7 +168,7 @@ app/lib/
     motivation/    quote service + rotator
     reminders/     focus timer notifications, check-in nudges
     safety/        PHI guard
-    settings/      themes, celebration intensity, preferences
+    settings/      appearance, reminders, sync, celebration intensity
 app/test/          129 unit, widget, phone-layout and multi-device sync tests
 docs/PLAN.md       full product plan and roadmap
 app/tool/          check.sh (CI checks), make_icons.py (app icons), screenshots/ (web screenshots)

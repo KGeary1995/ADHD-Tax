@@ -5,11 +5,15 @@
 //   (cd build/web && python3 -m http.server 8765 --bind 127.0.0.1) &
 //   (cd tool/screenshots && npm install)      # once
 //   node tool/screenshots/shoot.mjs out/ dashboard / 390 844
-//   node tool/screenshots/shoot.mjs out/ tasks /tasks 360 780 --theme slate
+//   node tool/screenshots/shoot.mjs out/ tasks /tasks 360 780 --appearance light
+//   node tool/screenshots/shoot.mjs out/ add / 390 844 --tap 356,790   # Add button
 //
-// Args: <outDir> <name> [path=/] [width=390] [height=844] [--theme id]
-//       [--iphone]  (fakes a 34px home-indicator inset, like an iPhone)
-//       [--empty]   (no demo data)
+// Args: <outDir> <name> [path=/] [width=390] [height=844]
+//       [--appearance light|dark|system]  (default dark; system follows
+//                    the emulated phone, which is set to dark)
+//       [--tap x,y]  (tap a point after loading, e.g. to open a sheet)
+//       [--iphone]   (fakes a 34px home-indicator inset, like an iPhone)
+//       [--empty]    (no demo data)
 // Writes <outDir>/<name>.png. Paths are app routes: / /tasks /progress
 // /settings /task/<id> (demo ids are '1'..'7').
 //
@@ -22,10 +26,11 @@ import { mkdirSync } from 'node:fs';
 const args = process.argv.slice(2);
 const flag = (f) => args.includes(f);
 const opt = (f, d) => (args.includes(f) ? args[args.indexOf(f) + 1] : d);
-const pos = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1] === '--theme'));
+const valued = ['--appearance', '--tap'];
+const pos = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && valued.includes(args[i - 1])));
 const [outDir, name, path = '/', width = '390', height = '844'] = pos;
 if (!outDir || !name) {
-  console.error('Usage: node shoot.mjs <outDir> <name> [path] [width] [height] [--theme id] [--iphone] [--empty]');
+  console.error('Usage: node shoot.mjs <outDir> <name> [path] [width] [height] [--appearance a] [--tap x,y] [--iphone] [--empty]');
   process.exit(2);
 }
 const base = process.env.APP_URL ?? 'http://127.0.0.1:8765';
@@ -58,13 +63,13 @@ const progress = {
   recent: [], activeDays: [0, 1, 2, 3, 5, 6].map((i) => iso(new Date(new Date(now - i * day).toDateString()).getTime())),
   unlocked: {}, lastActiveAt: iso(now - 36e5),
 };
-const settings = { themeId: opt('--theme', 'graphite'), celebration: 'normal', quoteSeconds: 60, phiGuard: true };
+const settings = { appearance: opt('--appearance', 'dark'), celebration: 'normal', quoteSeconds: 60, phiGuard: true };
 
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;
 const browser = await chromium.launch({ args: proxy ? [`--proxy-server=${proxy}`] : [] });
 const ctx = await browser.newContext({
   viewport: { width: +width, height: +height }, deviceScaleFactor: 2, locale: 'en-US',
-  isMobile: +width < 600, hasTouch: +width < 600,
+  isMobile: +width < 600, hasTouch: +width < 600, colorScheme: 'dark',
 });
 await ctx.addInitScript(([t, p, s, empty]) => {
   if (!empty) {
@@ -81,6 +86,12 @@ if (flag('--iphone')) {
 }
 await page.goto(`${base}/#${path}`);
 await page.waitForTimeout(6000); // Flutter web boot + first frames
+const tap = opt('--tap', null);
+if (tap) {
+  const [x, y] = tap.split(',').map(Number);
+  await page.mouse.click(x, y);
+  await page.waitForTimeout(1500);
+}
 mkdirSync(outDir, { recursive: true });
 await page.screenshot({ path: `${outDir}/${name}.png` });
 console.log(`wrote ${outDir}/${name}.png`);

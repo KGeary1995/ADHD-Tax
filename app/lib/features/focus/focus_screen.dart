@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
-import '../../widgets/task_chips.dart';
+import '../../widgets/ui.dart';
 import '../gamification/progress_controller.dart';
 import '../motivation/quote_rotator.dart';
 import '../motivation/quote_service.dart';
@@ -278,12 +278,15 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
     );
     if (task == null) {
       return Scaffold(
-        appBar: AppBar(backgroundColor: Colors.transparent),
+        appBar: AppBar(),
         body: const Center(child: Text('That task no longer exists.')),
       );
     }
     final paused = _runningSince == null;
     final hasStep = task.firstStep.trim().isNotEmpty;
+    final session = widget.justFive && !_keptGoing
+        ? 'Just 5 minutes'
+        : '${task.workspace.label} · ${_target.inMinutes} min session';
 
     return PopScope(
       canPop: _finished,
@@ -297,121 +300,212 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
         child: Focus(
           autofocus: true,
           child: Scaffold(
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              leading: IconButton(
-                tooltip: 'Stop',
-                icon: const Icon(Icons.close),
-                onPressed: _confirmStop,
-              ),
-              title: Text(
-                widget.justFive && !_keptGoing ? 'Just 5 minutes' : 'Focus',
-                style: TextStyle(color: s.muted, fontSize: 16),
-              ),
-              centerTitle: true,
-            ),
-            body: LayoutBuilder(
-              builder: (context, c) {
-                final timerSize = math.min(
-                  320.0,
-                  math.min(c.maxWidth - 48, c.maxHeight * 0.42),
-                );
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 8,
-                  ),
-                  child: ContentWidth(
-                    maxWidth: 640,
-                    child: Column(
-                      children: [
-                        Text(
-                          hasStep ? 'FIRST STEP' : 'NOW',
-                          style: TextStyle(
-                            letterSpacing: 2,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: s.secondary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          task.startLine,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 28,
-                            height: 1.2,
-                            fontWeight: FontWeight.w800,
-                            color: s.onSurface,
-                          ),
-                        ),
-                        if (hasStep) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            task.title,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: s.muted),
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        Center(child: TaskChips(task: task)),
-                        const SizedBox(height: 24),
-                        VisualTimer(
-                          remaining: _remaining,
-                          total: _target,
-                          size: timerSize,
-                          paused: paused,
-                        ),
-                        const SizedBox(height: 24),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: _togglePause,
-                              icon: Icon(
-                                paused ? Icons.play_arrow : Icons.pause,
-                              ),
-                              label: Text(paused ? 'Resume' : 'Pause'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: () => _addTime(5),
-                              icon: const Icon(Icons.add),
-                              label: const Text('5 min'),
-                            ),
-                            FilledButton.icon(
-                              onPressed: _complete,
-                              icon: const Icon(Icons.check_rounded),
-                              label: const Text(
-                                'Done!',
-                                style: TextStyle(fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-                        const QuoteRotator(
-                          context: QuoteContext.focus,
-                          align: TextAlign.center,
-                        ),
-                        if (task.notes.trim().isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          ExpansionTile(
-                            title: const Text('Notes'),
+            body: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final timerSize = math.min(
+                    290.0,
+                    math.min(c.maxWidth - 80, c.maxHeight * 0.38),
+                  );
+                  return CustomScrollView(
+                    slivers: [
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: ContentWidth(
+                          maxWidth: 560,
+                          child: Column(
                             children: [
                               Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Text(task.notes),
+                                padding: const EdgeInsets.fromLTRB(6, 6, 18, 0),
+                                child: Row(
+                                  children: [
+                                    IconButton(
+                                      tooltip: 'Stop',
+                                      iconSize: 24,
+                                      icon: const Icon(Icons.close_rounded),
+                                      onPressed: _confirmStop,
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        session,
+                                        textAlign: TextAlign.right,
+                                        style: s.mono(
+                                          13,
+                                          weight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  28,
+                                  18,
+                                  28,
+                                  0,
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      hasStep ? 'First step' : 'Now',
+                                      style: s.mono(
+                                        13,
+                                        color: s.primary,
+                                        weight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      task.startLine,
+                                      textAlign: TextAlign.center,
+                                      style: s.display(30),
+                                    ),
+                                    if (hasStep) ...[
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        task.title,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          color: s.muted,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 30),
+                              VisualTimer(
+                                remaining: _remaining,
+                                total: _target,
+                                size: timerSize,
+                                paused: paused,
+                              ),
+                              const SizedBox(height: 34),
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  _RoundButton(
+                                    tooltip: paused ? 'Resume' : 'Pause',
+                                    onPressed: _togglePause,
+                                    child: Icon(
+                                      paused
+                                          ? Icons.play_arrow_rounded
+                                          : Icons.pause_rounded,
+                                      size: 26,
+                                    ),
+                                  ),
+                                  _RoundButton(
+                                    tooltip: 'Add 5 minutes',
+                                    onPressed: () => _addTime(5),
+                                    child: Text(
+                                      '+5',
+                                      style: s.mono(
+                                        15,
+                                        color: s.onSurface,
+                                        weight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  FilledButton.icon(
+                                    onPressed: _complete,
+                                    style: FilledButton.styleFrom(
+                                      minimumSize: const Size(0, 64),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 30,
+                                      ),
+                                      textStyle: const TextStyle(
+                                        fontFamily: Fonts.ui,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.check_rounded),
+                                    label: const Text('Done'),
+                                  ),
+                                ],
+                              ),
+                              if (task.notes.trim().isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    24,
+                                    20,
+                                    0,
+                                  ),
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(
+                                      dividerColor: Colors.transparent,
+                                    ),
+                                    child: ExpansionTile(
+                                      title: const Text('Notes'),
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Text(task.notes),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 32),
+                              const Spacer(),
+                              const Padding(
+                                padding: EdgeInsets.fromLTRB(32, 0, 32, 32),
+                                child: QuoteRotator(
+                                  context: QuoteContext.focus,
+                                  align: TextAlign.center,
+                                  quiet: true,
+                                ),
                               ),
                             ],
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoundButton extends StatelessWidget {
+  const _RoundButton({
+    required this.tooltip,
+    required this.onPressed,
+    required this.child,
+  });
+  final String tooltip;
+  final VoidCallback onPressed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: s.surface,
+        shape: CircleBorder(
+          side: s.isDark ? BorderSide(color: s.outline) : BorderSide.none,
+        ),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onPressed,
+          child: SizedBox.square(
+            dimension: 64,
+            child: IconTheme(
+              data: IconThemeData(color: s.onSurface),
+              child: Center(child: child),
             ),
           ),
         ),

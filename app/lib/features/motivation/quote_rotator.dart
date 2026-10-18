@@ -15,11 +15,15 @@ class QuoteRotator extends ConsumerStatefulWidget {
     this.context = QuoteContext.dashboard,
     this.large = false,
     this.align = TextAlign.start,
+    this.quiet = false,
   });
 
   final QuoteContext context;
   final bool large;
   final TextAlign align;
+
+  /// Background voice (the focus screen), not something to read now.
+  final bool quiet;
 
   @override
   ConsumerState<QuoteRotator> createState() => _QuoteRotatorState();
@@ -73,36 +77,29 @@ class _QuoteRotatorState extends ConsumerState<QuoteRotator> {
       behavior: HitTestBehavior.opaque,
       onTap: _advance,
       child: AnimatedSwitcher(
-        duration: Duration(milliseconds: s.reduceMotion ? 0 : 600),
+        duration: Duration(milliseconds: context.reduceMotion ? 0 : 600),
         child: Column(
           key: ValueKey(_quote.text),
           crossAxisAlignment: crossAxis,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '“${_quote.text}”',
+              _quote.text,
               textAlign: widget.align,
-              style: TextStyle(
-                fontSize: widget.large ? 22 : 17,
-                height: 1.35,
-                fontWeight: FontWeight.w500,
-                color: s.onSurface,
-                shadows: s.glow
-                    ? [
-                        Shadow(
-                          color: s.primary.withValues(alpha: 0.5),
-                          blurRadius: 12,
-                        ),
-                      ]
-                    : null,
-              ),
+              style: s
+                  .display(
+                    widget.large ? 22 : 17,
+                    weight: FontWeight.w600,
+                    color: widget.quiet ? s.faint : s.text2,
+                  )
+                  .copyWith(height: 1.4, letterSpacing: 0),
             ),
             if (_quote.author != null) ...[
               const SizedBox(height: 6),
               Text(
                 '— ${_quote.author}',
                 textAlign: widget.align,
-                style: TextStyle(fontSize: 13, color: s.muted),
+                style: TextStyle(fontSize: 13, color: s.faint),
               ),
             ],
           ],
