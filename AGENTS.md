@@ -22,7 +22,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Repeating tasks, Mark done + Undo, Android reminders | Done | Not yet reported |
 | Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | Not yet (web screenshots and tests) |
 | Android home-screen widget, Share → Unstuck | Done | **No.** Native code only compiles in CI; nothing runs it here |
-| iPhone/iPad native app (notifications, widgets, Share, voice) | Code done; CI compiles it on `[ios]` pushes; TestFlight upload needs the Apple secrets | **No.** Owner is enrolling in the Apple Developer Program |
+| iPhone/iPad native app (notifications, widgets, Share, voice) | Code done; CI compiles it on `[ios]` pushes; TestFlight upload needs the Apple secrets | **No.** Compiles in CI (Build 35). On hold: the owner will join the Apple Developer Program once iPhone-using friends confirm they want it |
 | iPhone web app (home-screen) | Done; needs Cloudflare secrets to publish | No (Chromium emulation only) |
 | Mac app | Builds and publishes on `[mac]` pushes | **Yes**: opens and works after "Open Anyway" (Build 21, still named ADHD Tax) |
 | Phase 3+ (Calendar, board/table views, AI) | Not started | — see docs/PLAN.md |
