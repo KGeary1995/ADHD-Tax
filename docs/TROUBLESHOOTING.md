@@ -30,6 +30,7 @@ Symptom → cause → fix. Every entry here happened on this project; add new on
 |---|---|---|
 | Settings says "Google sync isn't set up in this build" | Build made without client ids | Add the `GOOGLE_*` secrets (docs/DEPLOYMENT.md), then rebuild (push; `[mac]` for Mac). |
 | Work account: "access blocked" | Clinic Google Workspace blocks unapproved third-party apps | Admin trusts the client ids (Admin console → Security → API controls). Personal still works. |
+| Android: the clinic account doesn't appear when connecting Work | The clinic account lives in the Android **work profile**; apps in the personal profile can't see it | Install Unstuck in the work profile too (open the APK link in the work profile's Chrome) and connect Work there. The two installs keep separate data: use Personal in one and Work in the other. Update both when a new build comes out. |
 | Signed out about every 7 days | Google Auth Platform audience still in **Testing** | Publish the app (In production). |
 | Web/iPhone shows **Reconnect** hourly | Browsers only get ~1 h tokens without a server | Expected; one tap. Token persists across reopenings within the hour. |
 | Android sign-in fails with `DEVELOPER_ERROR` / "Developer console is not set up correctly" | No Android OAuth client for package `com.adhdtax.adhd_tax` + SHA-1 `E9:F6:…:1F:BA`, or the web client id missing (`serverClientId`) | Create both clients in the same Google project. |
