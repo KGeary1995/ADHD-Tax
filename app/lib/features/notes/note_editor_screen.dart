@@ -14,6 +14,7 @@ import '../../widgets/ui.dart';
 import '../capture/voice_input.dart';
 import '../safety/phi_warning.dart';
 import '../tasks/tasks_controller.dart';
+import '../templates/templates_controller.dart';
 import 'notes_controller.dart';
 import 'project_widgets.dart';
 
@@ -128,6 +129,21 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _save();
   }
 
+  void _saveAsTemplate() {
+    final n = _note.copyWith(title: _title.text, body: _body.text);
+    if (n.isEmpty) return;
+    final t = ref.read(templatesProvider.notifier).fromNote(n);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Saved as a template: ${t.name}'),
+        action: SnackBarAction(
+          label: 'Edit',
+          onPressed: () => context.push('/template/${t.id}'),
+        ),
+      ),
+    );
+  }
+
   Future<void> _delete() async {
     final notes = _notes;
     final messenger = ScaffoldMessenger.of(context);
@@ -232,10 +248,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             tooltip: 'More',
             onSelected: (v) {
               if (v == 'organize') _organize();
+              if (v == 'template') _saveAsTemplate();
               if (v == 'delete') _delete();
             },
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'organize', child: Text('Project & tags')),
+              PopupMenuItem(value: 'template', child: Text('Save as template')),
               PopupMenuItem(value: 'delete', child: Text('Delete note')),
             ],
           ),

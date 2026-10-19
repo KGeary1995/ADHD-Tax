@@ -136,7 +136,7 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
         : ' · due ${formatDue(t.dueAt!, DateTime.now())}';
     return {
       'title': t.title,
-      'step': t.firstStep.trim().isEmpty ? '' : 'First: ${t.firstStep.trim()}',
+      'step': t.nextStep.isEmpty ? '' : 'First: ${t.nextStep}',
       'meta': '${t.workspace.label} · $time$due',
       'startRoute': _focusRoute(s),
     };

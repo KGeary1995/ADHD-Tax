@@ -12,6 +12,8 @@ import '../../data/models/task.dart';
 import '../../widgets/task_chips.dart';
 import '../../widgets/ui.dart';
 import 'notes_controller.dart';
+import '../../data/models/template.dart';
+import '../templates/templates_screen.dart';
 import 'project_widgets.dart';
 
 /// What the Notes list shows. Kept while switching tabs.
@@ -179,6 +181,17 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                   solid: true,
                   onTap: () => ctl.workspace(w),
                 ),
+              Pill(
+                label: 'From a template',
+                icon: Icons.sticky_note_2_outlined,
+                selected: false,
+                onTap: () async {
+                  final t = await pickTemplate(context, ref, TemplateKind.note);
+                  if (t != null && context.mounted) {
+                    useTemplate(context, ref, t);
+                  }
+                },
+              ),
             ],
           ),
           if (projects.isNotEmpty) ...[

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
+import '../../data/models/note.dart' show parseTags;
 import '../../data/models/task.dart';
 import '../../widgets/task_chips.dart';
 import '../../widgets/ui.dart';
@@ -14,8 +15,10 @@ import '../notes/notes_controller.dart';
 import '../notes/notes_screen.dart';
 import '../notes/project_widgets.dart';
 import '../safety/phi_warning.dart';
+import '../tasks/checklist_editor.dart';
 import '../tasks/task_actions.dart';
 import '../tasks/tasks_controller.dart';
+import '../templates/templates_controller.dart';
 
 /// Full task editor. `taskId == 'new'` creates a task.
 class TaskEditorScreen extends ConsumerStatefulWidget {
@@ -47,6 +50,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   late final TextEditingController _location;
   late final TextEditingController _estimate;
   late final TextEditingController _waitingOn;
+  late final TextEditingController _tags;
 
   @override
   void initState() {
@@ -73,6 +77,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     _location = TextEditingController(text: _task.location);
     _estimate = TextEditingController(text: '${_task.estimateMin}');
     _waitingOn = TextEditingController(text: _task.waitingOn);
+    _tags = TextEditingController(
+      text: _task.tagList.map((t) => '#$t').join(' '),
+    );
   }
 
   @override
@@ -84,6 +91,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       _location,
       _estimate,
       _waitingOn,
+      _tags,
     ]) {
       c.dispose();
     }
@@ -102,6 +110,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       location: _location.text.trim(),
       estimateMin: estimate,
       waitingOn: _waitingOn.text.trim(),
+      tags: parseTags(_tags.text.split(RegExp(r'[\s,]+')).join(',')).join(','),
     );
     tasks.save(t);
     _close();
@@ -135,6 +144,23 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       if (saved != null) deleteWithUndo(context, ref, saved);
       _close();
     }
+  }
+
+  /// Saves the task as it is on screen, checklist unticked, for reuse.
+  void _saveAsTemplate() {
+    if (_title.text.trim().isEmpty) return;
+    final t = ref
+        .read(templatesProvider.notifier)
+        .fromTask(_task.copyWith(title: _title.text.trim()));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Saved as a template: ${t.name}'),
+        action: SnackBarAction(
+          label: 'Edit',
+          onPressed: () => context.push('/template/${t.id}'),
+        ),
+      ),
+    );
   }
 
   Future<void> _pickDue() async {
@@ -200,6 +226,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         actions: [
           if (!_isNew)
             IconButton(
+              tooltip: 'Save as template',
+              onPressed: _saveAsTemplate,
+              icon: const Icon(Icons.bookmark_add_outlined),
+            ),
+          if (!_isNew)
+            IconButton(
               tooltip: 'Delete',
               onPressed: _delete,
               icon: const Icon(Icons.delete_outline),
@@ -247,9 +279,22 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                         hintText: 'e.g. "Open the portal and log in"',
                       ),
                     ),
-                    help:
-                        'Make it so small it feels silly. This is what the '
-                        'focus screen shows instead of the whole task.',
+                    help: _task.steps.isEmpty
+                        ? 'Make it so small it feels silly. This is what the '
+                              'focus screen shows instead of the whole task.'
+                        : 'With a checklist, the next unticked step is shown '
+                              'instead.',
+                  ),
+                  field(
+                    'Checklist',
+                    ChecklistEditor(
+                      value: _task.checklist,
+                      onChanged: (v) =>
+                          setState(() => _task = _task.copyWith(checklist: v)),
+                    ),
+                    help: _task.steps.isEmpty
+                        ? 'Optional. Break it into steps you can tick off.'
+                        : null,
                   ),
                   field(
                     'Notes',
@@ -263,7 +308,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                     ),
                   ),
                   PhiWarning(
-                    text: '${_title.text}\n${_firstStep.text}\n${_notes.text}',
+                    text:
+                        '${_title.text}\n${_firstStep.text}\n'
+                        '${_task.checklist}\n${_notes.text}',
                     workspace: _task.workspace,
                   ),
                 ],
@@ -299,6 +346,16 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                       selected: _task.projectId,
                       onSelected: (id) =>
                           setState(() => _task = _task.copyWith(projectId: id)),
+                    ),
+                  ),
+                  field(
+                    'Tags',
+                    TextField(
+                      controller: _tags,
+                      decoration: const InputDecoration(
+                        hintText: '#billing #calls',
+                        prefixIcon: Icon(Icons.tag_rounded),
+                      ),
                     ),
                   ),
                   field(

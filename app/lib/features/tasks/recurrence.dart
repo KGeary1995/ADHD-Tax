@@ -66,6 +66,8 @@ Task? nextOccurrence(Task done, DateTime finishedAt) {
     'lastSkippedAt': null,
     'waitingOn': '',
     'followUpAt': null,
+    // The next round starts with every box unticked.
+    'checklist': resetChecklist(done.checklist),
   });
 }
 

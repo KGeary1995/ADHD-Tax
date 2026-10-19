@@ -16,6 +16,8 @@ const collEvents = 'events';
 const collMeta = 'meta';
 const collNotes = 'notes';
 const collProjects = 'projects';
+const collRewards = 'rewards';
+const collTemplates = 'templates';
 
 String _replicaKey(Workspace ws) => 'replica.v1.${ws.name}';
 
@@ -209,3 +211,23 @@ Task? taskFromRecord(String id, Record rec) {
     return null;
   }
 }
+
+/// Reads a notes-style record (notes, projects, rewards, templates) with
+/// [fromJson]; null when deleted or unreadable.
+T? docFromRecord<T>(
+  String id,
+  Record rec,
+  T Function(Map<String, Object?>) fromJson,
+) {
+  if (rec.isDeleted) return null;
+  try {
+    return fromJson({...rec.values, 'id': id});
+  } on Object {
+    return null; // Written by a newer build in a way we can't read: skip.
+  }
+}
+
+/// A notes-style record's fields (the id is the record key).
+Map<String, Object?> docFields(Map<String, Object?> json) => json
+  ..remove('id')
+  ..['deleted'] = false;

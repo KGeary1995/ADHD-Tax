@@ -58,12 +58,15 @@ List<String> taskFacts(Task t, {int? plannedMin}) => [
   plannedMin != null && plannedMin != t.estimateMin
       ? '${formatMinutes(plannedMin)} of ${formatMinutes(t.estimateMin)}'
       : formatMinutes(t.estimateMin),
+  if (t.steps.isNotEmpty)
+    '${t.steps.where((i) => i.done).length}/${t.steps.length} steps',
   if (t.priority.index <= Priority.p2.index) t.priority.label,
   if (t.ugh >= 2) ughLabels[t.ugh],
   if (t.requiresLeavingHouse)
     t.location.isEmpty ? 'Out of the house' : 'Out: ${t.location}',
   if (t.workspace == Workspace.work) 'Work',
   if (t.repeat != Repeat.none) t.repeat.short,
+  for (final tag in t.tagList) '#$tag',
   if (t.isOpen &&
       t.scheduledStart != null &&
       t.scheduledStart!.isAfter(DateTime.now()))

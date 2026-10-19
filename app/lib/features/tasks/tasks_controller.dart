@@ -54,6 +54,10 @@ class TasksController extends Notifier<List<Task>> {
     String firstStep = '',
     String notes = '',
     String projectId = '',
+    String checklist = '',
+    String tags = '',
+    DateTime? dueAt,
+    Energy energy = Energy.medium,
   }) {
     final now = _now();
     final t = Task(
@@ -68,28 +72,15 @@ class TasksController extends Notifier<List<Task>> {
       workspace: workspace,
       chunkable: estimateMin >= 60,
       projectId: projectId,
+      checklist: checklist,
+      tags: tags,
+      dueAt: dueAt,
+      energy: energy,
       createdAt: now,
       updatedAt: now,
     );
     _write(t);
     return t;
-  }
-
-  /// Brain dump: one task per non-empty line, with shared defaults.
-  List<Task> createMany(
-    Iterable<String> titles, {
-    Workspace? workspace,
-    String projectId = '',
-  }) {
-    return [
-      for (final line in titles)
-        if (line.trim().isNotEmpty)
-          create(
-            title: line.trim(),
-            workspace: workspace ?? Workspace.personal,
-            projectId: projectId,
-          ),
-    ];
   }
 
   /// Inserts or updates. A task with an empty id is new and gets one.
@@ -170,6 +161,10 @@ class TasksController extends Notifier<List<Task>> {
           followUpAt: followUpAt,
         );
       });
+
+  /// Ticks or unticks one checklist item.
+  void toggleStep(String id, int index) =>
+      _update(id, (t) => t.toggleStep(index));
 
   void setStatus(String id, TaskStatus status) =>
       _update(id, (t) => t.copyWith(status: status));

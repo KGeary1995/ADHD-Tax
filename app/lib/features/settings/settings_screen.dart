@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_themes.dart';
 import '../../widgets/ui.dart';
@@ -62,6 +63,18 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: 'Warn on Work tasks that look like PHI',
                 value: settings.phiGuard,
                 onChanged: (v) => ctl.update((x) => x.copyWith(phiGuard: v)),
+              ),
+            ],
+          ),
+          gap,
+          Group(
+            label: 'Reuse',
+            children: [
+              GroupRow(
+                title: 'Templates',
+                subtitle: 'Checklists and notes you use again and again',
+                trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
+                onTap: () => context.push('/templates'),
               ),
             ],
           ),

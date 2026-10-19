@@ -6,7 +6,16 @@ library;
 import 'achievements.dart';
 import 'xp_rules.dart';
 
-enum ProgressKind { started, completed, partial, carryover }
+enum ProgressKind {
+  started,
+  completed,
+  partial,
+  carryover,
+
+  /// Coins spent in the reward shop: negative [ProgressEvent.coins], no XP.
+  /// Older builds read it as `partial`, which still subtracts the coins.
+  redeemed,
+}
 
 /// One XP-earning moment. Counter fields are deltas.
 class ProgressEvent {
@@ -124,6 +133,10 @@ class ProgressEvent {
   ProgressStats s,
   ProgressEvent e,
 ) {
+  // Spending isn't activity: it doesn't extend a streak or show as XP.
+  if (e.kind == ProgressKind.redeemed) {
+    return (s.copyWith(coins: s.coins + e.coins), const []);
+  }
   final day = dayKey(e.at);
   var next = s.copyWith(
     xp: s.xp + e.xp,

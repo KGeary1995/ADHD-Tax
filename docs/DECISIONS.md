@@ -2,6 +2,15 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-19 — Typed extras are parsed by rules, offline, with tap-to-undo chips
+"Call insurance tomorrow 2pm 15 min #billing" is parsed by `capture/quick_parse.dart`, a set of regular expressions, not an AI model: it works offline, costs nothing, sends nothing anywhere (Work tasks never leave the device this way) and is predictable. Wrong guesses are the risk, so everything understood is shown as a chip and one tap puts the words back in the title (`ignore` keys), and the riskier words need context: "sat"/"sun" only count after "on", "by", "next"…; a bare number only counts as a time after "at"; a single `!` is ignored. A value the user picks by hand in the sheet beats a parsed one. A `#tag` matching a project's name files the task into that project rather than adding a tag. Revisit with the optional Claude feature (Phase 6), which could take over the messy cases.
+
+### 2026-10-19 — A checklist is one string field; the next unticked item is the first step
+`Task.checklist` is newline-separated `[ ] step` / `[x] step` text, not a list or a record per step, for the same reason as `Note.tags`: replica fields compare by value, so a list would look changed on every save. The cost is that ticking two different steps on two devices at the same moment keeps only one device's version of the list (last writer wins on the whole field); for one person, rare and harmless. Once a task has a checklist, its next unticked item replaces `firstStep` everywhere `startLine`/`nextStep` is used (Home card, focus, widget, wrap-up), since a static first step would go stale after the first tick. A repeating task's next copy starts unticked.
+
+### 2026-10-19 — Spending coins is an XP event with negative coins
+Reward-shop purchases are `ProgressKind.redeemed` events (coins < 0, no XP), never an edit to a balance, so they sync and merge like all progress and Undo is a tombstone. They don't count as an active day, don't appear in Recent XP, and can't lower XP or level: spending must never feel like losing progress. Older builds read the unknown kind as `partial`, which still subtracts the coins (they'd also count the day as active; harmless). Two devices spending the last coins at once could dip below zero; the shop just shows fewer coins until more are earned. Rewards and templates are synced records (`rewards`, `templates` collections) in the workspace they were made in.
+
 ### 2026-10-19 — "Show on this device" instead of separate apps
 On Android the clinic account lives in the work profile, so the owner runs a second copy of Unstuck there for Work. Rather than a separate build, each install can show Personal, Work or both. It filters at the providers, so every screen and background feature follows without per-screen checks, and it hides rather than deletes, so switching back is lossless. Device-local because two installs on the same phone want opposite settings.
 

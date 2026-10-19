@@ -18,7 +18,10 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **Overwhelmed button** | Hides everything and gives you one easy task for 5 minutes. |
 | **Focus screen** | Shows only the *first step*, a Time-Timer style shrinking disc, and a rotating quote. **Just 5 minutes** mode asks "keep going?" when the 5 minutes are up. |
 | **5-second capture** | Quick add (Ctrl+N) needs only a title. **Brain dump** turns a pasted list into tasks, one per line. "Add & start now" skips the list entirely. **Full task form** opens the complete editor (first step, due date, notes, energy) with what you've typed so far. |
-| **XP, levels, achievements** | XP for *starting*, more for finishing, bonuses for dreaded tasks, old tasks, beating your estimate and errands. 18 achievements, ranks every 5 levels, and coins for the reward shop that's coming. Streaks include 2 grace days a week and never reset to zero. |
+| **Type it the way you'd say it** | "Call insurance tomorrow 2pm 15 min #billing" fills in the due date and time, length and tag. Also weekdays, "tonight", "in 3 days", "4/15", "at 5", "1h 30m", "urgent" or `!!`, `#work`/`#personal`, and a `#tag` matching a project files it there. What it understood shows as chips; tap one to keep those words in the title. Offline, rule-based, no AI. |
+| **Checklists** | Steps inside a task. The next unticked step is the first step on Home and the focus screen (with **Step done**). Repeating tasks come back unticked. |
+| **Templates** | Reusable checklists and notes (Settings → Templates; **Template** in Quick add; **From a template** on Notes). One-tap examples: Opening checklist, Huddle notes, Weekly reset. Save any task or note as one. `{date}` becomes today's date. |
+| **XP, levels, achievements** | XP for *starting*, more for finishing, bonuses for dreaded tasks, old tasks, beating your estimate and errands. 18 achievements, ranks every 5 levels, and coins to spend in the **reward shop** (Progress tab) on treats you define, like "Fancy coffee out = 25". Streaks include 2 grace days a week and never reset to zero. |
 | **Celebrations** | Confetti plus an XP breakdown card when you finish, and a small toast when you start (it never covers the screen at that moment). Intensity runs Off / Subtle / Normal / Party. |
 | **Motivational quotes** | 114 bundled quotes in five categories. The category depends on the moment: dread-busting for a task you rated "Ugh", self-compassion after a skip, momentum during focus. |
 | **Light and dark** | One calm look in light and dark, or matching your phone (Settings → Appearance). |
@@ -221,8 +224,8 @@ The decision logic (`picker_engine.dart`, `xp_rules.dart`, `achievements.dart`, 
 2. ~~**Phase 2: Google sign-in + Drive sync**~~ ✅ (needs your OAuth setup, above)
 3. **Phase 3: Google Calendar.** Free time detected automatically ("47 min until Staff Huddle"). Plan My Day drops suggested tasks into a dedicated "Unstuck" calendar, with two-way updates and "leave in 15 min" alerts.
 4. **Phase 4: Monday.com-style views.** Board, table, timeline, calendar, projects, command palette. (Repeating tasks are already done.)
-5. **Phase 5: ADHD extras.** Learned estimate correction, errand batching, Android home-screen widget, desktop global hotkey, reward shop, body doubling, daily shutdown.
-6. **Phase 6: optional AI (Claude).** "Break this down" and natural-language capture, using your own API key. Off by default in Work.
+5. **Phase 5: ADHD extras.** ~~Learned estimate correction~~, errand batching, ~~Android home-screen widget~~, desktop global hotkey, ~~reward shop~~, body doubling, ~~daily shutdown~~.
+6. **Phase 6: optional AI (Claude).** "Break this down" and smarter capture, using your own API key. Off by default in Work. (Rule-based natural-language capture already works offline.)
 
 ## Before using it for clinic work
 

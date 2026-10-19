@@ -7,28 +7,10 @@ import 'package:uuid/uuid.dart';
 import '../../core/providers.dart';
 import '../../data/models/note.dart';
 import '../../data/models/task.dart';
-import '../../sync/replica.dart';
 import '../../sync/replicas_controller.dart';
 import '../tasks/tasks_controller.dart';
 
 const _uuid = Uuid();
-
-T? _fromRecord<T>(
-  String id,
-  Record rec,
-  T Function(Map<String, Object?>) fromJson,
-) {
-  if (rec.isDeleted) return null;
-  try {
-    return fromJson({...rec.values, 'id': id});
-  } on Object {
-    return null; // Written by a newer build in a way we can't read: skip.
-  }
-}
-
-Map<String, Object?> _fields(Map<String, Object?> json) => json
-  ..remove('id')
-  ..['deleted'] = false;
 
 /// Notes from both workspaces, newest first.
 final notesProvider = NotifierProvider<NotesController, List<Note>>(
@@ -46,14 +28,14 @@ class NotesController extends Notifier<List<Note>> {
       for (final (ws, r) in ref.read(replicasProvider).entries)
         if (shown.contains(ws))
           for (final e in r.collection(collNotes).entries)
-            ?_fromRecord(e.key, e.value, Note.fromJson),
+            ?docFromRecord(e.key, e.value, Note.fromJson),
     ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
   Note? byId(String id) {
     for (final (_, r) in ref.read(replicasProvider).entries) {
       final rec = r.get(collNotes, id);
-      final n = rec == null ? null : _fromRecord(id, rec, Note.fromJson);
+      final n = rec == null ? null : docFromRecord(id, rec, Note.fromJson);
       if (n != null) return n;
     }
     return null;
@@ -132,7 +114,7 @@ class NotesController extends Notifier<List<Note>> {
     }
     replicas.write(
       n.workspace,
-      (r, now) => r.put(collNotes, n.id, _fields(n.toJson()), now),
+      (r, now) => r.put(collNotes, n.id, docFields(n.toJson()), now),
       docs: true,
     );
   }
@@ -152,7 +134,7 @@ class ProjectsController extends Notifier<List<Project>> {
       for (final (ws, r) in ref.read(replicasProvider).entries)
         if (shown.contains(ws))
           for (final e in r.collection(collProjects).entries)
-            ?_fromRecord(e.key, e.value, Project.fromJson),
+            ?docFromRecord(e.key, e.value, Project.fromJson),
     ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
 
@@ -206,7 +188,7 @@ class ProjectsController extends Notifier<List<Project>> {
       .read(replicasProvider.notifier)
       .write(
         p.workspace,
-        (r, now) => r.put(collProjects, p.id, _fields(p.toJson()), now),
+        (r, now) => r.put(collProjects, p.id, docFields(p.toJson()), now),
         docs: true,
       );
 }

@@ -29,10 +29,20 @@ void main() {
       skipCount: 2,
       lastSkippedAt: now,
       projectId: 'p1',
+      checklist: '[x] Find the form\n[ ] Fill it in',
+      tags: 'dmv,errands',
     );
     expect(Task.fromJson(t.toJson()), t);
-    // Older builds never wrote it.
-    expect(Task.fromJson(t.toJson()..remove('projectId')).projectId, '');
+    // Older builds never wrote these.
+    final old = Task.fromJson(
+      t.toJson()
+        ..remove('projectId')
+        ..remove('checklist')
+        ..remove('tags'),
+    );
+    expect(old.projectId, '');
+    expect(old.checklist, '');
+    expect(old.tagList, isEmpty);
   });
 
   test('unknown enum values fall back to defaults', () {

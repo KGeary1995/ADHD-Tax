@@ -20,6 +20,9 @@ import 'features/reminders/reminder_bootstrap.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/tasks/task_list_screen.dart';
+import 'data/models/template.dart';
+import 'features/templates/template_editor_screen.dart';
+import 'features/templates/templates_screen.dart';
 import 'features/wrapup/wrapup_screen.dart';
 import 'sync/sync_badge.dart';
 import 'widgets/ui.dart';
@@ -65,6 +68,17 @@ GoRouter buildRouter() => GoRouter(
       },
     ),
     GoRoute(path: '/wrapup', builder: (_, _) => const WrapUpScreen()),
+    GoRoute(path: '/templates', builder: (_, _) => const TemplatesScreen()),
+    GoRoute(
+      path: '/template/:id',
+      builder: (_, state) => TemplateEditorScreen(
+        templateId: state.pathParameters['id']!,
+        kind:
+            TemplateKind.values
+                .asNameMap()[state.uri.queryParameters['kind']] ??
+            TemplateKind.task,
+      ),
+    ),
     // The iOS widget's + button (unstuck://app/add): Home, then Quick add.
     GoRoute(
       path: '/add',

@@ -16,6 +16,10 @@ import '../../widgets/ui.dart';
 import '../picker/picker_controller.dart';
 import '../safety/phi_warning.dart';
 import '../tasks/tasks_controller.dart';
+import 'quick_parse.dart';
+import '../../data/models/template.dart';
+import '../templates/templates_controller.dart';
+import '../templates/templates_screen.dart';
 import 'voice_input.dart';
 
 /// Five-second capture. Only the title is required.
@@ -76,6 +80,13 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   late Workspace _workspace;
   Project? _project;
 
+  // Typed extras ("tomorrow 2pm 15 min") fill these in unless the user
+  // picked a value by hand or tapped the chip away.
+  final _ignored = <String>{};
+  bool _estimateTouched = false;
+  bool _priorityTouched = false;
+  bool _workspaceTouched = false;
+
   @override
   void initState() {
     super.initState();
@@ -88,7 +99,10 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
         : Workspace.personal;
     _project = ref.read(projectsProvider.notifier).byId(widget.projectId);
     if (_project != null) _workspace = _project!.workspace;
-    _title.addListener(() => setState(() {}));
+    _title.addListener(() {
+      if (_title.text.trim().isEmpty) _ignored.clear();
+      setState(() {});
+    });
   }
 
   @override
@@ -99,16 +113,74 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
 
   bool get _canSave => _title.text.trim().isNotEmpty;
 
+  bool get _single => ref.read(deviceWorkspacesProvider).single;
+
+  QuickParse _parse(String text, {Set<String> ignore = const {}}) =>
+      parseQuickAdd(
+        text,
+        ref.read(clockProvider)(),
+        // One workspace on this device: "#work" is just a word.
+        ignore: {...ignore, if (_single) qkWorkspace},
+      );
+
+  /// What will be saved: the sheet's choices merged with what was typed.
+  _Resolved _resolve(QuickParse p) {
+    final ws = _workspaceTouched || p.workspace == null
+        ? _workspace
+        : p.workspace!;
+    var project = _project?.workspace == ws ? _project : null;
+    final tags = <String>[];
+    for (final tag in p.tags) {
+      // A #tag naming a project files the task there.
+      final match = project == null
+          ? ref
+                .read(projectsProvider.notifier)
+                .inWorkspace(ws)
+                .where((pr) => normalizeTag(pr.name) == tag)
+                .firstOrNull
+          : null;
+      if (match != null) {
+        project = match;
+      } else {
+        tags.add(tag);
+      }
+    }
+    return _Resolved(
+      title: p.title,
+      workspace: ws,
+      project: project,
+      estimate: _estimateTouched || p.estimateMin == null
+          ? _estimate
+          : p.estimateMin!,
+      priority: _priorityTouched || p.priority == null
+          ? _priority
+          : p.priority!,
+      dueAt: p.dueAt,
+      tags: tags,
+    );
+  }
+
   void _save({bool start = false}) {
     if (!_canSave) return;
     final tasks = ref.read(tasksProvider.notifier);
     final messenger = ScaffoldMessenger.of(context);
     if (_brainDump) {
-      final created = tasks.createMany(
-        _title.text.split('\n'),
-        workspace: _workspace,
-        projectId: _project?.id ?? '',
-      );
+      // Each line can carry its own "tomorrow", "15 min", "#tag".
+      final created = [
+        for (final line in _title.text.split('\n'))
+          if (line.trim().isNotEmpty)
+            switch (_resolve(_parse(line))) {
+              final r => tasks.create(
+                title: r.title,
+                workspace: r.workspace,
+                projectId: r.project?.id ?? '',
+                estimateMin: r.estimate,
+                priority: r.priority,
+                dueAt: r.dueAt,
+                tags: r.tags.join(','),
+              ),
+            },
+      ];
       Navigator.pop(context);
       messenger.showSnackBar(
         SnackBar(
@@ -119,32 +191,49 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       );
       return;
     }
+    final r = _resolve(_parse(_title.text, ignore: _ignored));
     final t = tasks.create(
-      title: _title.text,
-      estimateMin: _estimate,
-      priority: _priority,
+      title: r.title,
+      estimateMin: r.estimate,
+      priority: r.priority,
       requiresLeavingHouse: _leave,
       ugh: _ugh,
-      workspace: _workspace,
+      workspace: r.workspace,
       notes: _notes,
-      projectId: _project?.id ?? '',
+      projectId: r.project?.id ?? '',
+      dueAt: r.dueAt,
+      tags: r.tags.join(','),
     );
     Navigator.pop(context, start ? t : null);
+  }
+
+  /// Adds a task from a template, checklist and all.
+  Future<void> _fromTemplate() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final t = await pickTemplate(context, ref, TemplateKind.task);
+    if (t == null || !mounted) return;
+    final task = ref.read(templatesProvider.notifier).createTask(t);
+    navigator.pop();
+    messenger.showSnackBar(SnackBar(content: Text('Added: ${task.title}')));
   }
 
   /// Carries what's been entered so far into the full editor.
   void _openFullForm() {
     final now = ref.read(clockProvider)();
+    final r = _resolve(_parse(_title.text, ignore: _ignored));
     final draft = Task(
       id: '',
-      title: _title.text.trim(),
-      estimateMin: _estimate,
-      priority: _priority,
+      title: r.title,
+      estimateMin: r.estimate,
+      priority: r.priority,
       requiresLeavingHouse: _leave,
       ugh: _ugh,
-      workspace: _workspace,
+      workspace: r.workspace,
       notes: _notes,
-      projectId: _project?.id ?? '',
+      projectId: r.project?.id ?? '',
+      dueAt: r.dueAt,
+      tags: r.tags.join(','),
       createdAt: now,
       updatedAt: now,
     );
@@ -157,6 +246,14 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   Widget build(BuildContext context) {
     final s = context.spec;
     final narrow = MediaQuery.sizeOf(context).width < 420;
+    final parsed = _brainDump || !_canSave
+        ? null
+        : _parse(_title.text, ignore: _ignored);
+    final r = parsed == null ? null : _resolve(parsed);
+    final estimate = r?.estimate ?? _estimate;
+    final priority = r?.priority ?? _priority;
+    final workspace = r?.workspace ?? _workspace;
+    final project = r == null ? _project : r.project;
     final side = narrow ? 18.0 : 22.0;
     // Sits on top of the keyboard when it's open, above the system
     // navigation bar when it isn't.
@@ -211,6 +308,12 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                                 setState(() => _brainDump = !_brainDump),
                             child: Text(_brainDump ? 'One task' : 'Brain dump'),
                           ),
+                          if (!_brainDump)
+                            TextButton(
+                              style: link,
+                              onPressed: _fromTemplate,
+                              child: const Text('Template'),
+                            ),
                           if (!_brainDump)
                             Tooltip(
                               message:
@@ -272,28 +375,49 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                         ],
                       ),
                     ),
+                  if (parsed != null && parsed.understoodAnything)
+                    _Understood(
+                      parsed: parsed,
+                      resolved: r!,
+                      onIgnore: (key) => setState(() => _ignored.add(key)),
+                    ),
+                  if (_brainDump)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Lines can include things like "tomorrow", '
+                        '"15 min" or "#tag".',
+                        style: TextStyle(fontSize: 13, color: s.muted),
+                      ),
+                    ),
                   PhiWarning(
                     text: '${_title.text}\n$_notes',
-                    workspace: _workspace,
+                    workspace: workspace,
                   ),
                   if (!_brainDump) ...[
                     section(
                       'How long?',
                       ChoiceGroup(
                         values: estimatePresets,
-                        selected: _estimate,
+                        selected: estimate,
                         mono: true,
                         labelOf: shortMinutes,
-                        onSelected: (m) => setState(() => _estimate = m),
+                        onSelected: (m) => setState(() {
+                          _estimate = m;
+                          _estimateTouched = true;
+                        }),
                       ),
                     ),
                     section(
                       'Priority',
                       ChoiceGroup(
                         values: Priority.values,
-                        selected: _priority,
+                        selected: priority,
                         labelOf: (p) => p.label,
-                        onSelected: (p) => setState(() => _priority = p),
+                        onSelected: (p) => setState(() {
+                          _priority = p;
+                          _priorityTouched = true;
+                        }),
                       ),
                     ),
                     section(
@@ -318,21 +442,29 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                           width: 220,
                           child: Segmented<Workspace>(
                             values: Workspace.values,
-                            selected: _workspace,
+                            selected: workspace,
                             inset: s.isDark,
                             labelOf: (w) => w.label,
                             onSelected: (w) => setState(() {
                               _workspace = w;
+                              _workspaceTouched = true;
                               if (_project?.workspace != w) _project = null;
                             }),
                           ),
                         ),
-                      if (_project case final p?)
+                      if (project case final p?)
                         Pill(
                           label: p.name,
                           icon: Icons.folder_outlined,
                           selected: true,
-                          onTap: () => setState(() => _project = null),
+                          onTap: () => setState(() {
+                            if (_project == p) {
+                              _project = null;
+                            } else {
+                              // Came from a #tag: leave the #tag in the title.
+                              _ignored.add(qkTag(normalizeTag(p.name)));
+                            }
+                          }),
                         ),
                       if (!_brainDump)
                         Pill(
@@ -376,6 +508,84 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Resolved {
+  const _Resolved({
+    required this.title,
+    required this.workspace,
+    required this.project,
+    required this.estimate,
+    required this.priority,
+    required this.dueAt,
+    required this.tags,
+  });
+  final String title;
+  final Workspace workspace;
+  final Project? project;
+  final int estimate;
+  final Priority priority;
+  final DateTime? dueAt;
+  final List<String> tags;
+}
+
+/// What was picked up from the typed text, as chips. Tapping one leaves
+/// those words in the title instead.
+class _Understood extends StatelessWidget {
+  const _Understood({
+    required this.parsed,
+    required this.resolved,
+    required this.onIgnore,
+  });
+  final QuickParse parsed;
+  final _Resolved resolved;
+  final ValueChanged<String> onIgnore;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    final project = resolved.project;
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final b in parsed.bits)
+                Pill(
+                  label:
+                      project != null &&
+                          b.key == qkTag(normalizeTag(project.name))
+                      ? project.name
+                      : b.label,
+                  icon: switch (b.key) {
+                    qkDue => Icons.event_outlined,
+                    qkLength => Icons.timer_outlined,
+                    qkPriority => Icons.flag_outlined,
+                    qkWorkspace => Icons.work_outline_rounded,
+                    _
+                        when project != null &&
+                            b.key == qkTag(normalizeTag(project.name)) =>
+                      Icons.folder_outlined,
+                    _ => Icons.tag_rounded,
+                  },
+                  selected: true,
+                  onTap: () => onIgnore(b.key),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Saving as "${parsed.title}". Tap a chip to keep it as words.',
+            style: TextStyle(fontSize: 12.5, color: s.muted, height: 1.35),
           ),
         ],
       ),

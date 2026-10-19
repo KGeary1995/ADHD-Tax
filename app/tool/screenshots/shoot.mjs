@@ -12,6 +12,8 @@
 //       [--appearance light|dark|system]  (default dark; system follows
 //                    the emulated phone, which is set to dark)
 //       [--tap x,y]  (tap a point after loading, e.g. to open a sheet)
+//       [--type text] (then type, e.g. into Quick add)
+//       [--scroll px] (scroll the page down before the screenshot)
 //       [--iphone]   (fakes a 34px home-indicator inset, like an iPhone)
 //       [--empty]    (no demo data)
 //       [--board]    (Tasks opens as a board)
@@ -27,7 +29,7 @@ import { mkdirSync } from 'node:fs';
 const args = process.argv.slice(2);
 const flag = (f) => args.includes(f);
 const opt = (f, d) => (args.includes(f) ? args[args.indexOf(f) + 1] : d);
-const valued = ['--appearance', '--tap'];
+const valued = ['--appearance', '--tap', '--type', '--scroll'];
 const pos = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && valued.includes(args[i - 1])));
 const [outDir, name, path = '/', width = '390', height = '844'] = pos;
 if (!outDir || !name) {
@@ -50,7 +52,9 @@ const T = (id, title, o = {}) => ({
 });
 const tasks = [
   T('1', 'Draft front-desk triage cheat sheet', { workspace: 'work', projectId: 'pw1', estimateMin: 60, priority: 'p1', chunkable: true,
-    dueAt: iso(now + 0.8 * day), hardDeadline: true, firstStep: "Open last year's version and skim it", energy: 'high' }),
+    dueAt: iso(now + 0.8 * day), hardDeadline: true, firstStep: "Open last year's version and skim it", energy: 'high',
+    checklist: "[x] Open last year's version and skim it\n[ ] List the five calls we get most\n[ ] Write who to route each one to\n[ ] Ask a senior to check it",
+    tags: 'training' }),
   T('2', 'Reply to Dr. Patel about Thursday template', { workspace: 'work', priority: 'p2', firstStep: 'Open the template doc' }),
   T('3', 'Schedule dentist appointment', { estimateMin: 5, ugh: 2, firstStep: 'Find the number in contacts', createdAt: iso(now - 9 * day) }),
   T('4', 'Renew car registration', { projectId: 'pp1', requiresLeavingHouse: true, location: 'DMV', estimateMin: 30, priority: 'p2', ugh: 2, dueAt: iso(now + 3 * day) }),
@@ -81,6 +85,13 @@ const replicas = {
   work: replica({
     projects: { pw1: rec({ name: 'Front desk training', workspace: 'work', color: 0, createdAt: iso(now - 9 * day) }),
       pw2: rec({ name: 'Phones & scheduling', workspace: 'work', color: 2, createdAt: iso(now - 9 * day) }) },
+    templates: {
+      tw1: rec({ kind: 'task', name: 'Opening checklist', workspace: 'work', title: 'Open up', estimateMin: 15, body: '', tags: '',
+        checklist: '[ ] Lights, computers and equipment on\n[ ] Check voicemail and the message inbox\n[ ] Restock the front desk\n[ ] Unlock the doors',
+        createdAt: iso(now - 5 * day) }),
+      tw2: rec({ kind: 'note', name: 'Huddle notes', workspace: 'work', title: 'Huddle {date}', estimateMin: 15, checklist: '', tags: '',
+        body: 'Schedule today:\n\nStaffing:\n\nWatch out for:\n\nTo do:\n- ', createdAt: iso(now - 5 * day) }),
+    },
     notes: Object.fromEntries([
       N('n1', 'work', 'Insurance callback script', 'Confirm the plan name first\nRead back the reference number #phones #billing', { pinned: true, projectId: 'pw2', ago: 3 }),
       N('n2', 'work', 'Huddle: new-hire onboarding', '- Shadow a full Monday\n- Cheat sheet by Friday\n- Pair with a senior for callbacks #training', { projectId: 'pw1', taskId: '1' }),
@@ -89,6 +100,15 @@ const replicas = {
   }),
   personal: replica({
     projects: { pp1: rec({ name: 'Car', workspace: 'personal', color: 3, createdAt: iso(now - 20 * day) }) },
+    rewards: {
+      r1: rec({ name: 'Fancy coffee out', cost: 25, workspace: 'personal', createdAt: iso(now - 3 * day) }),
+      r2: rec({ name: 'Order takeout', cost: 50, workspace: 'personal', createdAt: iso(now - 3 * day) }),
+      r3: rec({ name: 'New running shoes', cost: 150, workspace: 'personal', createdAt: iso(now - 3 * day) }),
+    },
+    templates: {
+      tp1: rec({ kind: 'task', name: 'Weekly reset', workspace: 'personal', title: 'Weekly reset', estimateMin: 60, body: '', tags: '',
+        checklist: '[ ] Laundry\n[ ] Clear the kitchen\n[ ] Plan meals for the week', createdAt: iso(now - 5 * day) }),
+    },
     notes: Object.fromEntries([
       N('n4', 'personal', 'Gift ideas', 'Mom: the blue scarf from the market\nSam: board game #family', { ago: 5 }),
     ]),
@@ -124,6 +144,17 @@ if (tap) {
   const [x, y] = tap.split(',').map(Number);
   await page.mouse.click(x, y);
   await page.waitForTimeout(1500);
+}
+const type = opt('--type', null);
+if (type) {
+  await page.keyboard.type(type, { delay: 20 });
+  await page.waitForTimeout(800);
+}
+const scroll = opt('--scroll', null);
+if (scroll) {
+  await page.mouse.move(+width / 2, +height / 2);
+  await page.mouse.wheel(0, +scroll);
+  await page.waitForTimeout(800);
 }
 mkdirSync(outDir, { recursive: true });
 await page.screenshot({ path: `${outDir}/${name}.png` });

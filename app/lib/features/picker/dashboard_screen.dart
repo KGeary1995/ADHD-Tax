@@ -301,7 +301,8 @@ class _TaskCard extends StatelessWidget {
       time,
       if (t.dueAt != null) 'due ${formatDue(t.dueAt!, now)}',
     ].join(' · ');
-    final hasFirstStep = t.firstStep.trim().isNotEmpty;
+    final hasFirstStep = t.nextStep.isNotEmpty;
+    final steps = t.steps;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
@@ -344,11 +345,14 @@ class _TaskCard extends StatelessWidget {
             hasFirstStep
                 ? TextSpan(
                     children: [
-                      const TextSpan(
-                        text: 'First: ',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                      TextSpan(
+                        text: steps.isEmpty
+                            ? 'First: '
+                            : 'Step ${steps.indexWhere((i) => !i.done) + 1} '
+                                  'of ${steps.length}: ',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      TextSpan(text: t.firstStep.trim()),
+                      TextSpan(text: t.nextStep),
                     ],
                   )
                 : TextSpan(text: suggestion.reasonLine),

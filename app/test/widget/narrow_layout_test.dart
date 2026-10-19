@@ -2,7 +2,10 @@ import 'package:adhd_tax/app.dart';
 import 'package:adhd_tax/core/providers.dart';
 import 'package:adhd_tax/data/models/task.dart';
 import 'package:adhd_tax/features/capture/quick_add_sheet.dart';
+import 'package:adhd_tax/data/models/template.dart';
+import 'package:adhd_tax/features/gamification/rewards_controller.dart';
 import 'package:adhd_tax/features/notes/notes_controller.dart';
+import 'package:adhd_tax/features/templates/templates_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:adhd_tax/widgets/ui.dart';
 import 'package:flutter/material.dart';
@@ -145,6 +148,68 @@ void main() {
         for (final tab in ['Today', 'Tasks', 'Notes', 'Progress', 'Settings']) {
           expect(find.byTooltip(tab), findsOneWidget, reason: tab);
         }
+      });
+
+      testWidgets('checklists, focus, reward shop, templates and typed '
+          'extras: nothing overflows', (tester) async {
+        final c = await _pumpPhone(tester, scale);
+        final t = c
+            .read(tasksProvider.notifier)
+            .create(
+              title: 'Get the front desk ready for the Monday rush',
+              checklist:
+                  '[x] Lights, computers and equipment on\n'
+                  '[ ] Look over the schedule for gaps and double-books\n'
+                  '[ ] Restock the front desk',
+              tags: 'opening,front-desk',
+            );
+        c
+            .read(rewardsProvider.notifier)
+            .create('A long walk somewhere new with a fancy coffee', 120);
+        c
+            .read(templatesProvider.notifier)
+            .save(exampleTemplates(DateTime(2026, 10, 18)).first);
+        for (final path in [
+          '/task/${t.id}',
+          '/progress',
+          '/templates',
+          '/template/new?kind=task',
+          '/template/new?kind=note',
+          '/',
+        ]) {
+          c.read(routerProvider).go(path);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: path);
+        }
+        c.read(routerProvider).go('/progress');
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.text('Redeem'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(tester.takeException(), isNull, reason: 'shop');
+
+        c.read(routerProvider).go('/');
+        await tester.pumpAndSettle();
+        showQuickAdd(tester.element(find.byType(Scaffold).first));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextField).first,
+          'Call the billing office back tomorrow 2:30pm 45 min '
+          '#insurance #follow-up urgent',
+        );
+        await tester.pump();
+        expect(find.text('45 min'), findsOneWidget);
+        expect(tester.takeException(), isNull, reason: 'typed extras');
+        Navigator.of(tester.element(find.text('45 min'))).pop();
+        await tester.pumpAndSettle();
+
+        c.read(routerProvider).push('/focus/${t.id}?min=15');
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Step 2 of 3'), findsOneWidget);
+        expect(tester.takeException(), isNull, reason: 'focus');
       });
     });
   }

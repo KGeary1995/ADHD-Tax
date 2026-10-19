@@ -14,6 +14,7 @@ import '../motivation/quote_rotator.dart';
 import '../motivation/quote_service.dart';
 import '../reminders/reminders.dart';
 import '../settings/settings_controller.dart';
+import '../tasks/checklist_editor.dart';
 import '../tasks/tasks_controller.dart';
 import 'visual_timer.dart';
 
@@ -283,7 +284,14 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
       );
     }
     final paused = _runningSince == null;
-    final hasStep = task.firstStep.trim().isNotEmpty;
+    final hasStep = task.nextStep.isNotEmpty;
+    final steps = task.steps;
+    final nextIndex = steps.indexWhere((i) => !i.done);
+    final stepLabel = steps.isEmpty
+        ? (hasStep ? 'First step' : 'Now')
+        : nextIndex < 0
+        ? 'All ${steps.length} steps ticked'
+        : 'Step ${nextIndex + 1} of ${steps.length}';
     final session = widget.justFive && !_keptGoing
         ? 'Just 5 minutes'
         : '${task.workspace.label} · ${_target.inMinutes} min session';
@@ -348,7 +356,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
                                 child: Column(
                                   children: [
                                     Text(
-                                      hasStep ? 'First step' : 'Now',
+                                      stepLabel,
                                       style: s.mono(
                                         13,
                                         color: s.primary,
@@ -370,6 +378,20 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
                                           fontSize: 15,
                                           color: s.muted,
                                         ),
+                                      ),
+                                    ],
+                                    if (nextIndex >= 0) ...[
+                                      const SizedBox(height: 12),
+                                      OutlinedButton.icon(
+                                        onPressed: () {
+                                          ref
+                                              .read(tasksProvider.notifier)
+                                              .toggleStep(task.id, nextIndex);
+                                          // The shade shows the step too.
+                                          _syncNotification();
+                                        },
+                                        icon: const Icon(Icons.check_rounded),
+                                        label: const Text('Step done'),
                                       ),
                                     ],
                                   ],
@@ -429,6 +451,37 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
                                   ),
                                 ],
                               ),
+                              if (steps.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    24,
+                                    20,
+                                    0,
+                                  ),
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(
+                                      dividerColor: Colors.transparent,
+                                    ),
+                                    child: ExpansionTile(
+                                      title: Text(
+                                        'Checklist · ${stepsProgress(steps)}',
+                                      ),
+                                      children: [
+                                        for (var i = 0; i < steps.length; i++)
+                                          ChecklistRow(
+                                            item: steps[i],
+                                            onToggle: () {
+                                              ref
+                                                  .read(tasksProvider.notifier)
+                                                  .toggleStep(task.id, i);
+                                              _syncNotification();
+                                            },
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               if (task.notes.trim().isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.fromLTRB(

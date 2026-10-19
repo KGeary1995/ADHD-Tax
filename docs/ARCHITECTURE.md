@@ -33,7 +33,10 @@ Routes (`app.dart`): a `ShellRoute` with the bottom bar / side rail (`AppShell`)
 
 ## Data model (`data/models/task.dart`, pure Dart)
 
-`Task` fields: id, title, notes, firstStep, estimateMin, requiresLeavingHouse, location, priority (p1–p4), dueAt, hardDeadline, ugh (0–3 dread), energy, workspace (personal/work), status (inbox/todo/doing/waiting/done/archived), chunkable, scheduledStart (hidden from the picker until then), createdAt, updatedAt, startedAt, completedAt, actualMin, skipCount, lastSkippedAt, repeat (none/daily/weekdays/weekly/biweekly/monthly), repeatFromDone, waitingOn and followUpAt (who a waiting task waits on, and when to check back).
+`Task` fields: id, title, notes, firstStep, estimateMin, requiresLeavingHouse, location, priority (p1–p4), dueAt, hardDeadline, ugh (0–3 dread), energy, workspace (personal/work), status (inbox/todo/doing/waiting/done/archived), chunkable, scheduledStart (hidden from the picker until then), createdAt, updatedAt, startedAt, completedAt, actualMin, skipCount, lastSkippedAt, repeat (none/daily/weekdays/weekly/biweekly/monthly), repeatFromDone, waitingOn and followUpAt (who a waiting task waits on, and when to check back), projectId, checklist and tags.
+
+- `checklist` (`data/models/checklist.dart`, pure): one string, one item per line, `[ ] text` or `[x] text`. `Task.steps` parses it; `Task.nextStep` is the first unticked item (or `firstStep` when there's no checklist, or '' when all are ticked) and `startLine` falls back to the title. `TasksController.toggleStep` ticks one. `nextOccurrence` resets the boxes.
+- `tags`: comma-separated lowercase tags without `#`, a scalar like `Note.tags`. `tagList` splits it; `TaskMeta` shows them.
 
 `Task.fromJson` defaults every field, so data written by older or newer builds still loads. Records that fail to parse are skipped (`taskFromRecord`), never fatal.
 
@@ -44,7 +47,7 @@ Routes (`app.dart`): a `ShellRoute` with the bottom bar / side rail (`AppShell`)
 | Key | Contents |
 |---|---|
 | `device.id` | This install's id (uuid). Stamps writes and names its sync files. |
-| `replica.v1.personal`, `replica.v1.work` | The full CRDT replica per workspace (tasks, XP events, meta, notes, projects). |
+| `replica.v1.personal`, `replica.v1.work` | The full CRDT replica per workspace (tasks, XP events, meta, notes, projects, rewards, templates). |
 | `device.workspaces` | `both`, `personal` or `work`: which workspaces this install shows (`DeviceWorkspaces`). Device-local. |
 | `tasks.view` | `list` or `board` for the Tasks tab. Device-local. |
 | `sync.v1.<ws>` | Sync bookkeeping: connected email, remote checksums already merged, last upload marker, lastSyncedAt. |
@@ -59,7 +62,7 @@ On the web these live in `localStorage` with a `flutter.` prefix. The web Google
 - **Hybrid Logical Clock**: millis + counter + node id, packed into a lexicographically sortable string. `send()` stamps local writes; `receive()` advances past remote clocks.
 - **Replica**: collections → records → fields. **Every field carries the HLC of its last write.** Merging takes the later clock per field, which is commutative, associative and idempotent, so devices converge whatever order they see each other in. Editing the title on the phone and the priority on the Mac keeps both.
 - Deletes are **tombstones** (`deleted: true`, other fields blanked so nothing sensitive lingers). Writing the record again with `deleted: false` revives it, which is how Undo works.
-- Collections: `tasks` (record id = task id), `events` (XP events, append-only), `meta` (`progress` record holding `resetAt`), `notes`, `projects`. Notes and projects bump `ReplicaSet.docsVersion`.
+- Collections: `tasks` (record id = task id), `events` (XP events, append-only), `meta` (`progress` record holding `resetAt`), `notes`, `projects`, `rewards`, `templates`. Notes, projects, rewards and templates bump `ReplicaSet.docsVersion`; `docFromRecord`/`docFields` in `replicas_controller.dart` read and write them.
 - `lastLocalWrite` = clock of the newest write made *on this device*. Merges don't change it, so sync only uploads when there's something new of ours. This avoids devices bouncing the same data back and forth.
 - `ReplicasController` holds one replica per workspace, persists on every change, and exposes version counters (`tasksVersion`, `eventsVersion`, per-workspace local-write counts) that providers watch.
 - **Moving a task between workspaces** tombstones it on the old side (`TasksController._write`), so Work data doesn't linger in the Personal Google account.
@@ -115,6 +118,12 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
 - **Show on this device** (`settings/device_workspaces.dart`): `tasksProvider`, `notesProvider` and `projectsProvider` drop the hidden workspace at the source, so lists, the picker, widgets, reminders and wrap-up all follow. The picker's workspaces, Quick add's and the editors' defaults use `DeviceWorkspaces.primary`, and their workspace switches are hidden. Hidden data stays in the replica (and syncs if that account was connected); progress XP still counts all events.
 - **Tasks**: `taskProjectFilterProvider` (public: Quick add files new tasks into it), project pills with rename/delete, and `taskViewProvider` (List/Board, saved as `tasks.view`).
 - **Board** (`tasks/task_board.dart`): columns from status (inbox+todo → To do; archived hidden; Done = last 14 days). `LongPressDraggable` cards and `DragTarget` columns, plus a ⋮ "Move to…" menu for phones where the target column is off-screen. `moveTask()` goes through the normal paths: Done → `markDoneWithUndo` (XP), Waiting → the waiting sheet, Doing → `markStarted`. Four columns side by side when they fit (≥ ~900 px). Narrower (`_TabbedBoard`): one row of four column tabs with counts, one column at full width; tap or swipe to switch; the tabs are `DragTarget`s, so a held card dropped on a tab moves there. (A sideways-scrolling row of columns was tried first and was hard to use on a phone.)
+
+## Capture extras, rewards, templates
+
+- **Typed extras** (`capture/quick_parse.dart`, pure): `parseQuickAdd(text, now, ignore:)` returns the cleaned title, `dueAt`, `estimateMin`, `priority`, `workspace` (`#work`/`#personal`), `tags`, and `bits` for the preview chips. Order: tags, length, time, day, priority; each rule blanks the words it used. A date without a time is due at 5 pm (like the editor), a time without a date is today or, if already past, tomorrow. Quick add (`_resolve`) merges this with the sheet: hand-picked values win, a `#tag` matching a project's name sets the project, and tapping a chip adds its key to `ignore`. Brain dump parses each line. On a single-workspace device `#work`/`#personal` are plain words.
+- **Reward shop** (`gamification/rewards_controller.dart`, `reward_shop.dart`, `data/models/reward.dart`): `Reward{name, cost, workspace}` records; `redeem()` writes a `ProgressKind.redeemed` event with negative coins (refused when short); `unredeem()` tombstones it. `applyEvent` only changes coins for that kind. `redemptionsProvider` lists them for "Last treat".
+- **Templates** (`features/templates/`, `data/models/template.dart`): `Template{kind: task|note, name, workspace, title, body, checklist, estimateMin, tags}`. Using a task template opens `/task/new` with an unsaved draft (`taskDraft`); Quick add's **Template** creates it straight away (`createTask`); a note template creates the note and opens it. `fillTemplate` replaces `{date}` and `{weekday}`. `exampleTemplates` are offered while there are none. Routes `/templates` and `/template/:id` (`new?kind=task|note`), outside the shell.
 
 ## Tasks, repeating, undo (`features/tasks/`)
 

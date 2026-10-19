@@ -10,6 +10,7 @@ import '../insights/estimate_calibration.dart';
 import '../picker/picker_controller.dart';
 import 'achievements.dart';
 import 'progress_controller.dart';
+import 'reward_shop.dart';
 import 'xp_rules.dart';
 
 class ProgressScreen extends ConsumerWidget {
@@ -85,8 +86,9 @@ class ProgressScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  spacing: 12,
                   children: [
                     Text('${p.xp} XP', style: s.mono(13)),
                     Text('$toNext to level ${level + 1}', style: s.mono(13)),
@@ -142,6 +144,8 @@ class ProgressScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 22),
+          const RewardShop(),
+          const SizedBox(height: 16),
           const _EstimatesCard(),
           const SizedBox(height: 26),
           Padding(

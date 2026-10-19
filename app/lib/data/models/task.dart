@@ -2,6 +2,10 @@
 /// the picker engine, the sync layer and tests.
 library;
 
+import 'checklist.dart';
+
+export 'checklist.dart';
+
 enum TaskStatus { inbox, todo, doing, waiting, done, archived }
 
 enum Priority {
@@ -86,6 +90,8 @@ class Task {
     this.waitingOn = '',
     this.followUpAt,
     this.projectId = '',
+    this.checklist = '',
+    this.tags = '',
   }) : assert(ugh >= 0 && ugh <= 3);
 
   final String id;
@@ -134,13 +140,43 @@ class Task {
   /// The project it belongs to, in the same workspace; '' for none.
   final String projectId;
 
+  /// Sub-steps, encoded by [encodeChecklist]. '' for none.
+  final String checklist;
+
+  /// Comma-separated lowercase tags without '#', like `Note.tags` but kept
+  /// as one string so it syncs as a scalar. '' for none.
+  final String tags;
+
+  List<ChecklistItem> get steps => parseChecklist(checklist);
+
+  List<String> get tagList => [
+    for (final t in tags.split(','))
+      if (t.trim().isNotEmpty) t.trim(),
+  ];
+
+  /// What to do next: the first unticked checklist item, else the first
+  /// step. '' once every item is ticked, so the title shows.
+  String get nextStep {
+    final items = steps;
+    if (items.isEmpty) return firstStep.trim();
+    return items.where((i) => !i.done).firstOrNull?.text ?? '';
+  }
+
+  /// Ticks or unticks checklist item [index].
+  Task toggleStep(int index) {
+    final items = steps;
+    if (index < 0 || index >= items.length) return this;
+    items[index] = items[index].toggled();
+    return copyWith(checklist: encodeChecklist(items));
+  }
+
   bool get isOpen =>
       status == TaskStatus.inbox ||
       status == TaskStatus.todo ||
       status == TaskStatus.doing;
 
   /// The text shown when it's time to start.
-  String get startLine => firstStep.trim().isEmpty ? title : firstStep;
+  String get startLine => nextStep.isEmpty ? title : nextStep;
 
   Task copyWith({
     String? title,
@@ -169,6 +205,8 @@ class Task {
     String? waitingOn,
     Object? followUpAt = _unset,
     String? projectId,
+    String? checklist,
+    String? tags,
   }) {
     return Task(
       id: id,
@@ -211,6 +249,8 @@ class Task {
           ? this.followUpAt
           : followUpAt as DateTime?,
       projectId: projectId ?? this.projectId,
+      checklist: checklist ?? this.checklist,
+      tags: tags ?? this.tags,
     );
   }
 
@@ -243,6 +283,8 @@ class Task {
     'waitingOn': waitingOn,
     'followUpAt': followUpAt?.toIso8601String(),
     'projectId': projectId,
+    'checklist': checklist,
+    'tags': tags,
   };
 
   factory Task.fromJson(Map<String, Object?> j) {
@@ -280,6 +322,8 @@ class Task {
       waitingOn: j['waitingOn'] as String? ?? '',
       followUpAt: date('followUpAt'),
       projectId: j['projectId'] as String? ?? '',
+      checklist: j['checklist'] as String? ?? '',
+      tags: j['tags'] as String? ?? '',
     );
   }
 

@@ -58,7 +58,7 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
     final tasks = ref.read(tasksProvider.notifier);
     final chosen = _pick == null ? null : tasks.byId(_pick!);
     final step = _firstStep.text.trim();
-    if (chosen != null && step.isNotEmpty && chosen.firstStep.trim().isEmpty) {
+    if (chosen != null && step.isNotEmpty && chosen.nextStep.isEmpty) {
       tasks.save(chosen.copyWith(firstStep: step));
     }
     ref
@@ -266,7 +266,7 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
                   onTap: () => _choose(t),
                 ),
               ),
-            if (pinned != null && pinned.firstStep.trim().isEmpty) ...[
+            if (pinned != null && pinned.nextStep.isEmpty) ...[
               const SizedBox(height: 16),
               const FieldLabel('First 2-minute step (optional)'),
               TextField(

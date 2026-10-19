@@ -3,6 +3,14 @@
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
 ## Next build — 2026-10-19 (Android, Mac, web)
+- **Type it the way you'd say it**: in Quick add, "Call insurance tomorrow 2pm 15 min #billing" fills in the due date and time, the length and the tag, and saves the title as "Call insurance". What it picked up shows as chips under the box; tap one to keep those words in the title instead. It also understands weekdays ("by friday"), "tonight", "next week", "in 3 days", dates like "4/15" or "Nov 3", "at 5", "noon", "1h 30m", "urgent", `!!` (High), `#work` / `#personal`, and a `#tag` that matches a project's name files the task into that project. Works offline, in Brain dump too (one line each). No AI involved.
+- **Checklists inside a task**: break a task into steps in its editor (paste a list to add several at once). The next unticked step becomes the first step everywhere: Home shows "Step 2 of 4: …" and the focus screen has a **Step done** button plus the whole checklist to tick. A repeating task's next copy comes back unticked.
+- **Reward shop** (Progress tab): spend the coins you earn on treats you choose, e.g. Fancy coffee out = 25. Tap **Redeem** (with Undo). A 15-minute task started and finished earns about 2 coins. Spending never touches XP, level or streak.
+- **Templates**: reusable checklists and notes (Settings → Templates, or **Template** in Quick add, **From a template** on Notes). Starts with examples you can add with one tap: Opening checklist, Huddle notes, Weekly reset. Save any task or note as a template from its editor. `{date}` in a template's title becomes today's date ("Huddle Oct 19").
+- **Tags on tasks**: tasks can now carry `#tags` too (editor → Tags, or type them in Quick add). They show on the task's line.
+- Fixed: on Progress with large text, the "XP · to next level" line could run off a narrow screen.
+
+## Build 57 — 2026-10-19 (8459fda) (Android, Mac, web)
 - Fixed: menus and pop-up sheets on the main tabs opened *behind* the floating bottom bar, so items at the bottom of a menu, like **Delete** on a task low on the screen, couldn't be tapped. They now always open on top.
 - **Swipe to delete or finish**: swipe a task left to delete it, right to mark it done; swipe a note left to delete it. Each shows Undo. The board card menu (⋮) has **Delete** too.
 

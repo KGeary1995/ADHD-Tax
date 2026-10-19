@@ -83,6 +83,28 @@ void main() {
     expect(s.recent, isEmpty);
   });
 
+  test('spending coins takes coins only: no XP, no streak day, no log', () {
+    final spend = ProgressEvent(
+      id: 'r',
+      at: t.add(const Duration(days: 3)),
+      kind: ProgressKind.redeemed,
+      label: 'Fancy coffee',
+      coins: -25,
+    );
+    final s = foldEvents([
+      ev('a', 0, ProgressKind.completed, xp: 300, completed: 1),
+      spend,
+    ]);
+    expect(s.coins, 1 - 25);
+    expect(s.xp, 300);
+    expect(s.activeDays, hasLength(1));
+    expect(s.recent.map((r) => r.label), ['a']);
+    // Survives the trip through sync.
+    final back = ProgressEvent.fromJson('r', spend.toJson());
+    expect(back.kind, ProgressKind.redeemed);
+    expect(back.coins, -25);
+  });
+
   test('event JSON round trip', () {
     final e = ProgressEvent(
       id: 'x',
