@@ -17,7 +17,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 |---|---|---|
 | Phase 1: offline app (picker, focus, XP, themes, quotes) | Done | Android: yes (Build 9+) |
 | Redesign: one look, light + dark, bundled fonts, floating nav | Done | Not yet (web screenshots only) |
-| Phase 2: Google sign-in + Drive sync | Code done; CI injects keys from secrets | **No.** Owner hasn't created the Google Cloud keys yet (see docs/DEPLOYMENT.md §Google) |
+| Phase 2: Google sign-in + Drive sync | Code done; Google Cloud keys (web, Android, desktop clients) added as secrets 2026-10-19; no iOS client yet | **No.** First connect pending on the owner's phone |
 | Phone layout fixes, full task form, back button | Done | Android: reported working |
 | Repeating tasks, Mark done + Undo, Android reminders | Done | Not yet reported |
 | Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | Not yet (web screenshots and tests) |

@@ -2,7 +2,10 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-18 (Android, Mac, web)
+## Next build — 2026-10-19 (Android, Mac, web)
+- **Google sync is switched on**: the Google keys are now in the builds. Settings → Sync → Connect your personal Google account for Personal (and your clinic account for Work, if your IT allows it).
+
+## Build 43 — 2026-10-18 (1ac5a2a) (Android, Mac, web)
 - **Backup file**: Settings → **Save a backup file** saves every task and all your XP to one file (on a phone it opens the share sheet: Save to Files, Drive, email). **Restore from a backup file** brings it back on a new or wiped device; anything newer on the device is kept. Settings shows when you last saved one.
 - Fixed: after 5 pm on a narrow phone with large text, the "Wrap up · Overwhelmed?" line on Home ran off the screen. The links now drop to their own line.
 
