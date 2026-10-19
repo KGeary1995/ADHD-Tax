@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import 'device_workspaces.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -35,7 +38,8 @@ class AccountsPanel extends ConsumerWidget {
         Group(
           label: 'Sync',
           children: [
-            for (final ws in Workspace.values) _WorkspaceRow(workspace: ws),
+            for (final ws in ref.watch(deviceWorkspacesProvider).shown)
+              _WorkspaceRow(workspace: ws),
           ],
         ),
         Padding(

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../settings/device_workspaces.dart';
 import '../../core/providers.dart';
 import '../../data/models/task.dart';
 import '../settings/settings_controller.dart';
@@ -52,7 +53,13 @@ final pickerInputsProvider =
 
 class PickerInputsController extends Notifier<PickerInputs> {
   @override
-  PickerInputs build() => const PickerInputs();
+  PickerInputs build() {
+    // A Personal-only or Work-only install picks from that one.
+    final device = ref.watch(deviceWorkspacesProvider);
+    return device.single
+        ? PickerInputs(workspaces: {device.primary})
+        : const PickerInputs();
+  }
 
   // Changing the situation is a fresh question, so rerolls reset.
   void setTime(int min) =>

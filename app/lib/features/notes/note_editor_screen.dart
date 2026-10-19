@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../settings/device_workspaces.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -414,20 +416,22 @@ class _OrganizeSheetState extends ConsumerState<_OrganizeSheet> {
           children: [
             Text('Organize', style: s.display(26)),
             const SizedBox(height: 16),
-            const FieldLabel('Workspace'),
-            ChoiceGroup(
-              values: Workspace.values,
-              selected: n.workspace,
-              labelOf: (w) => w.label,
-              // A project belongs to one workspace.
-              onSelected: (w) => widget.onChanged(
-                n.copyWith(
-                  workspace: w,
-                  projectId: w == n.workspace ? n.projectId : '',
+            if (!ref.watch(deviceWorkspacesProvider).single) ...[
+              const FieldLabel('Workspace'),
+              ChoiceGroup(
+                values: Workspace.values,
+                selected: n.workspace,
+                labelOf: (w) => w.label,
+                // A project belongs to one workspace.
+                onSelected: (w) => widget.onChanged(
+                  n.copyWith(
+                    workspace: w,
+                    projectId: w == n.workspace ? n.projectId : '',
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 18),
+              const SizedBox(height: 18),
+            ],
             const FieldLabel('Project'),
             ProjectPicker(
               workspace: n.workspace,

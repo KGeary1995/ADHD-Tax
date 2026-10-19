@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../settings/device_workspaces.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -23,7 +26,11 @@ final _workspaceFilterProvider = NotifierProvider<_WorkspaceFilter, Workspace?>(
 
 class _WorkspaceFilter extends Notifier<Workspace?> {
   @override
-  Workspace? build() => null;
+  Workspace? build() {
+    ref.watch(deviceWorkspacesProvider); // reset when that changes
+    return null;
+  }
+
   void set(Workspace? w) => state = w;
 }
 
@@ -66,6 +73,7 @@ class TaskListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.spec;
+    final device = ref.watch(deviceWorkspacesProvider);
     final filter = ref.watch(_workspaceFilterProvider);
     final view = ref.watch(taskViewProvider);
     final projects = ref
@@ -145,7 +153,10 @@ class TaskListScreen extends ConsumerWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              for (final w in [null, ...Workspace.values])
+              // A one-workspace device has nothing to choose between.
+              for (final w in [
+                if (!device.single) ...[null, ...Workspace.values],
+              ])
                 Pill(
                   label: w?.label ?? 'Everything',
                   selected: filter == w,
@@ -162,7 +173,11 @@ class TaskListScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 14),
-          _ProjectBar(projects: projects, selected: project, workspace: filter),
+          _ProjectBar(
+            projects: projects,
+            selected: project,
+            workspace: device.single ? device.primary : filter,
+          ),
           const SizedBox(height: 14),
           Align(
             alignment: Alignment.centerLeft,

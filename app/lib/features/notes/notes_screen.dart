@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../settings/device_workspaces.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -38,7 +41,10 @@ final notesFilterProvider =
 
 class NotesFilterController extends Notifier<NotesFilter> {
   @override
-  NotesFilter build() => const NotesFilter();
+  NotesFilter build() {
+    ref.watch(deviceWorkspacesProvider); // reset when that changes
+    return const NotesFilter();
+  }
 
   void workspace(Workspace? w) => state = NotesFilter(
     workspace: w,
@@ -74,7 +80,10 @@ class NotesFilterController extends Notifier<NotesFilter> {
 void openNewNote(BuildContext context, WidgetRef ref) {
   final f = ref.read(notesFilterProvider);
   final project = ref.read(projectsProvider.notifier).byId(f.projectId ?? '');
-  final ws = project?.workspace ?? f.workspace ?? Workspace.personal;
+  final ws =
+      project?.workspace ??
+      f.workspace ??
+      ref.read(deviceWorkspacesProvider).primary;
   final q = {'ws': ws.name, 'project': ?project?.id, 'tag': ?f.tag};
   context.push(Uri(path: '/note/new', queryParameters: q).toString());
 }
@@ -158,7 +167,12 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             spacing: 6,
             runSpacing: 6,
             children: [
-              for (final w in [null, ...Workspace.values])
+              for (final w in [
+                if (!ref.watch(deviceWorkspacesProvider).single) ...[
+                  null,
+                  ...Workspace.values,
+                ],
+              ])
                 Pill(
                   label: w?.label ?? 'Everything',
                   selected: filter.workspace == w,

@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_themes.dart';
 import '../../widgets/ui.dart';
 import '../gamification/progress_controller.dart';
+import '../../sync/replicas_controller.dart';
 import 'accounts_panel.dart';
 import 'backup_group.dart';
+import 'device_workspaces.dart';
 import 'reminders_panel.dart';
 import 'settings_controller.dart';
 
@@ -35,6 +37,8 @@ class SettingsScreen extends ConsumerWidget {
             labelOf: (a) => a.label,
             onSelected: (a) => ctl.update((x) => x.copyWith(appearance: a)),
           ),
+          gap,
+          const _ShowOnDevice(),
           gap,
           const RemindersPanel(),
           gap,
@@ -85,6 +89,65 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// "Show on this device": both workspaces, or one, e.g. a second copy of
+/// Unstuck in an Android work profile that should only hold Work.
+class _ShowOnDevice extends ConsumerWidget {
+  const _ShowOnDevice();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final device = ref.watch(deviceWorkspacesProvider);
+    final replicas = ref.watch(replicasProvider);
+    // What the current choice hides, so nobody thinks it was deleted.
+    var tasks = 0, notes = 0;
+    for (final (ws, r) in replicas.entries) {
+      if (device.shown.contains(ws)) continue;
+      tasks += r
+          .collection(collTasks)
+          .values
+          .where((x) => !x.isDeleted && x.values['status'] != 'done')
+          .length;
+      notes += r.collection(collNotes).values.where((x) => !x.isDeleted).length;
+    }
+    String count(int n, String what) => '$n $what${n == 1 ? '' : 's'}';
+    final hidden = [
+      if (tasks > 0) count(tasks, 'open task'),
+      if (notes > 0) count(notes, 'note'),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const FieldLabel('Show on this device', inset: 8),
+        Segmented<DeviceWorkspaces>(
+          values: DeviceWorkspaces.values,
+          selected: device,
+          labelOf: (d) => d.label,
+          onSelected: ref.read(deviceWorkspacesProvider.notifier).set,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+          child: Text(
+            [
+              device.single
+                  ? 'Only ${device.primary.label} tasks and notes appear '
+                        'here, and new ones go to ${device.primary.label}.'
+                  : 'Use Personal or Work if this copy of Unstuck is for '
+                        'one side only, like a second copy in an Android '
+                        'work profile.',
+              if (hidden.isNotEmpty)
+                '${hidden.join(' and ')} from the other side '
+                    '${tasks + notes == 1 ? 'is' : 'are'} hidden on this '
+                    'device, not deleted.',
+            ].join(' '),
+            style: TextStyle(fontSize: 13, color: s.muted, height: 1.4),
+          ),
+        ),
+      ],
     );
   }
 }

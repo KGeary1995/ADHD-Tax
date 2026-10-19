@@ -166,7 +166,7 @@ For a build on your own computer, put the same three values in `app/google_oauth
 
 **Clinic account:** many Google Workspace admins block apps they haven't approved. If connecting Work fails with "access blocked", ask your admin to trust the Web and Desktop client IDs under Admin console → Security → API controls. Personal sync works either way.
 
-**Android work profile:** if your clinic account lives in the phone's work profile (apps with a briefcase badge), the regular Unstuck can't see it. Install Unstuck a second time inside the work profile (open the download link in the work profile's Chrome) and connect Work there; use Personal in the regular app. The two copies don't share data, and each needs updating when a new build comes out.
+**Android work profile:** if your clinic account lives in the phone's work profile (apps with a briefcase badge), the regular Unstuck can't see it. Install Unstuck a second time inside the work profile (open the download link in the work profile's Chrome) and connect Work there; use Personal in the regular app. Then set **Settings → Show on this device** to **Work** in the work copy and **Personal** in the regular one, so each only shows (and adds to) its own side. The two copies don't share data, and each needs updating when a new build comes out.
 
 **iPhone and web:** browsers only get one-hour Google sign-ins, so after an hour the sync badge shows **Reconnect** (one tap). The app remembers a sign-in until it expires, so reopening it within the hour doesn't ask again. Android and Mac stay signed in.
 

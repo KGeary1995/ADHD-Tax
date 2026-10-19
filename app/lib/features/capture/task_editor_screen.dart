@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../settings/device_workspaces.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -54,7 +57,13 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     _task =
         existing ??
         widget.draft ??
-        Task(id: '', title: '', createdAt: now, updatedAt: now);
+        Task(
+          id: '',
+          title: '',
+          workspace: ref.read(deviceWorkspacesProvider).primary,
+          createdAt: now,
+          updatedAt: now,
+        );
     _title = TextEditingController(text: _task.title)
       ..addListener(() => setState(() {}));
     _firstStep = TextEditingController(text: _task.firstStep)
@@ -265,23 +274,24 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  field(
-                    'Workspace',
-                    ChoiceGroup(
-                      values: Workspace.values,
-                      selected: _task.workspace,
-                      labelOf: (w) => w.label,
-                      // Projects belong to one workspace.
-                      onSelected: (w) => setState(
-                        () => _task = _task.copyWith(
-                          workspace: w,
-                          projectId: w == _task.workspace
-                              ? _task.projectId
-                              : '',
+                  if (!ref.watch(deviceWorkspacesProvider).single)
+                    field(
+                      'Workspace',
+                      ChoiceGroup(
+                        values: Workspace.values,
+                        selected: _task.workspace,
+                        labelOf: (w) => w.label,
+                        // Projects belong to one workspace.
+                        onSelected: (w) => setState(
+                          () => _task = _task.copyWith(
+                            workspace: w,
+                            projectId: w == _task.workspace
+                                ? _task.projectId
+                                : '',
+                          ),
                         ),
                       ),
                     ),
-                  ),
                   field(
                     'Project',
                     ProjectPicker(

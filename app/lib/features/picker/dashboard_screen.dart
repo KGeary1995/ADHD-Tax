@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../settings/device_workspaces.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -157,11 +160,13 @@ class _SituationBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.spec;
     final i = ref.watch(pickerInputsProvider);
+    final single = ref.watch(deviceWorkspacesProvider).single;
     final parts = [
       i.availableMin >= 120 ? '2h+' : formatMinutes(i.availableMin),
       i.willingToLeave ? 'Can go out' : 'At home',
       if (i.energy != null) '${i.energy!.label} energy',
-      if (i.workspaces.length == 1) '${i.workspaces.first.label} only',
+      if (i.workspaces.length == 1 && !single)
+        '${i.workspaces.first.label} only',
     ];
     return Semantics(
       button: true,
@@ -212,6 +217,7 @@ Future<void> showSituationSheet(BuildContext context) =>
           const gap = SizedBox(height: 18);
           final both = {Workspace.personal, Workspace.work};
           final ws = i.workspaces.length == 2 ? null : i.workspaces.first;
+          final single = ref.watch(deviceWorkspacesProvider).single;
           return SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -251,16 +257,18 @@ Future<void> showSituationSheet(BuildContext context) =>
                         ),
                     ],
                   ),
-                  gap,
-                  const FieldLabel('Which tasks?'),
-                  Segmented<Workspace?>(
-                    values: const [null, Workspace.personal, Workspace.work],
-                    selected: ws,
-                    inset: s.isDark,
-                    labelOf: (w) => w?.label ?? 'Both',
-                    onSelected: (w) =>
-                        ctl.setWorkspaces(w == null ? both : {w}),
-                  ),
+                  if (!single) ...[
+                    gap,
+                    const FieldLabel('Which tasks?'),
+                    Segmented<Workspace?>(
+                      values: const [null, Workspace.personal, Workspace.work],
+                      selected: ws,
+                      inset: s.isDark,
+                      labelOf: (w) => w?.label ?? 'Both',
+                      onSelected: (w) =>
+                          ctl.setWorkspaces(w == null ? both : {w}),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: () => Navigator.pop(ctx),

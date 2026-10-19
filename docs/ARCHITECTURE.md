@@ -45,6 +45,7 @@ Routes (`app.dart`): a `ShellRoute` with the bottom bar / side rail (`AppShell`)
 |---|---|
 | `device.id` | This install's id (uuid). Stamps writes and names its sync files. |
 | `replica.v1.personal`, `replica.v1.work` | The full CRDT replica per workspace (tasks, XP events, meta, notes, projects). |
+| `device.workspaces` | `both`, `personal` or `work`: which workspaces this install shows (`DeviceWorkspaces`). Device-local. |
 | `tasks.view` | `list` or `board` for the Tasks tab. Device-local. |
 | `sync.v1.<ws>` | Sync bookkeeping: connected email, remote checksums already merged, last upload marker, lastSyncedAt. |
 | `backup.lastSavedAt` | When this device last saved a backup file. Device-local. |
@@ -111,6 +112,7 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
 - `NotesController` / `ProjectsController` read both replicas like `TasksController`; moving a note to the other workspace tombstones it on the old side.
 - **Notes tab** (`notes_screen.dart`): search (title, body, tags), Personal/Work, project and tag filters (`notesFilterProvider`), pinned first. **+** on this tab opens a new note filed under the current filters.
 - **Note editor** (`note_editor_screen.dart`): autosaves 600 ms after typing and on close; a new note is only stored once it has text. "Project & tags" sheet; "Make tasks" sheet; PHI warning on Work notes. The controller is captured in `initState` because the last save runs in `dispose`.
+- **Show on this device** (`settings/device_workspaces.dart`): `tasksProvider`, `notesProvider` and `projectsProvider` drop the hidden workspace at the source, so lists, the picker, widgets, reminders and wrap-up all follow. The picker's workspaces, Quick add's and the editors' defaults use `DeviceWorkspaces.primary`, and their workspace switches are hidden. Hidden data stays in the replica (and syncs if that account was connected); progress XP still counts all events.
 - **Tasks**: `taskProjectFilterProvider` (public: Quick add files new tasks into it), project pills with rename/delete, and `taskViewProvider` (List/Board, saved as `tasks.view`).
 - **Board** (`tasks/task_board.dart`): columns from status (inbox+todo → To do; archived hidden; Done = last 14 days). `LongPressDraggable` cards and `DragTarget` columns, plus a ⋮ "Move to…" menu for phones where the target column is off-screen. `moveTask()` goes through the normal paths: Done → `markDoneWithUndo` (XP), Waiting → the waiting sheet, Doing → `markStarted`. Four columns side by side when they fit (≥ ~900 px), else a sideways scroll.
 

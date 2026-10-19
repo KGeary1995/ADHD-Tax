@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../settings/device_workspaces.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -76,7 +79,12 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   void initState() {
     super.initState();
     final ws = ref.read(pickerInputsProvider).workspaces;
-    _workspace = ws.length == 1 ? ws.first : Workspace.personal;
+    final device = ref.read(deviceWorkspacesProvider);
+    _workspace = device.single
+        ? device.primary
+        : ws.length == 1
+        ? ws.first
+        : Workspace.personal;
     _project = ref.read(projectsProvider.notifier).byId(widget.projectId);
     if (_project != null) _workspace = _project!.workspace;
     _title.addListener(() => setState(() {}));
@@ -304,19 +312,20 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      SizedBox(
-                        width: 220,
-                        child: Segmented<Workspace>(
-                          values: Workspace.values,
-                          selected: _workspace,
-                          inset: s.isDark,
-                          labelOf: (w) => w.label,
-                          onSelected: (w) => setState(() {
-                            _workspace = w;
-                            if (_project?.workspace != w) _project = null;
-                          }),
+                      if (!ref.watch(deviceWorkspacesProvider).single)
+                        SizedBox(
+                          width: 220,
+                          child: Segmented<Workspace>(
+                            values: Workspace.values,
+                            selected: _workspace,
+                            inset: s.isDark,
+                            labelOf: (w) => w.label,
+                            onSelected: (w) => setState(() {
+                              _workspace = w;
+                              if (_project?.workspace != w) _project = null;
+                            }),
+                          ),
                         ),
-                      ),
                       if (_project case final p?)
                         Pill(
                           label: p.name,

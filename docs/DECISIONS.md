@@ -2,6 +2,9 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-19 — "Show on this device" instead of separate apps
+On Android the clinic account lives in the work profile, so the owner runs a second copy of Unstuck there for Work. Rather than a separate build, each install can show Personal, Work or both. It filters at the providers, so every screen and background feature follows without per-screen checks, and it hides rather than deletes, so switching back is lossless. Device-local because two installs on the same phone want opposite settings.
+
 ### 2026-10-19 — Notes and projects, not Monday.com
 The owner asked for note taking and "more like Monday.com". Monday's custom columns, statuses and views would turn Unstuck into another system to maintain, the opposite of its purpose (starting, not organizing). We built what helps starting: notes that become tasks in one tap and live next to the task they're about, projects shared by tasks and notes, tags (chips plus #hashtags, because Keep/Apple Notes felt too flat to organize), and a four-column board whose columns are just task statuses, so there's nothing new to keep in sync with reality. "Pick for me" still ignores projects. Custom columns, table and timeline views were deliberately left out.
 

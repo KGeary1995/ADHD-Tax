@@ -1,4 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../settings/device_workspaces.dart';
+
 import 'package:uuid/uuid.dart';
 
 import '../../core/providers.dart';
@@ -38,10 +41,12 @@ class NotesController extends Notifier<List<Note>> {
   @override
   List<Note> build() {
     ref.watch(replicasProvider.select((s) => s.docsVersion));
+    final shown = ref.watch(deviceWorkspacesProvider).shown;
     return [
-      for (final (_, r) in ref.read(replicasProvider).entries)
-        for (final e in r.collection(collNotes).entries)
-          ?_fromRecord(e.key, e.value, Note.fromJson),
+      for (final (ws, r) in ref.read(replicasProvider).entries)
+        if (shown.contains(ws))
+          for (final e in r.collection(collNotes).entries)
+            ?_fromRecord(e.key, e.value, Note.fromJson),
     ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
@@ -142,10 +147,12 @@ class ProjectsController extends Notifier<List<Project>> {
   @override
   List<Project> build() {
     ref.watch(replicasProvider.select((s) => s.docsVersion));
+    final shown = ref.watch(deviceWorkspacesProvider).shown;
     return [
-      for (final (_, r) in ref.read(replicasProvider).entries)
-        for (final e in r.collection(collProjects).entries)
-          ?_fromRecord(e.key, e.value, Project.fromJson),
+      for (final (ws, r) in ref.read(replicasProvider).entries)
+        if (shown.contains(ws))
+          for (final e in r.collection(collProjects).entries)
+            ?_fromRecord(e.key, e.value, Project.fromJson),
     ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
 

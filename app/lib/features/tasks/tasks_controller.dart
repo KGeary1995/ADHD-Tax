@@ -1,4 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../settings/device_workspaces.dart';
+
 import 'package:uuid/uuid.dart';
 
 import '../../core/providers.dart';
@@ -20,11 +23,13 @@ class TasksController extends Notifier<List<Task>> {
   @override
   List<Task> build() {
     ref.watch(replicasProvider.select((s) => s.tasksVersion));
+    final shown = ref.watch(deviceWorkspacesProvider).shown;
     final set = ref.read(replicasProvider);
     return [
-      for (final (_, r) in set.entries)
-        for (final e in r.collection(collTasks).entries)
-          ?taskFromRecord(e.key, e.value),
+      for (final (ws, r) in set.entries)
+        if (shown.contains(ws))
+          for (final e in r.collection(collTasks).entries)
+            ?taskFromRecord(e.key, e.value),
     ]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 

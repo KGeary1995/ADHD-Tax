@@ -26,7 +26,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | iPhone web app (home-screen) | Done; Cloudflare secrets added 2026-10-18, published by `web-publish` on every push to **https://unstuck-4o8.pages.dev** (Build 39+). Being trialled with iPhone-using friends to decide on the native app | No (Chromium emulation only) |
 | Backup file (Settings → Save / Restore) | Done | Not yet (tests and web screenshots) |
 | Mac app | Builds and publishes on `[mac]` pushes | **Yes**: opens and works after "Open Anyway" (Build 21, still named ADHD Tax) |
-| Notes (tags, #hashtags, Make tasks, task-linked notes), projects, Tasks board view | Done | Not yet (tests and web screenshots) |
+| Notes (tags, #hashtags, Make tasks, task-linked notes), projects, Tasks board view, "Show on this device" (Personal / Work / Both) | Done | Not yet (tests and web screenshots) |
 | Phase 3+ (Calendar, table/timeline views, AI) | Not started | — see docs/PLAN.md |
 
 Last updated: 2026-10-19 (notes, projects, board).
@@ -47,7 +47,7 @@ Last updated: 2026-10-19 (notes, projects, board).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 163 tests, ~20 s
+flutter test                         # 164 tests, ~20 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
