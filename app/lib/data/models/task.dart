@@ -85,6 +85,7 @@ class Task {
     this.repeatFromDone = false,
     this.waitingOn = '',
     this.followUpAt,
+    this.projectId = '',
   }) : assert(ugh >= 0 && ugh <= 3);
 
   final String id;
@@ -130,6 +131,9 @@ class Task {
   /// When to check back on a waiting task.
   final DateTime? followUpAt;
 
+  /// The project it belongs to, in the same workspace; '' for none.
+  final String projectId;
+
   bool get isOpen =>
       status == TaskStatus.inbox ||
       status == TaskStatus.todo ||
@@ -164,6 +168,7 @@ class Task {
     bool? repeatFromDone,
     String? waitingOn,
     Object? followUpAt = _unset,
+    String? projectId,
   }) {
     return Task(
       id: id,
@@ -205,6 +210,7 @@ class Task {
       followUpAt: identical(followUpAt, _unset)
           ? this.followUpAt
           : followUpAt as DateTime?,
+      projectId: projectId ?? this.projectId,
     );
   }
 
@@ -236,6 +242,7 @@ class Task {
     'repeatFromDone': repeatFromDone,
     'waitingOn': waitingOn,
     'followUpAt': followUpAt?.toIso8601String(),
+    'projectId': projectId,
   };
 
   factory Task.fromJson(Map<String, Object?> j) {
@@ -272,6 +279,7 @@ class Task {
       repeatFromDone: j['repeatFromDone'] as bool? ?? false,
       waitingOn: j['waitingOn'] as String? ?? '',
       followUpAt: date('followUpAt'),
+      projectId: j['projectId'] as String? ?? '',
     );
   }
 

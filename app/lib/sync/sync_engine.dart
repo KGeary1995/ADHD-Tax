@@ -132,7 +132,12 @@ Future<SyncOutcome> syncOnce({
 
   final local = replica.lastLocalWrite;
   var uploaded = false;
-  if (ownFileId == null || local != state.uploadedClock) {
+  // Also rewrite our file after merging someone else's changes: otherwise
+  // it keeps old text of things since edited, deleted or moved to the other
+  // workspace (e.g. a Work task in the Personal account) until this device
+  // happens to edit something. It can't ping-pong: the next round merges
+  // nothing new, so nobody uploads again.
+  if (ownFileId == null || local != state.uploadedClock || merged) {
     final bytes = utf8.encode(replica.encode());
     if (ownFileId == null) {
       ownFileId = await remote.create(ownName, bytes);

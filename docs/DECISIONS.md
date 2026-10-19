@@ -2,6 +2,12 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-19 — Notes and projects, not Monday.com
+The owner asked for note taking and "more like Monday.com". Monday's custom columns, statuses and views would turn Unstuck into another system to maintain, the opposite of its purpose (starting, not organizing). We built what helps starting: notes that become tasks in one tap and live next to the task they're about, projects shared by tasks and notes, tags (chips plus #hashtags, because Keep/Apple Notes felt too flat to organize), and a four-column board whose columns are just task statuses, so there's nothing new to keep in sync with reality. "Pick for me" still ignores projects. Custom columns, table and timeline views were deliberately left out.
+
+### 2026-10-19 — Devices re-upload after merging
+Each device's sync file is a full copy of its replica. Before, a device only re-uploaded after its own edits, so a task deleted or moved to Work on the phone stayed readable in the PC's file in the Personal account until the PC edited something. Now a device also re-uploads after a merge that changed anything. Cost: one extra small upload per change per device; the following round merges nothing, so it settles.
+
 ### 2026-10-18 — Backup file restores by merging, not replacing
 Until Google sync is set up, tasks live only on the device, so the owner asked for a backup they control. The file holds the full replicas with their clocks, and restoring is the same CRDT merge sync uses. A "replace everything" restore would silently throw away anything done since the backup, which is the kind of loss that kills motivation; merging can't lose newer work and is safe to repeat. On phones the web app saves through the share sheet rather than a download, because iPhone downloads are hard to find again.
 

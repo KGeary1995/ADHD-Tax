@@ -1,6 +1,8 @@
 import 'package:adhd_tax/app.dart';
 import 'package:adhd_tax/core/providers.dart';
+import 'package:adhd_tax/data/models/task.dart';
 import 'package:adhd_tax/features/capture/quick_add_sheet.dart';
+import 'package:adhd_tax/features/notes/notes_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:adhd_tax/widgets/ui.dart';
 import 'package:flutter/material.dart';
@@ -106,6 +108,43 @@ void main() {
         );
         expect(find.text('Clear'), findsOneWidget);
         expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('notes, a note, and the board: nothing overflows', (
+        tester,
+      ) async {
+        final c = await _pumpPhone(tester, scale);
+        final project = c
+            .read(projectsProvider.notifier)
+            .create('Front desk training', Workspace.work);
+        final t = c
+            .read(tasksProvider.notifier)
+            .create(
+              title: 'Write the phone triage cheat sheet for new hires',
+              workspace: Workspace.work,
+              projectId: project.id,
+            );
+        final n = c
+            .read(notesProvider.notifier)
+            .create(
+              workspace: Workspace.work,
+              title: 'Ideas for the onboarding checklist',
+              body: 'Shadow a full Monday #onboarding #training #front-desk',
+              projectId: project.id,
+              taskId: t.id,
+            );
+        for (final path in ['/notes', '/note/${n.id}', '/tasks']) {
+          c.read(routerProvider).go(path);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: path);
+        }
+        await tester.tap(find.text('Board'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: 'board');
+        // Five tabs and + in the floating bar.
+        for (final tab in ['Today', 'Tasks', 'Notes', 'Progress', 'Settings']) {
+          expect(find.byTooltip(tab), findsOneWidget, reason: tab);
+        }
       });
     });
   }

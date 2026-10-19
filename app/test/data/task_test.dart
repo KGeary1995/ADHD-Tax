@@ -28,8 +28,11 @@ void main() {
       actualMin: 12,
       skipCount: 2,
       lastSkippedAt: now,
+      projectId: 'p1',
     );
     expect(Task.fromJson(t.toJson()), t);
+    // Older builds never wrote it.
+    expect(Task.fromJson(t.toJson()..remove('projectId')).projectId, '');
   });
 
   test('unknown enum values fall back to defaults', () {

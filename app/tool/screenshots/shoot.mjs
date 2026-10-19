@@ -14,6 +14,7 @@
 //       [--tap x,y]  (tap a point after loading, e.g. to open a sheet)
 //       [--iphone]   (fakes a 34px home-indicator inset, like an iPhone)
 //       [--empty]    (no demo data)
+//       [--board]    (Tasks opens as a board)
 // Writes <outDir>/<name>.png. Paths are app routes: / /tasks /progress
 // /settings /task/<id> (demo ids are '1'..'7').
 //
@@ -48,11 +49,11 @@ const T = (id, title, o = {}) => ({
   actualMin: null, skipCount: 0, lastSkippedAt: null, repeat: 'none', repeatFromDone: false, ...o,
 });
 const tasks = [
-  T('1', 'Draft front-desk triage cheat sheet', { workspace: 'work', estimateMin: 60, priority: 'p1', chunkable: true,
+  T('1', 'Draft front-desk triage cheat sheet', { workspace: 'work', projectId: 'pw1', estimateMin: 60, priority: 'p1', chunkable: true,
     dueAt: iso(now + 0.8 * day), hardDeadline: true, firstStep: "Open last year's version and skim it", energy: 'high' }),
   T('2', 'Reply to Dr. Patel about Thursday template', { workspace: 'work', priority: 'p2', firstStep: 'Open the template doc' }),
   T('3', 'Schedule dentist appointment', { estimateMin: 5, ugh: 2, firstStep: 'Find the number in contacts', createdAt: iso(now - 9 * day) }),
-  T('4', 'Renew car registration', { requiresLeavingHouse: true, location: 'DMV', estimateMin: 30, priority: 'p2', ugh: 2, dueAt: iso(now + 3 * day) }),
+  T('4', 'Renew car registration', { projectId: 'pp1', requiresLeavingHouse: true, location: 'DMV', estimateMin: 30, priority: 'p2', ugh: 2, dueAt: iso(now + 3 * day) }),
   T('5', 'Laundry', { estimateMin: 30, energy: 'low', repeat: 'weekly' }),
   T('6', 'Pick up prescription', { requiresLeavingHouse: true, location: 'Pharmacy' }),
   T('7', 'Weekly huddle notes', { workspace: 'work', repeat: 'weekly', dueAt: iso(now + 6 * day), scheduledStart: iso(now + 4 * day) }),
@@ -68,6 +69,31 @@ const progress = {
   recent: [], activeDays: [0, 1, 2, 3, 5, 6].map((i) => iso(new Date(new Date(now - i * day).toDateString()).getTime())),
   unlocked: {}, lastActiveAt: iso(now - 36e5),
 };
+// Notes and projects only exist in the replica format: seed those directly.
+const clock = `${now.toString(36).padStart(10, '0')}-0000-demo`;
+const rec = (f) => ({ f: { ...f, deleted: false }, t: clock });
+const N = (id, ws, title, body, o = {}) => [id, rec({
+  workspace: ws, title, body, pinned: false, projectId: '', taskId: '', tags: '',
+  createdAt: iso(now - 2 * day), updatedAt: iso(now - (o.ago ?? 0.1) * day), ...o, ago: undefined,
+})];
+const replica = (c) => JSON.stringify({ v: 1, node: 'demo', clock, local: null, c });
+const replicas = {
+  work: replica({
+    projects: { pw1: rec({ name: 'Front desk training', workspace: 'work', color: 0, createdAt: iso(now - 9 * day) }),
+      pw2: rec({ name: 'Phones & scheduling', workspace: 'work', color: 2, createdAt: iso(now - 9 * day) }) },
+    notes: Object.fromEntries([
+      N('n1', 'work', 'Insurance callback script', 'Confirm the plan name first\nRead back the reference number #phones #billing', { pinned: true, projectId: 'pw2', ago: 3 }),
+      N('n2', 'work', 'Huddle: new-hire onboarding', '- Shadow a full Monday\n- Cheat sheet by Friday\n- Pair with a senior for callbacks #training', { projectId: 'pw1', taskId: '1' }),
+      N('n3', 'work', '', 'Label printer keeps jamming on the thick stock. IT ticket opened. #equipment', { ago: 1 }),
+    ]),
+  }),
+  personal: replica({
+    projects: { pp1: rec({ name: 'Car', workspace: 'personal', color: 3, createdAt: iso(now - 20 * day) }) },
+    notes: Object.fromEntries([
+      N('n4', 'personal', 'Gift ideas', 'Mom: the blue scarf from the market\nSam: board game #family', { ago: 5 }),
+    ]),
+  }),
+};
 const settings = { appearance: opt('--appearance', 'dark'), celebration: 'normal', quoteSeconds: 60, phiGuard: true };
 
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;
@@ -76,13 +102,15 @@ const ctx = await browser.newContext({
   viewport: { width: +width, height: +height }, deviceScaleFactor: 2, locale: 'en-US',
   isMobile: +width < 600, hasTouch: +width < 600, colorScheme: 'dark',
 });
-await ctx.addInitScript(([t, p, s, empty]) => {
+await ctx.addInitScript(([t, p, s, r, empty, board]) => {
   if (!empty) {
     localStorage.setItem('flutter.tasks.v1', JSON.stringify(t));
     localStorage.setItem('flutter.progress.v1', JSON.stringify(p));
+    for (const [ws, json] of Object.entries(r)) localStorage.setItem(`flutter.replica.v1.${ws}`, JSON.stringify(json));
   }
+  if (board) localStorage.setItem('flutter.tasks.view', JSON.stringify('board'));
   localStorage.setItem('flutter.settings.v1', JSON.stringify(s));
-}, [JSON.stringify(tasks), JSON.stringify(progress), JSON.stringify(settings), flag('--empty')]);
+}, [JSON.stringify(tasks), JSON.stringify(progress), JSON.stringify(settings), replicas, flag('--empty'), flag('--board')]);
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.log('pageerror:', e.message));
 if (flag('--iphone')) {

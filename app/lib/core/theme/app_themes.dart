@@ -119,6 +119,18 @@ class ThemeSpec {
 
   bool get isDark => brightness == Brightness.dark;
 
+  /// A project's dot. Mid-tone hues that read on light and dark.
+  Color projectColor(int i) => const [
+    Color(0xFF5FD8BE),
+    Color(0xFFF2B45A),
+    Color(0xFF8FA8F5),
+    Color(0xFFE88AA8),
+    Color(0xFFB5D86A),
+    Color(0xFFC79BEA),
+    Color(0xFF6CC3E8),
+    Color(0xFFE8956C),
+  ][i % 8];
+
   List<Color> get confettiColors => [
     accent,
     const Color(0xFFF2B45A),

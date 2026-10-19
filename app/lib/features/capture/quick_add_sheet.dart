@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
+import '../../data/models/note.dart';
 import '../../data/models/task.dart';
 import '../focus/focus_route.dart';
+import '../notes/notes_controller.dart';
 import '../../widgets/task_chips.dart';
 import '../../widgets/ui.dart';
 import '../picker/picker_controller.dart';
@@ -19,6 +21,7 @@ Future<void> showQuickAdd(
   bool brainDump = false,
   String initialTitle = '',
   String initialNotes = '',
+  String projectId = '',
 }) async {
   final startNow = await showModalBottomSheet<Task>(
     context: context,
@@ -29,6 +32,7 @@ Future<void> showQuickAdd(
       brainDump: brainDump,
       initialTitle: initialTitle,
       initialNotes: initialNotes,
+      projectId: projectId,
     ),
   );
   if (startNow != null && context.mounted) {
@@ -42,8 +46,12 @@ class QuickAddSheet extends ConsumerStatefulWidget {
     this.brainDump = false,
     this.initialTitle = '',
     this.initialNotes = '',
+    this.projectId = '',
   });
   final bool brainDump;
+
+  /// Opened while Tasks shows one project: new tasks go into it.
+  final String projectId;
 
   /// Prefilled, e.g. from text shared from another app.
   final String initialTitle;
@@ -62,12 +70,15 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   bool _leave = false;
   int _ugh = 0;
   late Workspace _workspace;
+  Project? _project;
 
   @override
   void initState() {
     super.initState();
     final ws = ref.read(pickerInputsProvider).workspaces;
     _workspace = ws.length == 1 ? ws.first : Workspace.personal;
+    _project = ref.read(projectsProvider.notifier).byId(widget.projectId);
+    if (_project != null) _workspace = _project!.workspace;
     _title.addListener(() => setState(() {}));
   }
 
@@ -87,6 +98,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       final created = tasks.createMany(
         _title.text.split('\n'),
         workspace: _workspace,
+        projectId: _project?.id ?? '',
       );
       Navigator.pop(context);
       messenger.showSnackBar(
@@ -106,6 +118,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       ugh: _ugh,
       workspace: _workspace,
       notes: _notes,
+      projectId: _project?.id ?? '',
     );
     Navigator.pop(context, start ? t : null);
   }
@@ -122,6 +135,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       ugh: _ugh,
       workspace: _workspace,
       notes: _notes,
+      projectId: _project?.id ?? '',
       createdAt: now,
       updatedAt: now,
     );
@@ -297,9 +311,19 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                           selected: _workspace,
                           inset: s.isDark,
                           labelOf: (w) => w.label,
-                          onSelected: (w) => setState(() => _workspace = w),
+                          onSelected: (w) => setState(() {
+                            _workspace = w;
+                            if (_project?.workspace != w) _project = null;
+                          }),
                         ),
                       ),
+                      if (_project case final p?)
+                        Pill(
+                          label: p.name,
+                          icon: Icons.folder_outlined,
+                          selected: true,
+                          onTap: () => setState(() => _project = null),
+                        ),
                       if (!_brainDump)
                         Pill(
                           label: 'Leave the house',

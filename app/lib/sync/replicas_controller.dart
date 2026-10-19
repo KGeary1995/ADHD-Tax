@@ -14,6 +14,8 @@ import 'replica.dart';
 const collTasks = 'tasks';
 const collEvents = 'events';
 const collMeta = 'meta';
+const collNotes = 'notes';
+const collProjects = 'projects';
 
 String _replicaKey(Workspace ws) => 'replica.v1.${ws.name}';
 
@@ -34,6 +36,7 @@ class ReplicaSet {
     this._replicas, {
     this.tasksVersion = 0,
     this.eventsVersion = 0,
+    this.docsVersion = 0,
     this.localWrites = const {},
   });
 
@@ -44,6 +47,9 @@ class ReplicaSet {
 
   /// Bumped when XP events or the progress reset marker change.
   final int eventsVersion;
+
+  /// Bumped when notes or projects change.
+  final int docsVersion;
 
   /// Per-workspace count of local writes; sync listens to schedule uploads.
   final Map<Workspace, int> localWrites;
@@ -56,11 +62,13 @@ class ReplicaSet {
   ReplicaSet bumped({
     bool tasks = false,
     bool events = false,
+    bool docs = false,
     Workspace? localWrite,
   }) => ReplicaSet(
     _replicas,
     tasksVersion: tasksVersion + (tasks ? 1 : 0),
     eventsVersion: eventsVersion + (events ? 1 : 0),
+    docsVersion: docsVersion + (docs ? 1 : 0),
     localWrites: localWrite == null
         ? localWrites
         : {...localWrites, localWrite: (localWrites[localWrite] ?? 0) + 1},
@@ -95,17 +103,23 @@ class ReplicasController extends Notifier<ReplicaSet> {
     bool Function(Replica r, DateTime now) change, {
     bool tasks = false,
     bool events = false,
+    bool docs = false,
   }) {
     final r = state[ws];
     if (!change(r, _now())) return;
     _persist(ws, r);
-    state = state.bumped(tasks: tasks, events: events, localWrite: ws);
+    state = state.bumped(
+      tasks: tasks,
+      events: events,
+      docs: docs,
+      localWrite: ws,
+    );
   }
 
   /// Called by sync after remote changes were merged into [ws]'s replica.
   void remoteMerged(Workspace ws) {
     _persist(ws, state[ws]);
-    state = state.bumped(tasks: true, events: true);
+    state = state.bumped(tasks: true, events: true, docs: true);
   }
 
   /// Merges a backup file in. Returns true if it added or changed anything.
@@ -119,7 +133,12 @@ class ReplicasController extends Notifier<ReplicaSet> {
       r.clock = r.clock.send(now);
       r.lastLocalWrite = r.clock.pack();
       _persist(ws, r);
-      state = state.bumped(tasks: true, events: true, localWrite: ws);
+      state = state.bumped(
+        tasks: true,
+        events: true,
+        docs: true,
+        localWrite: ws,
+      );
       any = true;
     }
     return any;

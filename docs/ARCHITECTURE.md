@@ -44,7 +44,8 @@ Routes (`app.dart`): a `ShellRoute` with the bottom bar / side rail (`AppShell`)
 | Key | Contents |
 |---|---|
 | `device.id` | This install's id (uuid). Stamps writes and names its sync files. |
-| `replica.v1.personal`, `replica.v1.work` | The full CRDT replica per workspace (tasks, XP events, meta). |
+| `replica.v1.personal`, `replica.v1.work` | The full CRDT replica per workspace (tasks, XP events, meta, notes, projects). |
+| `tasks.view` | `list` or `board` for the Tasks tab. Device-local. |
 | `sync.v1.<ws>` | Sync bookkeeping: connected email, remote checksums already merged, last upload marker, lastSyncedAt. |
 | `backup.lastSavedAt` | When this device last saved a backup file. Device-local. |
 | `settings.v1` | `AppSettings` JSON (theme, celebrations, reminders…). Device-local, not synced. |
@@ -57,7 +58,7 @@ On the web these live in `localStorage` with a `flutter.` prefix. The web Google
 - **Hybrid Logical Clock**: millis + counter + node id, packed into a lexicographically sortable string. `send()` stamps local writes; `receive()` advances past remote clocks.
 - **Replica**: collections → records → fields. **Every field carries the HLC of its last write.** Merging takes the later clock per field, which is commutative, associative and idempotent, so devices converge whatever order they see each other in. Editing the title on the phone and the priority on the Mac keeps both.
 - Deletes are **tombstones** (`deleted: true`, other fields blanked so nothing sensitive lingers). Writing the record again with `deleted: false` revives it, which is how Undo works.
-- Collections: `tasks` (record id = task id), `events` (XP events, append-only), `meta` (`progress` record holding `resetAt`).
+- Collections: `tasks` (record id = task id), `events` (XP events, append-only), `meta` (`progress` record holding `resetAt`), `notes`, `projects`. Notes and projects bump `ReplicaSet.docsVersion`.
 - `lastLocalWrite` = clock of the newest write made *on this device*. Merges don't change it, so sync only uploads when there's something new of ours. This avoids devices bouncing the same data back and forth.
 - `ReplicasController` holds one replica per workspace, persists on every change, and exposes version counters (`tasksVersion`, `eventsVersion`, per-workspace local-write counts) that providers watch.
 - **Moving a task between workspaces** tombstones it on the old side (`TasksController._write`), so Work data doesn't linger in the Personal Google account.
@@ -65,7 +66,7 @@ On the web these live in `localStorage` with a `flutter.` prefix. The web Google
 ## Sync (`sync/sync_engine.dart`, `sync/sync_controller.dart`, `google/`)
 
 - Each device writes exactly **one file per workspace**: `state.<workspace>.<deviceId>.json` in that Google account's hidden **appDataFolder**. The file is the device's whole replica JSON (`{v, node, clock, local, c: {collection: {id: {f: fields, t: clock(s)}}}}`).
-- A round (`syncOnce()` in `sync_engine.dart`, with bookkeeping in `SyncState`): list files with the workspace prefix → download the ones whose md5 changed since last merge → merge → upload our own file if `lastLocalWrite` is newer than our last upload. Devices never write the same file, so there are no write conflicts. Unreadable remote files are skipped and retried.
+- A round (`syncOnce()` in `sync_engine.dart`, with bookkeeping in `SyncState`): list files with the workspace prefix → download the ones whose md5 changed since last merge → merge → upload our own file if `lastLocalWrite` is newer than our last upload, **or if the merge changed anything** (so our file doesn't keep stale copies of things since deleted, edited or moved to the other workspace; the next round merges nothing, so it can't ping-pong). Devices never write the same file, so there are no write conflicts. Unreadable remote files are skipped and retried.
 - `SyncController(ws)` triggers a round on start, 4 s after local edits, every 3 min in the foreground, on app resume (`SyncBootstrap`), and on demand. Its phases are notConfigured, disconnected, connecting, syncing, synced, error and needsReconnect, and `SyncBadge` / Settings show them.
 - **Backup**: "Back up to Drive" writes a readable JSON file to the visible Drive root (`drive.file` scope).
 
@@ -102,6 +103,16 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
 
 - **Real task lengths** (`features/insights/estimate_calibration.dart`, pure): the median of actual ÷ estimated minutes over the last 30 tasks finished with the timer, per workspace when it has ≥5, otherwise overall. Ignored until 5 samples or when within ±15% of 1×. `PickerContext.calibration` makes the engine fit tasks by `realMinutes` and plan the session for that long; Progress shows the factor.
 - **Pinned pick**: the evening wrap-up stores tomorrow's first task in `AppSettings.pinnedTaskId/pinnedDay` (device-local). `pickResultProvider` returns it first on that day until it's done or passed on with "Not this one".
+
+## Notes and projects (`features/notes/`, `data/models/note.dart`)
+
+- `Note` (pure): workspace, title, body, pinned, `projectId`, `taskId` (the task it's about), `tags`. Tags are stored as one comma-joined string, because replica fields compare by value and a list would look changed on every save. `allTags` adds `#hashtags` found in the title/body. `taskLinesOf()` strips list markers for "Make tasks".
+- `Project` (pure): name, workspace, color index (`ThemeSpec.projectColor`). A task's or note's `projectId` must be a project of the same workspace; editors clear it when the workspace changes. Deleting a project clears `projectId` on its tasks and notes.
+- `NotesController` / `ProjectsController` read both replicas like `TasksController`; moving a note to the other workspace tombstones it on the old side.
+- **Notes tab** (`notes_screen.dart`): search (title, body, tags), Personal/Work, project and tag filters (`notesFilterProvider`), pinned first. **+** on this tab opens a new note filed under the current filters.
+- **Note editor** (`note_editor_screen.dart`): autosaves 600 ms after typing and on close; a new note is only stored once it has text. "Project & tags" sheet; "Make tasks" sheet; PHI warning on Work notes. The controller is captured in `initState` because the last save runs in `dispose`.
+- **Tasks**: `taskProjectFilterProvider` (public: Quick add files new tasks into it), project pills with rename/delete, and `taskViewProvider` (List/Board, saved as `tasks.view`).
+- **Board** (`tasks/task_board.dart`): columns from status (inbox+todo → To do; archived hidden; Done = last 14 days). `LongPressDraggable` cards and `DragTarget` columns, plus a ⋮ "Move to…" menu for phones where the target column is off-screen. `moveTask()` goes through the normal paths: Done → `markDoneWithUndo` (XP), Waiting → the waiting sheet, Doing → `markStarted`. Four columns side by side when they fit (≥ ~900 px), else a sideways scroll.
 
 ## Tasks, repeating, undo (`features/tasks/`)
 

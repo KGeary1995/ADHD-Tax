@@ -11,6 +11,8 @@ import 'features/capture/task_editor_screen.dart';
 import 'features/focus/focus_screen.dart';
 import 'features/gamification/celebration_overlay.dart';
 import 'features/gamification/progress_screen.dart';
+import 'features/notes/note_editor_screen.dart';
+import 'features/notes/notes_screen.dart';
 import 'features/outside/device_bridge.dart';
 import 'features/outside/outside_bootstrap.dart';
 import 'features/picker/dashboard_screen.dart';
@@ -32,6 +34,7 @@ class _Dest {
 const _destinations = [
   _Dest('/', 'Today', Icons.adjust_rounded),
   _Dest('/tasks', 'Tasks', Icons.format_list_bulleted_rounded),
+  _Dest('/notes', 'Notes', Icons.sticky_note_2_outlined),
   _Dest('/progress', 'Progress', Icons.bar_chart_rounded),
   _Dest('/settings', 'Settings', Icons.tune_rounded),
 ];
@@ -44,6 +47,7 @@ GoRouter buildRouter() => GoRouter(
       routes: [
         GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
         GoRoute(path: '/tasks', builder: (_, _) => const TaskListScreen()),
+        GoRoute(path: '/notes', builder: (_, _) => const NotesScreen()),
         GoRoute(path: '/progress', builder: (_, _) => const ProgressScreen()),
         GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
       ],
@@ -67,6 +71,22 @@ GoRouter buildRouter() => GoRouter(
       redirect: (_, _) {
         quickAddRequested.value = true;
         return '/';
+      },
+    ),
+    GoRoute(
+      path: '/note/:id',
+      builder: (_, state) {
+        final q = state.uri.queryParameters;
+        return NoteEditorScreen(
+          noteId: state.pathParameters['id']!,
+          workspace: Workspace.values.firstWhere(
+            (w) => w.name == q['ws'],
+            orElse: () => Workspace.personal,
+          ),
+          projectId: q['project'] ?? '',
+          taskId: q['task'] ?? '',
+          tag: q['tag'],
+        );
       },
     ),
     GoRoute(
@@ -112,7 +132,7 @@ class UnstuckApp extends ConsumerWidget {
 
 /// A floating pill nav on phones, a slim rail on wide screens. Both carry
 /// the Add button. Also owns the keyboard shortcuts and Android back.
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.location, required this.child});
   final String location;
   final Widget child;
@@ -125,17 +145,33 @@ class AppShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= wideBreakpoint;
     void go(int i) => context.go(_destinations[i].path);
-    void add() => showQuickAdd(context);
+    final onNotes = location.startsWith('/notes');
+    // + adds what the tab is about: a note on Notes, otherwise a task (into
+    // the project Tasks is showing).
+    void add() => onNotes
+        ? openNewNote(context, ref)
+        : showQuickAdd(
+            context,
+            projectId: location.startsWith('/tasks')
+                ? ref.read(taskProjectFilterProvider) ?? ''
+                : '',
+          );
+    final addLabel = onNotes ? 'Add a note' : 'Add a task';
 
     final scaffold = wide
         ? Scaffold(
             body: SafeArea(
               child: Row(
                 children: [
-                  _Rail(index: _index, onSelect: go, onAdd: add),
+                  _Rail(
+                    index: _index,
+                    onSelect: go,
+                    onAdd: add,
+                    addLabel: addLabel,
+                  ),
                   const VerticalDivider(width: 1),
                   Expanded(child: child),
                 ],
@@ -150,6 +186,7 @@ class AppShell extends StatelessWidget {
               index: _index,
               onSelect: go,
               onAdd: add,
+              addLabel: addLabel,
             ),
             body: SafeArea(bottom: false, child: child),
           );
@@ -166,6 +203,8 @@ class AppShell extends StatelessWidget {
             go(2),
         const SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
             go(3),
+        const SingleActivator(LogicalKeyboardKey.digit5, control: true): () =>
+            go(4),
       },
       // Tabs replace each other rather than stacking, so Android's back
       // button would otherwise close the app from any tab. Back goes Home
@@ -186,10 +225,12 @@ class _PillNav extends StatelessWidget {
     required this.index,
     required this.onSelect,
     required this.onAdd,
+    required this.addLabel,
   });
   final int index;
   final ValueChanged<int> onSelect;
   final VoidCallback onAdd;
+  final String addLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -224,15 +265,16 @@ class _PillNav extends StatelessWidget {
                     isSelected: i == index,
                     onPressed: () => onSelect(i),
                     iconSize: 25,
+                    // Five tabs and + must fit a 360-wide phone.
                     constraints: const BoxConstraints.tightFor(
-                      width: 52,
+                      width: 48,
                       height: 52,
                     ),
                     color: s.navIcon,
                     selectedIcon: Icon(d.icon, color: s.navIconActive),
                     icon: Icon(d.icon),
                   ),
-                _AddButton(onAdd: onAdd),
+                _AddButton(onAdd: onAdd, label: addLabel),
               ],
             ),
           ),
@@ -243,14 +285,15 @@ class _PillNav extends StatelessWidget {
 }
 
 class _AddButton extends StatelessWidget {
-  const _AddButton({required this.onAdd});
+  const _AddButton({required this.onAdd, required this.label});
   final VoidCallback onAdd;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     final s = context.spec;
     return Tooltip(
-      message: 'Add a task',
+      message: label,
       child: Material(
         color: s.accent,
         shape: const CircleBorder(),
@@ -272,10 +315,12 @@ class _Rail extends StatelessWidget {
     required this.index,
     required this.onSelect,
     required this.onAdd,
+    required this.addLabel,
   });
   final int index;
   final ValueChanged<int> onSelect;
   final VoidCallback onAdd;
+  final String addLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +332,7 @@ class _Rail extends StatelessWidget {
           const SizedBox(height: 24),
           const Tooltip(message: 'Unstuck', child: UnstuckMark(size: 28)),
           const SizedBox(height: 28),
-          _AddButton(onAdd: onAdd),
+          _AddButton(onAdd: onAdd, label: addLabel),
           const SizedBox(height: 20),
           for (final (i, d) in _destinations.indexed)
             Padding(

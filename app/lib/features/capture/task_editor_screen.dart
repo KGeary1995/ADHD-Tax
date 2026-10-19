@@ -7,6 +7,9 @@ import '../../core/theme/app_themes.dart';
 import '../../data/models/task.dart';
 import '../../widgets/task_chips.dart';
 import '../../widgets/ui.dart';
+import '../notes/notes_controller.dart';
+import '../notes/notes_screen.dart';
+import '../notes/project_widgets.dart';
 import '../safety/phi_warning.dart';
 import '../tasks/task_actions.dart';
 import '../tasks/tasks_controller.dart';
@@ -268,8 +271,24 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                       values: Workspace.values,
                       selected: _task.workspace,
                       labelOf: (w) => w.label,
-                      onSelected: (w) =>
-                          setState(() => _task = _task.copyWith(workspace: w)),
+                      // Projects belong to one workspace.
+                      onSelected: (w) => setState(
+                        () => _task = _task.copyWith(
+                          workspace: w,
+                          projectId: w == _task.workspace
+                              ? _task.projectId
+                              : '',
+                        ),
+                      ),
+                    ),
+                  ),
+                  field(
+                    'Project',
+                    ProjectPicker(
+                      workspace: _task.workspace,
+                      selected: _task.projectId,
+                      onSelected: (id) =>
+                          setState(() => _task = _task.copyWith(projectId: id)),
                     ),
                   ),
                   field(
@@ -511,8 +530,60 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                 ],
               ),
             ),
+            if (!_isNew) ...[
+              const SizedBox(height: 16),
+              _TaskNotes(task: _task),
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Notes written about this task, and a button to add one.
+class _TaskNotes extends ConsumerWidget {
+  const _TaskNotes({required this.task});
+  final Task task;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final notes = ref
+        .watch(notesProvider)
+        .where((n) => n.taskId == task.id)
+        .toList();
+    return Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const FieldLabel('Notes about this task'),
+          if (notes.isEmpty)
+            Text(
+              'Call outcomes, what you tried, where you left off. They '
+              'stay with the task.',
+              style: TextStyle(color: s.muted, fontSize: 13, height: 1.4),
+            ),
+          for (final n in notes) NoteTile(note: n, showProject: false),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => context.push(
+                Uri(
+                  path: '/note/new',
+                  queryParameters: {
+                    'ws': task.workspace.name,
+                    'task': task.id,
+                    if (task.projectId.isNotEmpty) 'project': task.projectId,
+                  },
+                ).toString(),
+              ),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add a note'),
+            ),
+          ),
+        ],
       ),
     );
   }

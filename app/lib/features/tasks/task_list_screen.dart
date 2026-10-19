@@ -4,12 +4,16 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
+import '../../data/models/note.dart';
 import '../../data/models/task.dart';
 import '../../widgets/task_chips.dart';
 import '../../widgets/ui.dart';
 import '../capture/quick_add_sheet.dart';
 import '../focus/focus_route.dart';
+import '../notes/notes_controller.dart';
+import '../notes/project_widgets.dart';
 import 'task_actions.dart';
+import 'task_board.dart';
 import 'tasks_controller.dart';
 import 'waiting_sheet.dart';
 
@@ -23,6 +27,39 @@ class _WorkspaceFilter extends Notifier<Workspace?> {
   void set(Workspace? w) => state = w;
 }
 
+/// The project Tasks is showing, or null for all. Quick add files new tasks
+/// into it.
+final taskProjectFilterProvider = NotifierProvider<TaskProjectFilter, String?>(
+  TaskProjectFilter.new,
+);
+
+class TaskProjectFilter extends Notifier<String?> {
+  @override
+  String? build() => null;
+  void set(String? id) => state = id;
+}
+
+enum TaskView { list, board }
+
+const _viewKey = 'tasks.view';
+
+/// List or board; remembered on this device.
+final taskViewProvider = NotifierProvider<TaskViewController, TaskView>(
+  TaskViewController.new,
+);
+
+class TaskViewController extends Notifier<TaskView> {
+  @override
+  TaskView build() => ref.read(keyValueStoreProvider).read(_viewKey) == 'board'
+      ? TaskView.board
+      : TaskView.list;
+
+  void set(TaskView v) {
+    ref.read(keyValueStoreProvider).write(_viewKey, v.name);
+    state = v;
+  }
+}
+
 class TaskListScreen extends ConsumerWidget {
   const TaskListScreen({super.key});
 
@@ -30,9 +67,17 @@ class TaskListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.spec;
     final filter = ref.watch(_workspaceFilterProvider);
+    final view = ref.watch(taskViewProvider);
+    final projects = ref
+        .watch(projectsProvider)
+        .where((p) => filter == null || p.workspace == filter)
+        .toList();
+    final projectId = ref.watch(taskProjectFilterProvider);
+    final project = projects.where((p) => p.id == projectId).firstOrNull;
     final all = ref
         .watch(tasksProvider)
         .where((t) => filter == null || t.workspace == filter)
+        .where((t) => project == null || t.projectId == project.id)
         .toList();
 
     int byUrgency(Task a, Task b) {
@@ -72,11 +117,12 @@ class TaskListScreen extends ConsumerWidget {
     final totalMin = [...doing, ...next].fold(0, (a, t) => a + t.estimateMin);
 
     return ContentWidth(
+      maxWidth: view == TaskView.board ? 1400 : 640,
       child: ListView(
         padding: EdgeInsets.fromLTRB(22, 24, 22, navClearance(context)),
         children: [
           PageHeader(
-            'Tasks',
+            project?.name ?? 'Tasks',
             subtitle:
                 '${doing.length + next.length} open · about '
                 '${shortMinutes(totalMin)}',
@@ -104,57 +150,169 @@ class TaskListScreen extends ConsumerWidget {
                   label: w?.label ?? 'Everything',
                   selected: filter == w,
                   solid: true,
-                  onTap: () =>
-                      ref.read(_workspaceFilterProvider.notifier).set(w),
+                  onTap: () {
+                    ref.read(_workspaceFilterProvider.notifier).set(w);
+                    if (w != null &&
+                        project != null &&
+                        project.workspace != w) {
+                      ref.read(taskProjectFilterProvider.notifier).set(null);
+                    }
+                  },
                 ),
             ],
           ),
+          const SizedBox(height: 14),
+          _ProjectBar(projects: projects, selected: project, workspace: filter),
+          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: 220,
+              child: Segmented<TaskView>(
+                values: TaskView.values,
+                selected: view,
+                inset: s.isDark,
+                labelOf: (v) => v == TaskView.list ? 'List' : 'Board',
+                onSelected: ref.read(taskViewProvider.notifier).set,
+              ),
+            ),
+          ),
           const SizedBox(height: 22),
-          if (all.isEmpty)
-            Panel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Nothing here yet.', style: s.display(24)),
-                  const SizedBox(height: 14),
-                  FilledButton(
-                    onPressed: () => showQuickAdd(context),
-                    child: const Text('Add a task'),
-                  ),
-                ],
+          if (view == TaskView.board && all.isNotEmpty)
+            TaskBoard(tasks: all, showProject: project == null)
+          else ...[
+            if (all.isEmpty)
+              Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Nothing here yet.', style: s.display(24)),
+                    const SizedBox(height: 14),
+                    FilledButton(
+                      onPressed: () => showQuickAdd(context),
+                      child: const Text('Add a task'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          if (checkBack.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SectionTitle('Check back', count: checkBack.length),
-                  for (final t in checkBack) _CheckBackRow(task: t),
-                ],
+            if (checkBack.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SectionTitle('Check back', count: checkBack.length),
+                    for (final t in checkBack) _CheckBackRow(task: t),
+                  ],
+                ),
               ),
-            ),
-          _Section(title: 'In progress', tasks: doing),
-          _Section(title: 'Up next', tasks: next),
-          _Section(title: 'Waiting on someone', tasks: waiting),
-          _Section(title: 'Coming up', tasks: comingUp, quiet: true),
-          if (done.isNotEmpty)
-            Theme(
-              data: Theme.of(context)
-                  .copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                shape: const Border(),
-                collapsedShape: const Border(),
-                iconColor: s.muted,
-                collapsedIconColor: s.muted,
-                title: SectionTitle('Done', count: done.length),
-                children: [for (final t in done.take(50)) _TaskTile(task: t)],
+            _Section(title: 'In progress', tasks: doing),
+            _Section(title: 'Up next', tasks: next),
+            _Section(title: 'Waiting on someone', tasks: waiting),
+            _Section(title: 'Coming up', tasks: comingUp, quiet: true),
+            if (done.isNotEmpty)
+              Theme(
+                data: Theme.of(context)
+                    .copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  shape: const Border(),
+                  collapsedShape: const Border(),
+                  iconColor: s.muted,
+                  collapsedIconColor: s.muted,
+                  title: SectionTitle('Done', count: done.length),
+                  children: [for (final t in done.take(50)) _TaskTile(task: t)],
+                ),
               ),
-            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+/// Project filter pills, "+ Project", and rename/delete for the open one.
+class _ProjectBar extends ConsumerWidget {
+  const _ProjectBar({
+    required this.projects,
+    required this.selected,
+    required this.workspace,
+  });
+  final List<Project> projects;
+  final Project? selected;
+  final Workspace? workspace;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final set = ref.read(taskProjectFilterProvider.notifier).set;
+    Future<void> add() async {
+      // Without a workspace filter, ask which one it's for.
+      final ws =
+          workspace ??
+          await showModalBottomSheet<Workspace>(
+            context: context,
+            builder: (ctx) => SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const ListTile(title: Text('New project for…')),
+                  for (final w in Workspace.values)
+                    ListTile(
+                      title: Text(w.label),
+                      onTap: () => Navigator.pop(ctx, w),
+                    ),
+                ],
+              ),
+            ),
+          );
+      if (ws == null || !context.mounted) return;
+      final p = await showNewProjectDialog(context, ref, ws);
+      if (p != null) set(p.id);
+    }
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (projects.isNotEmpty)
+          Pill(
+            label: 'All projects',
+            selected: selected == null,
+            onTap: () => set(null),
+          ),
+        for (final p in projects)
+          Pill(
+            label: p.name,
+            icon: Icons.circle,
+            iconColor: context.spec.projectColor(p.color),
+            selected: selected?.id == p.id,
+            onTap: () => set(selected?.id == p.id ? null : p.id),
+          ),
+        Pill(
+          label: projects.isEmpty ? 'New project' : 'Project',
+          icon: Icons.add_rounded,
+          selected: false,
+          onTap: add,
+        ),
+        if (selected case final p?)
+          PopupMenuButton<String>(
+            tooltip: 'Project options',
+            icon: const Icon(Icons.more_horiz_rounded),
+            onSelected: (v) async {
+              if (v == 'rename') await showRenameProjectDialog(context, ref, p);
+              if (v == 'delete' &&
+                  context.mounted &&
+                  await confirmDeleteProject(context, ref, p)) {
+                set(null);
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'rename', child: Text('Rename project')),
+              PopupMenuItem(value: 'delete', child: Text('Delete project')),
+            ],
+          ),
+      ],
     );
   }
 }
@@ -203,6 +361,17 @@ class _TaskTile extends ConsumerWidget {
     final isDone = task.status == TaskStatus.done;
     final now = ref.read(clockProvider)();
     final days = now.difference(task.createdAt).inDays;
+    final projectName = task.projectId.isEmpty
+        ? null
+        : ref.watch(
+            projectsProvider.select(
+              (ps) => ps.where((p) => p.id == task.projectId).firstOrNull?.name,
+            ),
+          );
+    final extras = [
+      ?projectName,
+      if (task.isOpen && days >= 7) 'sitting for $days days',
+    ];
 
     return InkWell(
       onTap: () => context.push('/task/${task.id}'),
@@ -241,9 +410,7 @@ class _TaskTile extends ConsumerWidget {
                     TaskMeta(
                       task: task,
                       now: now,
-                      extra: task.isOpen && days >= 7
-                          ? 'sitting for $days days'
-                          : null,
+                      extra: extras.isEmpty ? null : extras.join(' · '),
                     ),
                   ],
                 ],

@@ -48,6 +48,7 @@ class TasksController extends Notifier<List<Task>> {
     Workspace workspace = Workspace.personal,
     String firstStep = '',
     String notes = '',
+    String projectId = '',
   }) {
     final now = _now();
     final t = Task(
@@ -61,6 +62,7 @@ class TasksController extends Notifier<List<Task>> {
       ugh: ugh,
       workspace: workspace,
       chunkable: estimateMin >= 60,
+      projectId: projectId,
       createdAt: now,
       updatedAt: now,
     );
@@ -69,13 +71,18 @@ class TasksController extends Notifier<List<Task>> {
   }
 
   /// Brain dump: one task per non-empty line, with shared defaults.
-  List<Task> createMany(Iterable<String> titles, {Workspace? workspace}) {
+  List<Task> createMany(
+    Iterable<String> titles, {
+    Workspace? workspace,
+    String projectId = '',
+  }) {
     return [
       for (final line in titles)
         if (line.trim().isNotEmpty)
           create(
             title: line.trim(),
             workspace: workspace ?? Workspace.personal,
+            projectId: projectId,
           ),
     ];
   }

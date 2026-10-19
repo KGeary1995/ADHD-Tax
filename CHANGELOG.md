@@ -3,6 +3,14 @@
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
 ## Next build — 2026-10-19 (Android, Mac, web)
+- **Notes** (new tab): jot anything, pin what matters, search everything. Organize with **projects** and **tags**: add tags as chips or just type `#billing` in the text. Filter by Personal/Work, project or tag.
+- **Make tasks from a note**: tick the lines that are things to do and they become tasks in the same project.
+- **Notes on a task**: open a task → "Add a note" for call outcomes and where you left off; the note shows a "For:" link back.
+- **Projects**: group tasks (and notes) by project. Tasks shows project pills; with one open, **+** adds straight into it. Rename or delete from the ⋯ next to it (deleting keeps the tasks).
+- **Board view**: Tasks → **Board** shows To do · Doing · Waiting · Done columns. Hold a card and drag it, or use its ⋮ menu. Done still earns XP with Undo; Waiting asks who you're waiting on. Your choice of List or Board is remembered.
+- Sync now refreshes every device's copy after it receives changes, so something deleted or moved to Work no longer lingers in the Personal account's copy from another device.
+
+## Build 45 — 2026-10-19 (eebf108) (Android, Mac, web)
 - **Google sync is switched on**: the Google keys are now in the builds. Settings → Sync → Connect your personal Google account for Personal (and your clinic account for Work, if your IT allows it).
 
 ## Build 43 — 2026-10-18 (1ac5a2a) (Android, Mac, web)

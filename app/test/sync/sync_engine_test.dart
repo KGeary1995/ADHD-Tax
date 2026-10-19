@@ -61,6 +61,12 @@ void main() {
       expect(d.replica.collection('tasks').keys.toSet(), {'1', '2'});
     }
 
+    // The phone rewrote its file after merging (so it holds no stale
+    // text); the PC reads that once and finds nothing new.
+    final settle = await sync(pc, remote);
+    expect(settle.merged, isFalse);
+    expect(settle.uploaded, isFalse);
+
     // Nothing new on either side: further rounds neither upload nor download.
     final writes = remote.writes;
     final reads = remote.reads;

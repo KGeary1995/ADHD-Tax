@@ -348,6 +348,7 @@ class Pill extends StatelessWidget {
     this.mono = false,
     this.solid = false,
     this.icon,
+    this.iconColor,
   });
 
   final String label;
@@ -356,6 +357,10 @@ class Pill extends StatelessWidget {
   final bool mono;
   final bool solid;
   final IconData? icon;
+
+  /// Keeps the icon's own color (e.g. a project's dot) instead of the
+  /// text color.
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -396,7 +401,11 @@ class Pill extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, size: 17, color: fg),
+                    Icon(
+                      icon,
+                      size: iconColor == null ? 17 : 12,
+                      color: iconColor ?? fg,
+                    ),
                     const SizedBox(width: 7),
                   ],
                   Flexible(child: Text(label, style: style)),

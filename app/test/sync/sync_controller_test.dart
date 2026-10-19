@@ -10,6 +10,7 @@ import 'package:adhd_tax/sync/remote_store.dart';
 import 'package:adhd_tax/sync/replicas_controller.dart';
 import 'package:adhd_tax/sync/sync_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:adhd_tax/features/notes/notes_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
@@ -183,6 +184,57 @@ void main() {
       expect(workFiles, isNot(contains('Laundry')));
     },
   );
+
+  test('notes and projects sync too, and moving a note to Work scrubs it '
+      'from the Personal account', () async {
+    final phone = device(FakeAuth(accounts()));
+    final pc = device(FakeAuth(accounts()));
+    await connectBoth(phone);
+    await connectBoth(pc);
+
+    final project = phone
+        .read(projectsProvider.notifier)
+        .create('Move house', Workspace.personal);
+    final notes = phone.read(notesProvider.notifier);
+    notes.create(
+      title: 'Movers',
+      body: 'Quote from two companies #moving',
+      projectId: project.id,
+    );
+    final rota = notes.create(title: 'Rota swap ideas');
+    await syncAll(phone);
+    await syncAll(pc);
+
+    expect(pc.read(projectsProvider).single.name, 'Move house');
+    final movers = pc
+        .read(notesProvider)
+        .firstWhere((n) => n.title == 'Movers');
+    expect(movers.projectId, project.id);
+    expect(movers.allTags, ['moving']);
+
+    // Edit on the PC, move the other note to Work on the phone.
+    pc.read(notesProvider.notifier).save(movers.copyWith(pinned: true));
+    notes.save(rota.copyWith(workspace: Workspace.work));
+    await syncAll(pc);
+    await syncAll(phone);
+    await syncAll(pc);
+
+    expect(
+      phone.read(notesProvider).firstWhere((n) => n.title == 'Movers').pinned,
+      isTrue,
+    );
+    expect(
+      pc
+          .read(notesProvider)
+          .firstWhere((n) => n.title == 'Rota swap ideas')
+          .workspace,
+      Workspace.work,
+    );
+    final personalFiles = personal.drive.files.values
+        .map((f) => utf8.decode(f.$2))
+        .join();
+    expect(personalFiles, isNot(contains('Rota swap')));
+  });
 
   test('moving a task to Work scrubs it from the Personal account', () async {
     final pc = device(FakeAuth(accounts()));
