@@ -546,3 +546,59 @@ double navClearance(BuildContext context) =>
 
 /// At this width and up the nav is a side rail instead of a bottom pill.
 const wideBreakpoint = 760.0;
+
+/// Swipe a row left to delete it, and (when [onDone] is given) right to
+/// mark it done. The callers show an Undo bar, so a mis-swipe costs nothing.
+class SwipeActions extends StatelessWidget {
+  const SwipeActions({
+    required super.key,
+    required this.child,
+    required this.onDelete,
+    this.onDone,
+  });
+
+  final Widget child;
+  final VoidCallback onDelete;
+  final VoidCallback? onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    Widget bg(Color color, Color fg, IconData icon, String label, bool left) =>
+        Container(
+          color: color,
+          alignment: left ? Alignment.centerLeft : Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: fg),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(color: fg, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        );
+    return Dismissible(
+      key: key!,
+      direction: onDone == null
+          ? DismissDirection.endToStart
+          : DismissDirection.horizontal,
+      background: onDone == null
+          ? const SizedBox.shrink()
+          : bg(s.accent, s.onAccent, Icons.check_rounded, 'Done', true),
+      secondaryBackground: bg(
+        s.danger,
+        Colors.white,
+        Icons.delete_outline_rounded,
+        'Delete',
+        false,
+      ),
+      onDismissed: (d) =>
+          d == DismissDirection.startToEnd ? onDone?.call() : onDelete(),
+      child: child,
+    );
+  }
+}

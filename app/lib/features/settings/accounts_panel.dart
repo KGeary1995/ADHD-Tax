@@ -114,6 +114,7 @@ class _WorkspaceRow extends ConsumerWidget {
         children: [
           SyncIcon(sync: sync, size: 20),
           PopupMenuButton<String>(
+            useRootNavigator: true,
             tooltip: 'Sync options',
             icon: Icon(Icons.more_horiz_rounded, color: s.muted),
             onSelected: (v) => switch (v) {

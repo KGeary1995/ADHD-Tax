@@ -427,12 +427,15 @@ class _Card extends ConsumerWidget {
                 ),
               ),
               PopupMenuButton<String>(
-                tooltip: 'Move or start',
+                useRootNavigator: true,
+                tooltip: 'Move, start or delete',
                 padding: EdgeInsets.zero,
                 icon: Icon(Icons.more_vert_rounded, size: 20, color: s.faint),
                 onSelected: (v) {
                   if (v == 'start') {
                     openFocus(context, task.id, minutes: task.estimateMin);
+                  } else if (v == 'delete') {
+                    deleteWithUndo(context, ref, task);
                   } else {
                     moveTask(context, ref, task, BoardColumn.values.byName(v));
                   }
@@ -449,6 +452,7 @@ class _Card extends ConsumerWidget {
                         value: c.name,
                         child: Text('Move to ${c.label}'),
                       ),
+                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
                 ],
               ),
             ],

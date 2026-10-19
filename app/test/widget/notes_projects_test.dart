@@ -105,7 +105,7 @@ void main() {
     for (final col in ['To do', 'Doing', 'Waiting', 'Done']) {
       expect(find.text(col), findsWidgets);
     }
-    await tester.tap(find.byTooltip('Move or start'));
+    await tester.tap(find.byTooltip('Move, start or delete'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Move to Done'));
     await tester.pumpAndSettle();
@@ -157,6 +157,48 @@ void main() {
     await g.up();
     await tester.pumpAndSettle();
     expect(tasks.byId(a.id)!.status, TaskStatus.doing);
+  });
+
+  testWidgets('swipe to delete tasks and notes, with Undo; swipe right '
+      'marks a task done; the board menu deletes too', (tester) async {
+    final c = await pumpApp(tester, size: _phone);
+    final tasks = c.read(tasksProvider.notifier);
+    final a = tasks.create(title: 'Old idea');
+    final b = tasks.create(title: 'Water plants');
+    final d = tasks.create(title: 'Board card');
+    c.read(notesProvider.notifier).create(title: 'Scratch note');
+    await tab(tester, 'Tasks');
+
+    await tester.drag(find.text('Old idea'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    expect(tasks.byId(a.id), isNull);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(tasks.byId(a.id), isNotNull);
+
+    await tester.drag(find.text('Water plants'), const Offset(500, 0));
+    await tester.pumpAndSettle();
+    expect(tasks.byId(b.id)!.status, TaskStatus.done);
+
+    await tester.tap(find.text('Board'));
+    await tester.pumpAndSettle();
+    final menu = find.descendant(
+      of: find
+          .ancestor(of: find.text('Board card'), matching: find.byType(Row))
+          .first,
+      matching: find.byTooltip('Move, start or delete'),
+    );
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(tasks.byId(d.id), isNull);
+
+    await tab(tester, 'Notes');
+    await tester.drag(find.text('Scratch note'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    expect(c.read(notesProvider), isEmpty);
+    expect(find.textContaining('Deleted: Scratch note'), findsOneWidget);
   });
 
   testWidgets('a task\'s notes live in its editor', (tester) async {

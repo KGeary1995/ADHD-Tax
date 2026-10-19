@@ -258,6 +258,25 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   }
 }
 
+/// Deletes a note with an Undo bar, like tasks.
+void deleteNoteWithUndo(BuildContext context, WidgetRef ref, Note n) {
+  final notes = ref.read(notesProvider.notifier);
+  final messenger = ScaffoldMessenger.of(context);
+  notes.delete(n.id);
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text('Deleted: ${n.heading}'),
+        duration: const Duration(seconds: 6),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => notes.restore(n),
+        ),
+      ),
+    );
+}
+
 class NoteTile extends ConsumerWidget {
   const NoteTile({super.key, required this.note, this.showProject = true});
   final Note note;
@@ -275,63 +294,70 @@ class NoteTile extends ConsumerWidget {
         : null;
     final now = ref.read(clockProvider)();
     final tags = note.allTags;
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Panel(
-        radius: 18,
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        onTap: () => context.push('/note/${note.id}'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    note.heading,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: s.onSurface,
+    return SwipeActions(
+      key: ValueKey('note-${note.id}'),
+      onDelete: () => deleteNoteWithUndo(context, ref, note),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Panel(
+          radius: 18,
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          onTap: () => context.push('/note/${note.id}'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      note.heading,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: s.onSurface,
+                      ),
                     ),
                   ),
+                  if (note.pinned)
+                    Icon(Icons.push_pin_rounded, size: 16, color: s.primary),
+                ],
+              ),
+              if (note.preview.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  note.preview,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14, color: s.text2, height: 1.35),
                 ),
-                if (note.pinned)
-                  Icon(Icons.push_pin_rounded, size: 16, color: s.primary),
               ],
-            ),
-            if (note.preview.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                note.preview,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 14, color: s.text2, height: 1.35),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 10,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    _when(note.updatedAt, now),
+                    style: s.mono(12, color: s.muted),
+                  ),
+                  ?(project == null ? null : ProjectLabel(project)),
+                  for (final t in tags.take(4))
+                    Text(
+                      '#$t',
+                      style: TextStyle(fontSize: 13, color: s.primary),
+                    ),
+                  if (tags.length > 4)
+                    Text(
+                      '+${tags.length - 4}',
+                      style: TextStyle(fontSize: 13, color: s.muted),
+                    ),
+                ],
               ),
             ],
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 10,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  _when(note.updatedAt, now),
-                  style: s.mono(12, color: s.muted),
-                ),
-                ?(project == null ? null : ProjectLabel(project)),
-                for (final t in tags.take(4))
-                  Text('#$t', style: TextStyle(fontSize: 13, color: s.primary)),
-                if (tags.length > 4)
-                  Text(
-                    '+${tags.length - 4}',
-                    style: TextStyle(fontSize: 13, color: s.muted),
-                  ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -207,6 +207,7 @@ class _SituationBar extends ConsumerWidget {
 /// Time, place, energy and workspace: what the picker needs to know.
 Future<void> showSituationSheet(BuildContext context) =>
     showModalBottomSheet<void>(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       builder: (ctx) => Consumer(

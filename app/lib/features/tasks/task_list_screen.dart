@@ -265,6 +265,7 @@ class _ProjectBar extends ConsumerWidget {
       final ws =
           workspace ??
           await showModalBottomSheet<Workspace>(
+            useRootNavigator: true,
             context: context,
             builder: (ctx) => SafeArea(
               child: Column(
@@ -312,6 +313,7 @@ class _ProjectBar extends ConsumerWidget {
         ),
         if (selected case final p?)
           PopupMenuButton<String>(
+            useRootNavigator: true,
             tooltip: 'Project options',
             icon: const Icon(Icons.more_horiz_rounded),
             onSelected: (v) async {
@@ -388,97 +390,109 @@ class _TaskTile extends ConsumerWidget {
       if (task.isOpen && days >= 7) 'sitting for $days days',
     ];
 
-    return InkWell(
-      onTap: () => context.push('/task/${task.id}'),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          border: last ? null : Border(bottom: BorderSide(color: s.hairline)),
-        ),
-        child: Row(
-          children: [
-            _DoneCircle(
-              done: isDone,
-              label: task.title,
-              onTap: isDone
-                  ? () => ctl.reopen(task.id)
-                  : () => markDoneWithUndo(context, ref, task),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    task.title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      height: 1.3,
-                      color: isDone ? s.muted : s.onSurface,
-                      decoration: isDone ? TextDecoration.lineThrough : null,
-                      decorationColor: s.muted,
+    return SwipeActions(
+      key: ValueKey('task-${task.id}'),
+      onDelete: () => deleteWithUndo(context, ref, task),
+      onDone: isDone ? null : () => markDoneWithUndo(context, ref, task),
+      child: InkWell(
+        onTap: () => context.push('/task/${task.id}'),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            border: last ? null : Border(bottom: BorderSide(color: s.hairline)),
+          ),
+          child: Row(
+            children: [
+              _DoneCircle(
+                done: isDone,
+                label: task.title,
+                onTap: isDone
+                    ? () => ctl.reopen(task.id)
+                    : () => markDoneWithUndo(context, ref, task),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      task.title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
+                        color: isDone ? s.muted : s.onSurface,
+                        decoration: isDone ? TextDecoration.lineThrough : null,
+                        decorationColor: s.muted,
+                      ),
                     ),
-                  ),
+                    if (!isDone) ...[
+                      const SizedBox(height: 4),
+                      TaskMeta(
+                        task: task,
+                        now: now,
+                        extra: extras.isEmpty ? null : extras.join(' · '),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                useRootNavigator: true,
+                tooltip: 'More',
+                icon: Icon(Icons.more_horiz_rounded, color: s.faint),
+                onSelected: (v) {
+                  switch (v) {
+                    case 'start':
+                      openFocus(context, task.id, minutes: task.estimateMin);
+                    case 'edit':
+                      context.push('/task/${task.id}');
+                    case 'five':
+                      openFocus(context, task.id, minutes: 5, justFive: true);
+                    case 'waiting':
+                      showWaitingSheet(context, task);
+                    case 'todo':
+                      ctl.reopen(task.id);
+                    case 'done':
+                      markDoneWithUndo(context, ref, task);
+                    case 'archive':
+                      archiveWithUndo(context, ref, task);
+                    case 'delete':
+                      deleteWithUndo(context, ref, task);
+                  }
+                },
+                itemBuilder: (_) => [
                   if (!isDone) ...[
-                    const SizedBox(height: 4),
-                    TaskMeta(
-                      task: task,
-                      now: now,
-                      extra: extras.isEmpty ? null : extras.join(' · '),
+                    const PopupMenuItem(
+                      value: 'start',
+                      child: Text('Start now'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'five',
+                      child: Text('Just 5 minutes'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'done',
+                      child: Text('Mark done'),
                     ),
                   ],
+                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  if (!isDone && task.status != TaskStatus.waiting)
+                    const PopupMenuItem(
+                      value: 'waiting',
+                      child: Text('Waiting on someone'),
+                    ),
+                  if (isDone || task.status == TaskStatus.waiting)
+                    const PopupMenuItem(
+                      value: 'todo',
+                      child: Text('Move back to to-do'),
+                    ),
+                  const PopupMenuItem(value: 'archive', child: Text('Archive')),
+                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
                 ],
               ),
-            ),
-            PopupMenuButton<String>(
-              tooltip: 'More',
-              icon: Icon(Icons.more_horiz_rounded, color: s.faint),
-              onSelected: (v) {
-                switch (v) {
-                  case 'start':
-                    openFocus(context, task.id, minutes: task.estimateMin);
-                  case 'edit':
-                    context.push('/task/${task.id}');
-                  case 'five':
-                    openFocus(context, task.id, minutes: 5, justFive: true);
-                  case 'waiting':
-                    showWaitingSheet(context, task);
-                  case 'todo':
-                    ctl.reopen(task.id);
-                  case 'done':
-                    markDoneWithUndo(context, ref, task);
-                  case 'archive':
-                    archiveWithUndo(context, ref, task);
-                  case 'delete':
-                    deleteWithUndo(context, ref, task);
-                }
-              },
-              itemBuilder: (_) => [
-                if (!isDone) ...[
-                  const PopupMenuItem(value: 'start', child: Text('Start now')),
-                  const PopupMenuItem(
-                    value: 'five',
-                    child: Text('Just 5 minutes'),
-                  ),
-                  const PopupMenuItem(value: 'done', child: Text('Mark done')),
-                ],
-                const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                if (!isDone && task.status != TaskStatus.waiting)
-                  const PopupMenuItem(
-                    value: 'waiting',
-                    child: Text('Waiting on someone'),
-                  ),
-                if (isDone || task.status == TaskStatus.waiting)
-                  const PopupMenuItem(
-                    value: 'todo',
-                    child: Text('Move back to to-do'),
-                  ),
-                const PopupMenuItem(value: 'archive', child: Text('Archive')),
-                const PopupMenuItem(value: 'delete', child: Text('Delete')),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

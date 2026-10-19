@@ -158,6 +158,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       return;
     }
     final picked = await showModalBottomSheet<List<String>>(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -177,6 +178,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 
   Future<void> _organize() => showModalBottomSheet<void>(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
@@ -226,6 +228,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             onPressed: _makeTasks,
           ),
           PopupMenuButton<String>(
+            useRootNavigator: true,
             tooltip: 'More',
             onSelected: (v) {
               if (v == 'organize') _organize();

@@ -174,6 +174,7 @@ Future<void> _pickCelebration(
   BuildContext context,
   WidgetRef ref,
 ) => showModalBottomSheet<void>(
+  useRootNavigator: true,
   context: context,
   builder: (ctx) => Consumer(
     builder: (ctx, ref, _) {
@@ -239,6 +240,7 @@ Future<void> _pickCelebration(
 
 Future<void> _pickQuoteSpeed(BuildContext context, WidgetRef ref) =>
     showModalBottomSheet<void>(
+      useRootNavigator: true,
       context: context,
       builder: (ctx) => Consumer(
         builder: (ctx, ref, _) {

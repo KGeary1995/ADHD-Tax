@@ -27,6 +27,7 @@ Future<void> showQuickAdd(
   String projectId = '',
 }) async {
   final startNow = await showModalBottomSheet<Task>(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     useSafeArea: true,

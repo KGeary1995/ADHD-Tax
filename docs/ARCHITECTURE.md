@@ -126,7 +126,7 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
   - `repeatFromDone` counts from the finish date instead of the schedule.
 - The task list shows hidden tasks (snoozed, next copies) under **Coming up**.
 - **Waiting on someone** (`waiting_sheet.dart`): records who it waits on and a check-back date (9 am tomorrow / in 3 days / next week / a date). When the date comes the task moves to **Check back** at the top of Tasks (Back to my list / Still waiting / Done), Home shows a one-line banner, and Android notifies.
-- `task_actions.dart`: Mark done, Archive and Delete, each with an Undo snackbar. Everything needed for the undo is captured before the change, because the tile may be gone by then.
+- `task_actions.dart`: Mark done, Archive and Delete, each with an Undo snackbar. Task rows swipe right to mark done and left to delete (`SwipeActions` in `widgets/ui.dart`); note tiles swipe left to delete (`deleteNoteWithUndo`). Everything needed for the undo is captured before the change, because the tile may be gone by then.
 
 ## Focus session (`features/focus/`)
 

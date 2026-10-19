@@ -3,6 +3,10 @@
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
 ## Next build — 2026-10-19 (Android, Mac, web)
+- Fixed: menus and pop-up sheets on the main tabs opened *behind* the floating bottom bar, so items at the bottom of a menu, like **Delete** on a task low on the screen, couldn't be tapped. They now always open on top.
+- **Swipe to delete or finish**: swipe a task left to delete it, right to mark it done; swipe a note left to delete it. Each shows Undo. The board card menu (⋮) has **Delete** too.
+
+## Build 55 — 2026-10-19 (3d11ea3) (Android, web)
 - **Show on this device**: Settings → **Personal / Work / Both**. Set the work-profile copy to **Work** and your regular copy to **Personal**: each then shows, picks and adds only its own side, and the Personal/Work switches disappear. Nothing is deleted; Settings says how many items from the other side are hidden.
 - **Board on a phone**: no more sideways scrolling. Four tabs with counts (To do · Doing · Waiting · Done) show one column at full width; tap a tab or swipe across the cards to switch. To move a card, hold it and drop it on a tab (or use its ⋮ menu). Wide screens still show all four columns.
 
