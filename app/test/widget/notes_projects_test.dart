@@ -119,6 +119,46 @@ void main() {
     expect(c.read(keyValueStoreProvider).read('tasks.view'), 'board');
   });
 
+  testWidgets('phone board: tabs, swipe, and drop a card on a tab', (
+    tester,
+  ) async {
+    final c = await pumpApp(tester, size: _phone);
+    final tasks = c.read(tasksProvider.notifier);
+    final a = tasks.create(title: 'Order toner');
+    tasks.create(title: 'Book room');
+    c.read(keyValueStoreProvider).write('tasks.view', 'board');
+    await tab(tester, 'Tasks');
+    await tester.tap(find.text('Board'));
+    await tester.pumpAndSettle();
+
+    // One column at a time: To do first.
+    expect(find.text('Order toner'), findsOneWidget);
+    await tester.tap(find.text('Doing'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nothing in Doing.'), findsOneWidget);
+    expect(find.text('Order toner'), findsNothing);
+
+    // Swipe right goes back to To do.
+    await tester.fling(
+      find.text('Nothing in Doing.'),
+      const Offset(300, 0),
+      1000,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Order toner'), findsOneWidget);
+
+    // Hold a card, drop it on the Doing tab.
+    final g = await tester.startGesture(
+      tester.getCenter(find.text('Order toner')),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await g.moveTo(tester.getCenter(find.text('Doing')));
+    await tester.pump();
+    await g.up();
+    await tester.pumpAndSettle();
+    expect(tasks.byId(a.id)!.status, TaskStatus.doing);
+  });
+
   testWidgets('a task\'s notes live in its editor', (tester) async {
     final c = await pumpApp(tester, size: _phone);
     final t = c.read(tasksProvider.notifier).create(title: 'Insurance claim');

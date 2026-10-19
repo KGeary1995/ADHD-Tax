@@ -91,37 +91,176 @@ class TaskBoard extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, box) {
         const gap = 12.0;
-        final fits = box.maxWidth >= 4 * 220 + 3 * gap;
-        final width = fits
-            ? (box.maxWidth - 3 * gap) / 4
-            : (box.maxWidth * 0.82).clamp(240.0, 300.0);
-        final columns = [
-          for (final c in BoardColumn.values)
-            SizedBox(
-              width: width,
-              child: _Column(
-                column: c,
-                tasks: byColumn[c]!,
-                showProject: showProject,
-              ),
-            ),
-        ];
-        final row = Row(
+        // A phone can't show four columns: one at a time, under tabs.
+        if (box.maxWidth < 4 * 220 + 3 * gap) {
+          return _TabbedBoard(byColumn: byColumn, showProject: showProject);
+        }
+        final width = (box.maxWidth - 3 * gap) / 4;
+        return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final (i, col) in columns.indexed) ...[
+            for (final (i, c) in BoardColumn.values.indexed) ...[
               if (i > 0) const SizedBox(width: gap),
-              col,
+              SizedBox(
+                width: width,
+                child: _Column(
+                  column: c,
+                  tasks: byColumn[c]!,
+                  showProject: showProject,
+                ),
+              ),
             ],
           ],
         );
-        return fits
-            ? row
-            : SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                clipBehavior: Clip.none,
-                child: row,
-              );
+      },
+    );
+  }
+}
+
+/// The board on a phone: column tabs with counts, one column at full
+/// width. Tap a tab or swipe sideways to switch; drop a held card on a tab
+/// to move it there.
+class _TabbedBoard extends ConsumerStatefulWidget {
+  const _TabbedBoard({required this.byColumn, required this.showProject});
+  final Map<BoardColumn, List<Task>> byColumn;
+  final bool showProject;
+
+  @override
+  ConsumerState<_TabbedBoard> createState() => _TabbedBoardState();
+}
+
+class _TabbedBoardState extends ConsumerState<_TabbedBoard> {
+  var _shown = BoardColumn.todo;
+
+  void _step(int by) {
+    final i = (_shown.index + by).clamp(0, BoardColumn.values.length - 1);
+    setState(() => _shown = BoardColumn.values[i]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    final tasks = widget.byColumn[_shown]!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // One row, evenly split, so all four always fit.
+        Row(
+          children: [
+            for (final (i, c) in BoardColumn.values.indexed) ...[
+              if (i > 0) const SizedBox(width: 6),
+              Expanded(
+                child: _ColumnTab(
+                  column: c,
+                  count: widget.byColumn[c]!.length,
+                  selected: c == _shown,
+                  onTap: () => setState(() => _shown = c),
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Hold a card and drop it on a tab to move it.',
+          style: TextStyle(fontSize: 12, color: s.faint),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: (d) {
+            final v = d.primaryVelocity ?? 0;
+            if (v.abs() > 250) _step(v < 0 ? 1 : -1);
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (tasks.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 28),
+                  child: Text(
+                    'Nothing in ${_shown.label}.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: s.muted),
+                  ),
+                ),
+              for (final t in tasks)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: _DraggableCard(
+                    task: t,
+                    showProject: widget.showProject,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A column tab that also takes dropped cards.
+class _ColumnTab extends ConsumerWidget {
+  const _ColumnTab({
+    required this.column,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+  final BoardColumn column;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    return DragTarget<Task>(
+      onWillAcceptWithDetails: (d) => BoardColumn.of(d.data) != column,
+      onAcceptWithDetails: (d) => moveTask(context, ref, d.data, column),
+      builder: (context, candidates, _) {
+        final hovering = candidates.isNotEmpty;
+        final on = selected || hovering;
+        final fg = on ? s.background : s.text2;
+        return Semantics(
+          selected: selected,
+          button: true,
+          label: '${column.label}, $count',
+          excludeSemantics: true,
+          child: Material(
+            color: hovering ? s.primary : (selected ? s.onSurface : null),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: on ? BorderSide.none : BorderSide(color: s.outline),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                child: Column(
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        column.label,
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: on ? FontWeight.w600 : FontWeight.w500,
+                          color: fg,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text('$count', style: s.mono(13, color: fg)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
       },
     );
   }
