@@ -47,7 +47,7 @@ Last updated: 2026-10-19 (notes, projects, board).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 164 tests, ~20 s
+flutter test                         # 165 tests, ~20 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
