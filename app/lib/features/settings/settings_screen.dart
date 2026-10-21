@@ -7,6 +7,7 @@ import '../../widgets/ui.dart';
 import '../gamification/progress_controller.dart';
 import '../../sync/replicas_controller.dart';
 import '../ai/ai_settings_group.dart';
+import '../guide/examples.dart';
 import '../outside/desktop_hotkey.dart';
 import 'accounts_panel.dart';
 import 'backup_group.dart';
@@ -101,6 +102,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ],
     );
 
+    final examples = ref.watch(examplesShowingProvider);
+    final help = Group(
+      label: 'Help',
+      children: [
+        GroupRow(
+          title: 'How Unstuck works',
+          subtitle: 'A short tour of every feature',
+          trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
+          onTap: () => context.push('/guide'),
+        ),
+        GroupRow(
+          title: examples ? 'Remove example tasks' : 'Try with example tasks',
+          subtitle: examples
+              ? 'Takes away only the examples'
+              : 'See the app full before adding your own',
+          trailing: Icon(
+            examples ? Icons.delete_outline_rounded : Icons.science_outlined,
+            color: s.faint,
+          ),
+          onTap: () {
+            final ctl = ref.read(examplesProvider.notifier);
+            examples ? ctl.remove() : ctl.add();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  examples
+                      ? 'Example tasks removed.'
+                      : 'Added example tasks. Have a look at Today.',
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+
     // A computer: a list of sections on the left, the open one on the
     // right, like the system settings on a Mac.
     final sections = <(IconData, String, String, List<Widget>)>[
@@ -145,6 +182,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'Backup',
         'Save everything to one file, or restore from one.',
         [const BackupGroup()],
+      ),
+      (
+        Icons.help_outline_rounded,
+        'Help',
+        'A tour of the app, and example tasks to try it with.',
+        [help],
       ),
       (Icons.tune_outlined, 'Data', 'Reset progress, and licenses.', [data]),
     ];
@@ -211,6 +254,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const AiSettingsGroup(),
             gap,
             const BackupGroup(),
+            gap,
+            help,
             gap,
             data,
           ],

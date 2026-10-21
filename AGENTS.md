@@ -30,9 +30,10 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Checklists in tasks, reward shop, typed extras in Quick add ("tomorrow 2pm 15 min #tag"), templates, task tags | Done | Not yet (tests and web screenshots) |
 | Weekly reset, errand runs, focus company (sounds + buddy), Mac/Windows Quick add hotkey, AI "Break it down" (own Anthropic key) | Done | **No.** Tests and web screenshots only. The hotkey and audio are native plugins compiled only in CI; nothing here runs them |
 | Desktop layout: Tasks/Notes/Settings sidebars, desktop Today / Progress / editor / wrap-up, pop-ups and Quick add as windows | Done | Not yet (tests and 1440×900 web screenshots; the owner's Mac screenshots predate it) |
+| In-app guide ("How Unstuck works") and example tasks | Done | Not yet (tests and web screenshots) |
 | Phase 3+ (Calendar, table/timeline views) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-21 (desktop layout for every page).
+Last updated: 2026-10-21 (in-app guide, example tasks, sync retry).
 
 ## Toolchain
 
@@ -50,7 +51,7 @@ Last updated: 2026-10-21 (desktop layout for every page).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 216 tests, ~40 s
+flutter test                         # 219 tests, ~40 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app

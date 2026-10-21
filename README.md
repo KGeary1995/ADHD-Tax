@@ -41,6 +41,7 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **Projects and board** | Group tasks and notes by project. Tasks has a **List / Board** switch: To do · Doing · Waiting · Done. On a phone, tabs show one column at a time (tap or swipe); hold a card and drop it on a tab to move it, or use its ⋮ menu. Wide screens show all four columns. "Pick for me" still works across everything. |
 | **Home-screen widgets (Android)** | Long-press your home screen → Widgets → Unstuck. Four sizes: **start** (2×1), **square** (2×2), **card** (4×2) and **card + next up** (4×3, with two more tasks that fit right now). Each shows the current pick with **Start**; the bigger ones add **+**. They update whenever the app is open. |
 | **Backup file** | Settings → **Save a backup file** puts every task, note, all your XP and your settings in one file you keep (Files, Drive, email…). Not your API key or Google sign-in, on purpose. **Restore from a backup file** adds it back in; anything newer on the device is kept, so restoring an old file never undoes work. No Google account needed. |
+| **Guide and example tasks** | **How Unstuck works** (Settings → Help, or the empty Today screen) walks through every feature with buttons to each screen. **Try with example tasks** fills the app with samples to look around; **Remove example tasks** takes away only those. |
 | **Patient-info guard** | Work tasks that look like PHI (DOB, MRN, "pt Jane Doe") show a warning to use initials or a ticket number instead. |
 
 ### Sync between devices (Phase 2)

@@ -26,6 +26,7 @@ import 'features/picker/errand_run_screen.dart';
 import 'data/models/template.dart';
 import 'features/templates/template_editor_screen.dart';
 import 'features/templates/templates_screen.dart';
+import 'features/guide/guide_screen.dart';
 import 'features/wrapup/wrapup_screen.dart';
 import 'sync/sync_badge.dart';
 import 'widgets/ui.dart';
@@ -71,6 +72,7 @@ GoRouter buildRouter() => GoRouter(
       },
     ),
     GoRoute(path: '/wrapup', builder: (_, _) => const WrapUpScreen()),
+    GoRoute(path: '/guide', builder: (_, _) => const GuideScreen()),
     GoRoute(path: '/templates', builder: (_, _) => const TemplatesScreen()),
     GoRoute(path: '/reset', builder: (_, _) => const WeeklyResetScreen()),
     GoRoute(path: '/errands', builder: (_, _) => const ErrandRunScreen()),

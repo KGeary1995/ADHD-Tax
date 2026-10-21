@@ -16,6 +16,8 @@ import '../focus/focus_route.dart';
 import '../gamification/level_badge.dart';
 import '../gamification/progress_controller.dart';
 import '../gamification/xp_rules.dart';
+import '../guide/examples.dart';
+import '../guide/guide_screen.dart';
 import '../motivation/quote_rotator.dart';
 import '../motivation/quote_service.dart';
 import '../tasks/tasks_controller.dart';
@@ -201,6 +203,7 @@ class DashboardScreen extends ConsumerWidget {
                                     const _CheckBackBanner(),
                                     const _ErrandRunBanner(),
                                     const _ResetBanner(),
+                                    const _ExamplesBanner(),
                                     const SizedBox(height: 14),
                                     const Padding(
                                       padding: EdgeInsets.symmetric(
@@ -249,6 +252,7 @@ class DashboardScreen extends ConsumerWidget {
                       const _CheckBackBanner(),
                       const _ErrandRunBanner(),
                       const _ResetBanner(),
+                      const _ExamplesBanner(),
                       const SizedBox(height: 20),
                       card(),
                       if (suggestion != null) ...[
@@ -981,6 +985,12 @@ class _NothingPanel extends ConsumerWidget {
             onPressed: () => showQuickAdd(context, brainDump: true),
             child: const Text('Brain dump'),
           ),
+          // New here: see it full first, or read how it works.
+          const ExamplesButton(),
+          TextButton(
+            onPressed: () => context.push('/guide'),
+            child: const Text('How Unstuck works'),
+          ),
         ],
       ),
       NoPickReason.allNeedLeaving => (
@@ -1102,6 +1112,22 @@ class _ResetBanner extends ConsumerWidget {
           'Weekly reset: $stale ${stale == 1 ? 'task' : 'tasks'} to sort · '
           'about ${(stale / 2).ceil().clamp(1, 15)} min',
       onTap: () => context.push('/reset'),
+    );
+  }
+}
+
+/// While the example tasks are showing: a reminder they can go.
+class _ExamplesBanner extends ConsumerWidget {
+  const _ExamplesBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(examplesShowingProvider)) return const SizedBox.shrink();
+    return _Banner(
+      icon: Icons.science_outlined,
+      color: context.spec.primary,
+      text: 'These are example tasks · How Unstuck works',
+      onTap: () => context.push('/guide'),
     );
   }
 }
