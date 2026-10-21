@@ -3,6 +3,9 @@
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
 ## Next build — 2026-10-21 (Mac, web, Android)
+- **Today, redone for a computer:** the time / can-go-out / energy / Personal-Work choices sit in a **Right now** panel on the right and re-pick as you click, with no pencil or sheet to open. The task card is bigger and shows the whole checklist and why it was picked. A **Today** panel shows done, XP and streak with the Overwhelmed button, and the quote sits along the bottom so the page fills the window. Phones are unchanged.
+
+## Build 69 — 2026-10-21 (f33203b) (Mac, web, Android)
 - **Every page uses a computer screen now**, not just Tasks and Notes. On a wide window: **Today** keeps the one task front and center with check-backs, errand runs, the quote and today's count in a column on the right; **Progress** puts level, stats and achievements (two columns of them) on the left and the reward shop, real task lengths and recent XP on the right; **Settings** is two columns of groups; the **task editor** has what the task is (name, first step, checklist, notes) on the left and how and when (workspace, project, length, priority, due date, repeats) on the right; **Wrap up** has today on the left and tomorrow's pick on the right. The focus timer and the note editor stay a single centered column on purpose. Phones are unchanged.
 
 ## Build 67 — 2026-10-21 (eacbd5e) (Mac, web, Android)

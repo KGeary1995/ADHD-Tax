@@ -15,6 +15,7 @@ import '../capture/quick_add_sheet.dart';
 import '../focus/focus_route.dart';
 import '../gamification/level_badge.dart';
 import '../gamification/progress_controller.dart';
+import '../gamification/xp_rules.dart';
 import '../motivation/quote_rotator.dart';
 import '../motivation/quote_service.dart';
 import '../tasks/tasks_controller.dart';
@@ -39,13 +40,12 @@ class DashboardScreen extends ConsumerWidget {
         : const <Suggestion>[];
     final suggestion = choices.isEmpty ? result.suggestion : null;
 
-    final Widget main;
-    if (choices.isNotEmpty) {
-      main = _CommitPanel(choices: choices);
-    } else if (suggestion != null) {
-      main = _TaskCard(suggestion: suggestion);
-    } else {
-      main = _NothingPanel(reason: result.noPickReason!);
+    Widget mainPanel({bool large = false}) {
+      if (choices.isNotEmpty) return _CommitPanel(choices: choices);
+      if (suggestion != null) {
+        return _TaskCard(suggestion: suggestion, large: large);
+      }
+      return _NothingPanel(reason: result.noPickReason!);
     }
 
     const header = Padding(
@@ -90,23 +90,22 @@ class DashboardScreen extends ConsumerWidget {
         ),
       ),
     );
-    final card = AnimatedSwitcher(
+    Widget card({bool large = false}) => AnimatedSwitcher(
       duration: Duration(milliseconds: context.reduceMotion ? 0 : 250),
       child: KeyedSubtree(
         key: ValueKey(
           suggestion?.task.id ??
               (choices.isNotEmpty ? 'commit' : result.noPickReason?.name),
         ),
-        child: main,
+        child: mainPanel(large: large),
       ),
     );
     // Tap to skip ahead. Dread-busting when the pick is one you rated
     // "Ugh" or worse.
-    final quote = QuoteRotator(
-      context: (suggestion?.task.ugh ?? 0) >= 2
-          ? QuoteContext.dreadTask
-          : QuoteContext.dashboard,
-    );
+    final quoteContext = (suggestion?.task.ugh ?? 0) >= 2
+        ? QuoteContext.dreadTask
+        : QuoteContext.dashboard;
+    final quote = QuoteRotator(context: quoteContext);
 
     return LayoutBuilder(
       builder: (context, c) {
@@ -115,55 +114,109 @@ class DashboardScreen extends ConsumerWidget {
         // above it.
         if (c.maxWidth >= 1000) {
           return ContentWidth(
-            maxWidth: 1180,
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                22,
-                28,
-                22,
-                MediaQuery.paddingOf(context).bottom + 24,
-              ),
-              children: [
-                header,
-                const SizedBox(height: 30),
-                headline(44),
-                const SizedBox(height: 24),
-                ResponsiveColumns(
-                  sideWidth: 360,
-                  main: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: _SituationBar(),
+            maxWidth: 1240,
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      28,
+                      28,
+                      28,
+                      MediaQuery.paddingOf(context).bottom + 28,
                     ),
-                    const SizedBox(height: 18),
-                    card,
-                    if (suggestion != null) ...[
-                      const SizedBox(height: 10),
-                      _Tiles(task: suggestion.task),
-                    ],
-                  ],
-                  side: [
-                    // The banners carry their own top gap.
-                    const _CheckBackBanner(),
-                    const _ErrandRunBanner(),
-                    const _ResetBanner(),
-                    const SizedBox(height: 10),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Panel(
-                        radius: 18,
-                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            quote,
-                            const SizedBox(height: 14),
-                            const _TodayLine(),
-                          ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        header,
+                        const SizedBox(height: 30),
+                        Expanded(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    headline(48),
+                                    const SizedBox(height: 26),
+                                    card(large: true),
+                                    if (suggestion != null) ...[
+                                      const SizedBox(height: 12),
+                                      _Tiles(task: suggestion.task),
+                                    ],
+                                    const SizedBox(height: 32),
+                                    const Spacer(),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      child: QuoteRotator(
+                                        context: quoteContext,
+                                        large: true,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 32),
+                              // Tune the pick without opening a sheet, see
+                              // what's waiting, and how today is going.
+                              SizedBox(
+                                width: 360,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    // Same inset as the banners below.
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      child: Panel(
+                                        radius: 22,
+                                        padding: const EdgeInsets.fromLTRB(
+                                          20,
+                                          18,
+                                          20,
+                                          20,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: [
+                                            Text(
+                                              'Right now',
+                                              style: s.display(22),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            const SituationControls(gap: 14),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    // The banners carry their own top gap.
+                                    const _CheckBackBanner(),
+                                    const _ErrandRunBanner(),
+                                    const _ResetBanner(),
+                                    const SizedBox(height: 14),
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      child: _TodayPanel(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -197,7 +250,7 @@ class DashboardScreen extends ConsumerWidget {
                       const _ErrandRunBanner(),
                       const _ResetBanner(),
                       const SizedBox(height: 20),
-                      card,
+                      card(),
                       if (suggestion != null) ...[
                         const SizedBox(height: 10),
                         _Tiles(task: suggestion.task),
@@ -279,82 +332,98 @@ Future<void> showSituationSheet(BuildContext context) =>
       useRootNavigator: true,
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => Consumer(
-        builder: (ctx, ref, _) {
-          final s = ctx.spec;
-          final i = ref.watch(pickerInputsProvider);
-          final ctl = ref.read(pickerInputsProvider.notifier);
-          const gap = SizedBox(height: 18);
-          final both = {Workspace.personal, Workspace.work};
-          final ws = i.workspaces.length == 2 ? null : i.workspaces.first;
-          final single = ref.watch(deviceWorkspacesProvider).single;
-          return SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text('Your situation', style: s.display(26)),
-                  gap,
-                  const FieldLabel('How much time do you have?'),
-                  ChoiceGroup<int>(
-                    values: timeOptions,
-                    selected: i.availableMin,
-                    mono: true,
-                    labelOf: (m) => m >= 120 ? '2h+' : shortMinutes(m),
-                    onSelected: ctl.setTime,
-                  ),
-                  gap,
-                  const FieldLabel('Can you leave the house?'),
-                  Segmented<bool>(
-                    values: const [false, true],
-                    selected: i.willingToLeave,
-                    inset: s.isDark,
-                    labelOf: (v) => v ? 'Can go out' : 'Staying in',
-                    onSelected: ctl.setWillingToLeave,
-                  ),
-                  gap,
-                  const FieldLabel('Energy right now (optional)'),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      for (final e in Energy.values)
-                        Pill(
-                          label: e.label,
-                          selected: i.energy == e,
-                          onTap: () => ctl.setEnergy(i.energy == e ? null : e),
-                        ),
-                    ],
-                  ),
-                  if (!single) ...[
-                    gap,
-                    const FieldLabel('Which tasks?'),
-                    Segmented<Workspace?>(
-                      values: const [null, Workspace.personal, Workspace.work],
-                      selected: ws,
-                      inset: s.isDark,
-                      labelOf: (w) => w?.label ?? 'Both',
-                      onSelected: (w) =>
-                          ctl.setWorkspaces(w == null ? both : {w}),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Done'),
-                  ),
-                ],
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Your situation', style: ctx.spec.display(26)),
+              const SizedBox(height: 18),
+              const SituationControls(),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Done'),
               ),
-            ),
-          );
-        },
+            ],
+          ),
+        ),
       ),
     );
 
+/// The picker's inputs as controls: in the sheet on a phone, always on
+/// screen on a computer. Every change re-picks straight away.
+class SituationControls extends ConsumerWidget {
+  const SituationControls({super.key, this.gap = 18});
+  final double gap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final i = ref.watch(pickerInputsProvider);
+    final ctl = ref.read(pickerInputsProvider.notifier);
+    final space = SizedBox(height: gap);
+    final both = {Workspace.personal, Workspace.work};
+    final ws = i.workspaces.length == 2 ? null : i.workspaces.first;
+    final single = ref.watch(deviceWorkspacesProvider).single;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const FieldLabel('How much time do you have?'),
+        ChoiceGroup<int>(
+          values: timeOptions,
+          selected: i.availableMin,
+          mono: true,
+          labelOf: (m) => m >= 120 ? '2h+' : shortMinutes(m),
+          onSelected: ctl.setTime,
+        ),
+        space,
+        const FieldLabel('Can you leave the house?'),
+        Segmented<bool>(
+          values: const [false, true],
+          selected: i.willingToLeave,
+          inset: s.isDark,
+          labelOf: (v) => v ? 'Can go out' : 'Staying in',
+          onSelected: ctl.setWillingToLeave,
+        ),
+        space,
+        const FieldLabel('Energy right now (optional)'),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final e in Energy.values)
+              Pill(
+                label: e.label,
+                selected: i.energy == e,
+                onTap: () => ctl.setEnergy(i.energy == e ? null : e),
+              ),
+          ],
+        ),
+        if (!single) ...[
+          space,
+          const FieldLabel('Which tasks?'),
+          Segmented<Workspace?>(
+            values: const [null, Workspace.personal, Workspace.work],
+            selected: ws,
+            inset: s.isDark,
+            labelOf: (w) => w?.label ?? 'Both',
+            onSelected: (w) => ctl.setWorkspaces(w == null ? both : {w}),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _TaskCard extends StatelessWidget {
-  const _TaskCard({required this.suggestion});
+  const _TaskCard({required this.suggestion, this.large = false});
   final Suggestion suggestion;
+
+  /// On a computer: bigger type, and room for the whole checklist and why
+  /// it was picked.
+  final bool large;
 
   @override
   Widget build(BuildContext context) {
@@ -373,11 +442,15 @@ class _TaskCard extends StatelessWidget {
     final hasFirstStep = t.nextStep.isNotEmpty;
     final steps = t.steps;
 
+    final buttonHeight = large ? 64.0 : 58.0;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
+      padding: large
+          ? const EdgeInsets.fromLTRB(32, 30, 32, 30)
+          : const EdgeInsets.fromLTRB(22, 24, 22, 22),
       decoration: BoxDecoration(
         color: s.accent,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(large ? 34 : 30),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -408,7 +481,7 @@ class _TaskCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Text(t.title, style: s.display(32, color: s.onAccent)),
+          Text(t.title, style: s.display(large ? 44 : 32, color: s.onAccent)),
           const SizedBox(height: 10),
           Text.rich(
             hasFirstStep
@@ -426,12 +499,57 @@ class _TaskCard extends StatelessWidget {
                   )
                 : TextSpan(text: suggestion.reasonLine),
             style: TextStyle(
-              fontSize: hasFirstStep ? 17 : 15,
+              fontSize: hasFirstStep ? (large ? 19 : 17) : (large ? 17 : 15),
               height: 1.4,
               color: s.onAccentMuted,
             ),
           ),
-          const SizedBox(height: 22),
+          if (large && steps.length > 1) ...[
+            const SizedBox(height: 16),
+            for (final step in steps.take(6))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      step.done
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      size: 18,
+                      color: s.onAccentMuted,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        step.text,
+                        style: TextStyle(
+                          fontSize: 15,
+                          height: 1.3,
+                          color: s.onAccentMuted,
+                          decoration: step.done
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (steps.length > 6)
+              Text(
+                '+${steps.length - 6} more',
+                style: TextStyle(fontSize: 14, color: s.onAccentMuted),
+              ),
+          ],
+          if (large && hasFirstStep && suggestion.reasonLine.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Why this one: ${suggestion.reasonLine}',
+              style: TextStyle(fontSize: 14, color: s.onAccentMuted),
+            ),
+          ],
+          SizedBox(height: large ? 28 : 22),
           Row(
             children: [
               Expanded(
@@ -441,7 +559,7 @@ class _TaskCard extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: s.ink,
                     foregroundColor: s.onInk,
-                    minimumSize: const Size(0, 58),
+                    minimumSize: Size(0, buttonHeight),
                     textStyle: const TextStyle(
                       fontFamily: Fonts.ui,
                       fontSize: 18,
@@ -461,7 +579,7 @@ class _TaskCard extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: s.ink,
                     side: BorderSide(color: s.ink, width: 2),
-                    minimumSize: const Size(98, 58),
+                    minimumSize: Size(98, buttonHeight),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                   ),
                   child: const Text('5 min'),
@@ -552,6 +670,80 @@ void _snooze(BuildContext context, WidgetRef ref, Task t) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text('"${t.title}" will come back in 3 hours.')),
   );
+}
+
+/// Today's numbers on a computer, with the way out when it's too much.
+class _TodayPanel extends ConsumerWidget {
+  const _TodayPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final p = ref.watch(progressProvider);
+    final now = ref.read(clockProvider)();
+    final xpToday = p.recent
+        .where(
+          (r) =>
+              r.at.year == now.year &&
+              r.at.month == now.month &&
+              r.at.day == now.day,
+        )
+        .fold(0, (a, r) => a + r.amount);
+    final streak = streakWithGrace(p.activeDays, now);
+    final stats = [
+      ('${p.completedOn(now)}', 'done'),
+      ('$xpToday', 'XP'),
+      ('$streak', streak == 1 ? 'day streak' : 'days streak'),
+    ];
+    return Panel(
+      radius: 22,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const FieldLabel('Today'),
+          Row(
+            children: [
+              for (final (value, label) in stats)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        value,
+                        style: s.display(30, weight: FontWeight.w600),
+                      ),
+                      Text(
+                        label,
+                        style: TextStyle(fontSize: 13, color: s.muted),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 4,
+            children: [
+              if (now.hour >= 17)
+                TextButton.icon(
+                  onPressed: () => context.push('/wrapup'),
+                  icon: const Icon(Icons.nights_stay_outlined, size: 18),
+                  label: const Text('Wrap up'),
+                ),
+              TextButton.icon(
+                onPressed: () => overwhelm(context, ref),
+                style: TextButton.styleFrom(foregroundColor: s.text2),
+                icon: const Icon(Icons.spa_outlined, size: 18),
+                label: const Text('Overwhelmed?'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// "2 done today · 40 XP today · Overwhelmed?"

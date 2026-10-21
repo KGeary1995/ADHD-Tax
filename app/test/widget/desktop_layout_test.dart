@@ -1,6 +1,5 @@
 import 'package:adhd_tax/data/models/task.dart';
 import 'package:adhd_tax/features/capture/quick_add_sheet.dart';
-import 'package:adhd_tax/features/motivation/quote_rotator.dart';
 import 'package:adhd_tax/features/notes/notes_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:adhd_tax/widgets/ui.dart';
@@ -92,11 +91,18 @@ void main() {
       expect((pb.dy - pa.dy).abs(), lessThan(200), reason: 'same height');
     }
 
-    // Home: the task card on the left, the quote on the right.
-    sideBySide(
-      find.text('Renew the parking permit'),
-      find.byType(QuoteRotator),
-    );
+    // Home: the task card on the left; the picker's controls on the
+    // right, live, with no sheet to open.
+    sideBySide(find.text('Renew the parking permit'), find.text('Right now'));
+    expect(find.text('How much time do you have?'), findsOneWidget);
+    expect(find.byIcon(Icons.edit_outlined), findsNothing);
+    await tester.tap(find.text('10m'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.text('Renew the parking permit'), findsNothing);
+    await tester.tap(find.text('30m'));
+    await tester.pumpAndSettle();
+    expect(find.text('Renew the parking permit'), findsOneWidget);
 
     await tester.tap(find.text('Progress'));
     await tester.pumpAndSettle();
