@@ -290,8 +290,7 @@ Future<void> _addProject(
 ) async {
   final ws =
       workspace ??
-      await showModalBottomSheet<Workspace>(
-        useRootNavigator: true,
+      await showAppSheet<Workspace>(
         context: context,
         builder: (ctx) => SafeArea(
           child: Column(

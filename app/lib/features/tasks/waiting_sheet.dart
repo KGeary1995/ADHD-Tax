@@ -33,10 +33,8 @@ DateTime _morning(DateTime now, int days) =>
 /// "Waiting on someone": who it's waiting for and when to check back.
 /// Used both to park a task and for "Still waiting" on a due follow-up.
 Future<void> showWaitingSheet(BuildContext context, Task task) =>
-    showModalBottomSheet<void>(
-      useRootNavigator: true,
+    showAppSheet<void>(
       context: context,
-      isScrollControlled: true,
       builder: (_) => _WaitingSheet(task: task),
     );
 

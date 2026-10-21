@@ -14,128 +14,206 @@ import 'device_workspaces.dart';
 import 'reminders_panel.dart';
 import 'settings_controller.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  // The open section on a computer.
+  var _section = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final s = context.spec;
     final settings = ref.watch(settingsProvider);
     final ctl = ref.read(settingsProvider.notifier);
     const gap = SizedBox(height: 22);
 
-    // Where you are and how it's connected.
-    final device = <Widget>[
-      const FieldLabel('Appearance', inset: 8),
-      Segmented<Appearance>(
-        values: Appearance.values,
-        selected: settings.appearance,
-        labelOf: (a) => a.label,
-        onSelected: (a) => ctl.update((x) => x.copyWith(appearance: a)),
-      ),
-      gap,
-      const _ShowOnDevice(),
-      gap,
-      const RemindersPanel(),
-      gap,
-      const AccountsPanel(),
-    ];
-    // How it behaves, and your data.
-    final behavior = <Widget>[
-      Group(
-        label: 'Feel',
-        children: [
-          GroupRow(
-            title: 'Celebrations',
-            trailing: _Value(settings.celebration.label),
-            onTap: () => _pickCelebration(context, ref),
-          ),
-          GroupRow(
-            title: 'Quotes',
-            trailing: _Value('every ${settings.quoteSeconds} s'),
-            onTap: () => _pickQuoteSpeed(context, ref),
-          ),
+    final appearance = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const FieldLabel('Appearance', inset: 8),
+        Segmented<Appearance>(
+          values: Appearance.values,
+          selected: settings.appearance,
+          labelOf: (a) => a.label,
+          onSelected: (a) => ctl.update((x) => x.copyWith(appearance: a)),
+        ),
+      ],
+    );
+    final feel = Group(
+      label: 'Feel',
+      children: [
+        GroupRow(
+          title: 'Celebrations',
+          trailing: _Value(settings.celebration.label),
+          onTap: () => _pickCelebration(context, ref),
+        ),
+        GroupRow(
+          title: 'Quotes',
+          trailing: _Value('every ${settings.quoteSeconds} s'),
+          onTap: () => _pickQuoteSpeed(context, ref),
+        ),
+        SwitchRow(
+          title: 'Patient-info guard',
+          subtitle: 'Warn on Work tasks that look like PHI',
+          value: settings.phiGuard,
+          onChanged: (v) => ctl.update((x) => x.copyWith(phiGuard: v)),
+        ),
+      ],
+    );
+    final reuse = Group(
+      label: 'Reuse',
+      children: [
+        if (hotkeySupported)
           SwitchRow(
-            title: 'Patient-info guard',
-            subtitle: 'Warn on Work tasks that look like PHI',
-            value: settings.phiGuard,
-            onChanged: (v) => ctl.update((x) => x.copyWith(phiGuard: v)),
+            title: 'Quick add from anywhere',
+            subtitle: 'Press $hotkeyLabel in any app',
+            value: ref.watch(hotkeyEnabledProvider),
+            onChanged: ref.read(hotkeyEnabledProvider.notifier).set,
           ),
-        ],
-      ),
-      gap,
-      Group(
-        label: 'Reuse',
-        children: [
-          if (hotkeySupported)
-            SwitchRow(
-              title: 'Quick add from anywhere',
-              subtitle: 'Press $hotkeyLabel in any app',
-              value: ref.watch(hotkeyEnabledProvider),
-              onChanged: ref.read(hotkeyEnabledProvider.notifier).set,
-            ),
-          GroupRow(
-            title: 'Templates',
-            subtitle: 'Checklists and notes you use again and again',
-            trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
-            onTap: () => context.push('/templates'),
-          ),
-        ],
-      ),
-      gap,
-      const AiSettingsGroup(),
-      gap,
-      const BackupGroup(),
-      gap,
-      Group(
-        label: 'Data',
-        children: [
-          GroupRow(
-            title: 'Reset XP and achievements',
-            subtitle: 'Your tasks stay. Applies on all synced devices.',
-            trailing: Icon(Icons.restart_alt_rounded, color: s.danger),
-            onTap: () => _reset(context, ref),
-          ),
-          GroupRow(
-            title: 'Licenses',
-            trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
-            onTap: () =>
-                showLicensePage(context: context, applicationName: 'Unstuck'),
-          ),
-        ],
-      ),
-    ];
-    const header = Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      child: PageHeader('Settings'),
+        GroupRow(
+          title: 'Templates',
+          subtitle: 'Checklists and notes you use again and again',
+          trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
+          onTap: () => context.push('/templates'),
+        ),
+      ],
+    );
+    final data = Group(
+      label: 'Data',
+      children: [
+        GroupRow(
+          title: 'Reset XP and achievements',
+          subtitle: 'Your tasks stay. Applies on all synced devices.',
+          trailing: Icon(Icons.restart_alt_rounded, color: s.danger),
+          onTap: () => _reset(context, ref),
+        ),
+        GroupRow(
+          title: 'Licenses',
+          trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
+          onTap: () =>
+              showLicensePage(context: context, applicationName: 'Unstuck'),
+        ),
+      ],
     );
 
-    return LayoutBuilder(
-      builder: (context, c) {
-        // A computer: two columns of groups instead of one long scroll.
-        if (c.maxWidth >= 1000) {
-          final inner = (c.maxWidth < 1180 ? c.maxWidth : 1180) - 44;
-          return ContentWidth(
-            maxWidth: 1180,
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(22, 28, 22, navClearance(context)),
-              children: [
-                header,
-                gap,
-                ResponsiveColumns(
-                  sideWidth: (inner - 28) / 2,
-                  main: device,
-                  side: behavior,
-                ),
-              ],
+    // A computer: a list of sections on the left, the open one on the
+    // right, like the system settings on a Mac.
+    final sections = <(IconData, String, String, List<Widget>)>[
+      (
+        Icons.palette_outlined,
+        'Look and feel',
+        'Light or dark, celebrations, quotes and the patient-info guard.',
+        [appearance, gap, feel],
+      ),
+      (
+        Icons.devices_outlined,
+        'This device',
+        'Which side this copy of Unstuck shows.',
+        [const _ShowOnDevice()],
+      ),
+      (
+        Icons.notifications_outlined,
+        'Reminders',
+        'Timer alerts and check-in nudges.',
+        [const RemindersPanel()],
+      ),
+      (
+        Icons.cloud_outlined,
+        'Sync',
+        'Google accounts for Personal and Work.',
+        [const AccountsPanel()],
+      ),
+      (
+        Icons.bolt_outlined,
+        'Shortcuts and templates',
+        'Quick add from anywhere, and things you reuse.',
+        [reuse],
+      ),
+      (
+        Icons.auto_awesome_outlined,
+        'AI helper',
+        'Break tasks into steps with your own Anthropic key.',
+        [const AiSettingsGroup()],
+      ),
+      (
+        Icons.save_outlined,
+        'Backup',
+        'Save everything to one file, or restore from one.',
+        [const BackupGroup()],
+      ),
+      (Icons.tune_outlined, 'Data', 'Reset progress, and licenses.', [data]),
+    ];
+
+    return SidebarLayout(
+      maxWidth: 1100,
+      sidebar: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(12, 0, 12, 22),
+            child: PageHeader('Settings'),
+          ),
+          for (final (i, (icon, label, _, _)) in sections.indexed)
+            SideItem(
+              label: label,
+              icon: icon,
+              selected: _section == i,
+              onTap: () => setState(() => _section = i),
             ),
+        ],
+      ),
+      builder: (context, wide) {
+        if (wide) {
+          final (_, title, about, content) = sections[_section];
+          return ListView(
+            padding: EdgeInsets.fromLTRB(8, 40, 22, navClearance(context)),
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(title, style: s.display(32)),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 6, 8, 24),
+                child: Text(
+                  about,
+                  style: TextStyle(fontSize: 15, color: s.muted, height: 1.4),
+                ),
+              ),
+              ...content,
+            ],
           );
         }
-        return ContentWidth(
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(14, 24, 14, navClearance(context)),
-            children: [header, gap, ...device, gap, ...behavior],
-          ),
+        return ListView(
+          padding: EdgeInsets.fromLTRB(14, 24, 14, navClearance(context)),
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: PageHeader('Settings'),
+            ),
+            gap,
+            appearance,
+            gap,
+            const _ShowOnDevice(),
+            gap,
+            const RemindersPanel(),
+            gap,
+            const AccountsPanel(),
+            gap,
+            feel,
+            gap,
+            reuse,
+            gap,
+            const AiSettingsGroup(),
+            gap,
+            const BackupGroup(),
+            gap,
+            data,
+          ],
         );
       },
     );
@@ -222,8 +300,7 @@ class _Value extends StatelessWidget {
 Future<void> _pickCelebration(
   BuildContext context,
   WidgetRef ref,
-) => showModalBottomSheet<void>(
-  useRootNavigator: true,
+) => showAppSheet<void>(
   context: context,
   builder: (ctx) => Consumer(
     builder: (ctx, ref, _) {
@@ -288,8 +365,7 @@ Future<void> _pickCelebration(
 );
 
 Future<void> _pickQuoteSpeed(BuildContext context, WidgetRef ref) =>
-    showModalBottomSheet<void>(
-      useRootNavigator: true,
+    showAppSheet<void>(
       context: context,
       builder: (ctx) => Consumer(
         builder: (ctx, ref, _) {

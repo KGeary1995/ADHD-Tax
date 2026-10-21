@@ -267,6 +267,52 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     // On a computer: what the task is on the left, how and when on the
     // right, instead of one long narrow column.
     final wide = MediaQuery.sizeOf(context).width >= 1000;
+    // On a computer the settings-like fields put their label beside the
+    // choices, so the "how" and "when" panels fit without scrolling.
+    Widget row(String label, Widget child, {String? help}) => !wide
+        ? field(label, child, help: help)
+        : Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 128,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 12, right: 12),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: s.isDark ? s.text2 : s.muted,
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      child,
+                      if (help != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          help,
+                          style: TextStyle(
+                            color: s.muted,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+
     final whatPanel = Panel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,7 +398,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!ref.watch(deviceWorkspacesProvider).single)
-            field(
+            row(
               'Workspace',
               ChoiceGroup(
                 values: Workspace.values,
@@ -367,7 +413,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                 ),
               ),
             ),
-          field(
+          row(
             'Project',
             ProjectPicker(
               workspace: _task.workspace,
@@ -376,7 +422,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   setState(() => _task = _task.copyWith(projectId: id)),
             ),
           ),
-          field(
+          row(
             'Tags',
             TextField(
               controller: _tags,
@@ -386,7 +432,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
               ),
             ),
           ),
-          field(
+          row(
             'Estimate',
             Wrap(
               spacing: 8,
@@ -426,7 +472,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                 setState(() => _task = _task.copyWith(chunkable: v)),
           ),
           const SizedBox(height: 8),
-          field(
+          row(
             'Priority',
             ChoiceGroup(
               values: Priority.values,
@@ -436,7 +482,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   setState(() => _task = _task.copyWith(priority: p)),
             ),
           ),
-          field(
+          row(
             'How much do you dread it?',
             ChoiceGroup(
               values: [for (var i = 0; i < ughLabels.length; i++) i],
@@ -446,7 +492,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             ),
             help: 'Dreaded tasks earn bonus XP and get suggested when your energy is up.',
           ),
-          field(
+          row(
             'Energy it takes',
             ChoiceGroup(
               values: Energy.values,
@@ -482,7 +528,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
               ),
             ),
           const SizedBox(height: 8),
-          field(
+          row(
             'Due date',
             Wrap(
               spacing: 8,
@@ -520,7 +566,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   setState(() => _task = _task.copyWith(hardDeadline: v)),
             ),
           const SizedBox(height: 8),
-          field(
+          row(
             'Repeats',
             DropdownButtonFormField<Repeat>(
               initialValue: _task.repeat,
@@ -557,7 +603,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             ),
           if (!_isNew) ...[
             const SizedBox(height: 8),
-            field(
+            row(
               'Status',
               DropdownButtonFormField<TaskStatus>(
                 initialValue: _task.status,
@@ -574,7 +620,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
               ),
             ),
             if (_task.status == TaskStatus.waiting) ...[
-              field(
+              row(
                 'Waiting on',
                 TextField(
                   controller: _waitingOn,
@@ -583,7 +629,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   ),
                 ),
               ),
-              field(
+              row(
                 'Check back',
                 Wrap(
                   spacing: 8,

@@ -173,11 +173,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       );
       return;
     }
-    final picked = await showModalBottomSheet<List<String>>(
-      useRootNavigator: true,
+    final picked = await showAppSheet<List<String>>(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
       builder: (_) => _MakeTasksSheet(lines: lines),
     );
     if (picked == null || picked.isEmpty || !mounted) return;
@@ -193,11 +190,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  Future<void> _organize() => showModalBottomSheet<void>(
-    useRootNavigator: true,
+  Future<void> _organize() => showAppSheet<void>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
     builder: (_) => StatefulBuilder(
       builder: (context, setSheet) => _OrganizeSheet(
         note: _note,

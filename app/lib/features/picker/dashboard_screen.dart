@@ -327,30 +327,27 @@ class _SituationBar extends ConsumerWidget {
 }
 
 /// Time, place, energy and workspace: what the picker needs to know.
-Future<void> showSituationSheet(BuildContext context) =>
-    showModalBottomSheet<void>(
-      useRootNavigator: true,
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Your situation', style: ctx.spec.display(26)),
-              const SizedBox(height: 18),
-              const SituationControls(),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Done'),
-              ),
-            ],
+Future<void> showSituationSheet(BuildContext context) => showAppSheet<void>(
+  context: context,
+  builder: (ctx) => SafeArea(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Your situation', style: ctx.spec.display(26)),
+          const SizedBox(height: 18),
+          const SituationControls(),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Done'),
           ),
-        ),
+        ],
       ),
-    );
+    ),
+  ),
+);
 
 /// The picker's inputs as controls: in the sheet on a phone, always on
 /// screen on a computer. Every change re-picks straight away.

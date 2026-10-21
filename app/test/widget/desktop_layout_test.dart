@@ -110,7 +110,20 @@ void main() {
 
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    sideBySide(find.text('Appearance'), find.text('Feel'));
+    // Settings: a section list, one section open at a time; its pickers
+    // open as windows, not sheets from the bottom.
+    expect(find.widgetWithText(SideItem, 'Backup'), findsOneWidget);
+    expect(find.text('Save a backup file'), findsNothing);
+    await tester.tap(find.text('Celebrations'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(SideItem, 'Backup'));
+    await tester.pumpAndSettle();
+    expect(find.text('Save a backup file'), findsOneWidget);
+    expect(find.text('Celebrations'), findsNothing);
 
     GoRouter.of(tester.element(find.byType(Scaffold).first))
         .push('/task/${t.id}');

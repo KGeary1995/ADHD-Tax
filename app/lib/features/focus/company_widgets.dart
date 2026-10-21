@@ -6,60 +6,57 @@ import '../../widgets/ui.dart';
 import 'company.dart';
 
 /// Focus → headphones: background sound and the buddy.
-Future<void> showCompanySheet(BuildContext context) =>
-    showModalBottomSheet<void>(
-      useRootNavigator: true,
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => Consumer(
-        builder: (ctx, ref, _) {
-          final s = ctx.spec;
-          final c = ref.watch(companyProvider);
-          final ctl = ref.read(companyProvider.notifier);
-          return SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text('Company while you work', style: s.display(24)),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Starting is easier when you\'re not alone. Pick a '
-                    'background sound, a buddy, or both.',
-                    style: TextStyle(color: s.muted, height: 1.4),
-                  ),
-                  const SizedBox(height: 18),
-                  const FieldLabel('Background sound'),
-                  ChoiceGroup<FocusSound>(
-                    values: FocusSound.values,
-                    selected: c.sound,
-                    labelOf: (x) => x.label,
-                    onSelected: ctl.setSound,
-                  ),
-                  const SizedBox(height: 10),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Work alongside a buddy'),
-                    subtitle: const Text(
-                      'A quiet line under the timer, like someone at the '
-                      'next desk getting on with their own list.',
-                    ),
-                    value: c.buddy,
-                    onChanged: ctl.setBuddy,
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Done'),
-                  ),
-                ],
+Future<void> showCompanySheet(BuildContext context) => showAppSheet<void>(
+  context: context,
+  builder: (ctx) => Consumer(
+    builder: (ctx, ref, _) {
+      final s = ctx.spec;
+      final c = ref.watch(companyProvider);
+      final ctl = ref.read(companyProvider.notifier);
+      return SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Company while you work', style: s.display(24)),
+              const SizedBox(height: 6),
+              Text(
+                'Starting is easier when you\'re not alone. Pick a '
+                'background sound, a buddy, or both.',
+                style: TextStyle(color: s.muted, height: 1.4),
               ),
-            ),
-          );
-        },
-      ),
-    );
+              const SizedBox(height: 18),
+              const FieldLabel('Background sound'),
+              ChoiceGroup<FocusSound>(
+                values: FocusSound.values,
+                selected: c.sound,
+                labelOf: (x) => x.label,
+                onSelected: ctl.setSound,
+              ),
+              const SizedBox(height: 10),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Work alongside a buddy'),
+                subtitle: const Text(
+                  'A quiet line under the timer, like someone at the '
+                  'next desk getting on with their own list.',
+                ),
+                value: c.buddy,
+                onChanged: ctl.setBuddy,
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Done'),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  ),
+);
 
 /// "Your buddy · Answering emails", changing every few minutes.
 class BuddyLine extends StatelessWidget {

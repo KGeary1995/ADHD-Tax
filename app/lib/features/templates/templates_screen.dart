@@ -30,12 +30,8 @@ Future<Template?> pickTemplate(
       .read(templatesProvider)
       .where((t) => t.kind == kind)
       .toList();
-  return showModalBottomSheet<Template>(
-    useRootNavigator: true,
+  return showAppSheet<Template>(
     context: context,
-    useSafeArea: true,
-    isScrollControlled: true,
-    constraints: const BoxConstraints(maxWidth: 640),
     builder: (ctx) {
       final s = ctx.spec;
       return SingleChildScrollView(

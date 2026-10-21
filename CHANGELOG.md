@@ -3,6 +3,12 @@
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
 ## Next build — 2026-10-21 (Mac, web, Android)
+- **Pop-ups are windows on a computer:** Waiting on, focus Company, Celebrations, Quote speed, the template picker, a note's Make tasks / Organize, and New project for… now open as a centered window instead of sliding up from the bottom of the screen. Phones keep the sheets.
+- **Settings on a computer** is a list of sections on the left (Look and feel, This device, Reminders, Sync, Shortcuts and templates, AI helper, Backup, Data) with the open one on the right, like Mac System Settings.
+- **Task editor on a computer:** in the right-hand column, labels sit beside their choices instead of above them, so it's much shorter.
+- **Wrap up on a computer:** today is a summary strip across the top, with what you finished, and tomorrow's candidates sit side by side with **Done for today** under them.
+
+## Build 71 — 2026-10-21 (27e405a) (Mac, web, Android)
 - **Today, redone for a computer:** the time / can-go-out / energy / Personal-Work choices sit in a **Right now** panel on the right and re-pick as you click, with no pencil or sheet to open. The task card is bigger and shows the whole checklist and why it was picked. A **Today** panel shows done, XP and streak with the Overwhelmed button, and the quote sits along the bottom so the page fills the window. Phones are unchanged.
 
 ## Build 69 — 2026-10-21 (f33203b) (Mac, web, Android)

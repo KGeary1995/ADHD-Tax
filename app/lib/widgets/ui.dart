@@ -814,3 +814,43 @@ class ResponsiveColumns extends StatelessWidget {
     },
   );
 }
+
+/// A bottom sheet on a phone (thumb reach, above the keyboard); a centered
+/// window on a computer, where a sheet rising from the bottom of a wide
+/// window feels like a phone app. Builders lay out as for a sheet: no
+/// title bar, side padding of their own, `Navigator.pop` to close.
+Future<T?> showAppSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  double maxWidth = 560,
+}) {
+  final size = MediaQuery.sizeOf(context);
+  if (size.width >= wideBreakpoint && size.height >= 640) {
+    return showDialog<T>(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) => Dialog(
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: maxWidth,
+            maxHeight: size.height - 96,
+          ),
+          child: Padding(
+            // Stands in for the sheet's drag handle.
+            padding: const EdgeInsets.only(top: 24, bottom: 8),
+            child: builder(ctx),
+          ),
+        ),
+      ),
+    );
+  }
+  return showModalBottomSheet<T>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    useSafeArea: true,
+    constraints: const BoxConstraints(maxWidth: 640),
+    builder: builder,
+  );
+}
