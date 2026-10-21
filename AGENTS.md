@@ -49,7 +49,7 @@ Last updated: 2026-10-21 (weekly reset, errands, company, hotkey, AI breakdown).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 211 tests, ~35 s
+flutter test                         # 213 tests, ~35 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app

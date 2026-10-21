@@ -4,6 +4,7 @@ What changed in each build, newest first. Build number = CI run number (= Androi
 
 ## Next build — 2026-10-21 (Mac, web, Android)
 - **Desktop layout** (Mac, Windows, wide browser windows): Tasks and Notes now have a filter sidebar on the left (Show, Projects with counts, Tags, Weekly reset, Brain dump, templates) and use the width of the window, instead of a phone-width column with rows of pills. Notes show two or three side by side. The List / Board switch moves next to the title. Phones are unchanged.
+- **Backup files now include your settings** (look, celebrations, reminders, quotes, List/Board, focus sounds, the desktop shortcut). Restoring asks "Also restore its settings" (ticked by default). Left out on purpose: "Show on this device" (so a work-profile copy doesn't flip to Personal), "Use AI on Work tasks" (needs its confirmation again), and your API key and Google sign-in, since backup files get emailed and left in Drive. Older backup files still restore as before.
 - **Quick add** opens as a centered window on a computer, and the box now shows an example ("Call insurance tomorrow 2pm 15 min #billing") plus a hint that you can type when, how long and #tags straight in.
 
 ## Build 61 — 2026-10-21 (fc6533e) (Android, Mac, web)

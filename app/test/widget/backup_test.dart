@@ -1,5 +1,7 @@
 import 'package:adhd_tax/data/models/task.dart';
+import 'package:adhd_tax/core/providers.dart';
 import 'package:adhd_tax/features/settings/backup_files.dart';
+import 'package:adhd_tax/features/settings/settings_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -102,5 +104,53 @@ void main() {
     await openSettingsRow(tester, 'Restore from a backup file');
     expect(find.text("That file isn't an Unstuck backup."), findsOneWidget);
     expect(find.text('Restore this backup?'), findsNothing);
+  });
+
+  testWidgets('settings travel in the backup; per-install and consent '
+      'settings and secrets do not', (tester) async {
+    final files = FakeBackupFiles();
+    final old = await pumpApp(
+      tester,
+      size: _phone,
+      overrides: [backupFilesProvider.overrideWithValue(files)],
+    );
+    old
+        .read(settingsProvider.notifier)
+        .update((x) => x.copyWith(celebration: CelebrationLevel.party));
+    final oldStore = old.read(keyValueStoreProvider)
+      ..write('focus.sound', 'rain')
+      ..write('device.workspaces', 'personal')
+      ..write('ai.allowWork', 'true');
+    expect(oldStore.read('focus.sound'), 'rain');
+    await tester.pumpAndSettle();
+    await openSettingsRow(tester, 'Save a backup file');
+    expect(files.saved, contains('focus.sound'));
+    expect(files.saved, isNot(contains('device.workspaces')));
+    expect(files.saved, isNot(contains('ai.allowWork')));
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+
+    // The work-profile copy, set to Work only.
+    final fresh = await pumpApp(
+      tester,
+      size: _phone,
+      overrides: [
+        backupFilesProvider.overrideWithValue(
+          FakeBackupFiles()..toOpen = files.saved,
+        ),
+      ],
+    );
+    final store = fresh.read(keyValueStoreProvider)
+      ..write('device.workspaces', 'work');
+    await openSettingsRow(tester, 'Restore from a backup file');
+    expect(find.text('Also restore its settings'), findsOneWidget);
+    await tester.tap(find.text('Restore'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('settings'), findsWidgets);
+    expect(fresh.read(settingsProvider).celebration, CelebrationLevel.party);
+    expect(store.read('focus.sound'), 'rain');
+    expect(store.read('device.workspaces'), 'work');
+    expect(store.read('ai.allowWork'), isNull);
   });
 }

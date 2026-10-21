@@ -2,6 +2,9 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-21 — Backup files carry settings, but not per-install choices, consents or secrets
+The owner asked for settings in the backup. They're replaced on restore (there's no meaningful merge for "celebrations: party"), behind a checkbox. "Show on this device" stays out because the same person restores into both the personal and the work-profile copy; "Use AI on Work tasks" stays out because it's a consent that should be given on each device; the API key and Google tokens stay out because backup files are emailed and left in Drive. Restore only accepts the allowed keys, so a hand-edited file can't plant anything else.
+
 ### 2026-10-21 — AI breakdown: user's own key, raw HTTP, off for Work, PHI never sent
 "Break it down" calls the Anthropic Messages API directly from the app with a key the user pastes in, stored in the OS keychain and never synced or put in backups. No server means nothing to run or secure, and the cost lands on the person using it (a fraction of a cent a task). Dart has no official Anthropic SDK, so it's a plain HTTP call. Work tasks are excluded unless the user turns them on after a "no patient details" confirmation, and even then a Work task the PHI guard flags is never sent: the guard is a warning elsewhere but a hard stop here, because this is the one place text leaves the user's own accounts. The model is the current default Opus at low effort with structured output, so the reply is always a clean list. Revisit if a shared clinic key or a server proxy is ever wanted; that needs a BAA conversation first.
 

@@ -7,10 +7,19 @@ import 'replica.dart';
 /// clocks included, so restoring is a CRDT merge. Restoring an old file
 /// never undoes newer edits, and restoring the same file twice is harmless.
 class BackupFile {
-  const BackupFile({required this.replicas, this.exportedAt});
+  const BackupFile({
+    required this.replicas,
+    this.exportedAt,
+    this.settings = const {},
+  });
 
   final Map<Workspace, Replica> replicas;
   final DateTime? exportedAt;
+
+  /// Device settings as stored (key → raw value). Which keys travel is
+  /// decided by the app (`backupSettingKeys`); never secrets. Files from
+  /// before settings were included have none.
+  final Map<String, String> settings;
 
   static const kind = 'unstuck-backup';
   static const version = 1;
@@ -30,6 +39,7 @@ class BackupFile {
     'workspaces': {
       for (final e in replicas.entries) e.key.name: e.value.toJson(),
     },
+    if (settings.isNotEmpty) 'settings': settings,
   });
 
   /// Throws a [FormatException] with a message fit to show the user.
@@ -69,9 +79,16 @@ class BackupFile {
     } on Object {
       throw const FormatException("That backup file looks damaged.");
     }
+    final rawSettings = j['settings'];
     return BackupFile(
       replicas: replicas,
       exportedAt: DateTime.tryParse(j['exportedAt'] as String? ?? ''),
+      settings: {
+        if (rawSettings is Map)
+          for (final e in rawSettings.entries)
+            if (e.key is String && e.value is String)
+              e.key as String: e.value as String,
+      },
     );
   }
 }

@@ -92,6 +92,24 @@ void main() {
     );
   });
 
+  test('settings round-trip; older files have none; odd values are '
+      'dropped', () {
+    final file = BackupFile(
+      replicas: {Workspace.personal: Replica('phone')},
+      settings: const {'focus.sound': 'rain', 'tasks.view': 'board'},
+    ).encode(now());
+    expect(BackupFile.decode(file).settings, {
+      'focus.sound': 'rain',
+      'tasks.view': 'board',
+    });
+    final old = BackupFile(replicas: {Workspace.personal: Replica('phone')})
+        .encode(now());
+    expect(old, isNot(contains('"settings"')));
+    expect(BackupFile.decode(old).settings, isEmpty);
+    final odd = file.replaceFirst('"rain"', '42');
+    expect(BackupFile.decode(odd).settings.keys, ['tasks.view']);
+  });
+
   test('file name carries the date', () {
     expect(
       backupFileName(DateTime(2026, 3, 7, 22)),
