@@ -19,6 +19,9 @@ import '../motivation/quote_rotator.dart';
 import '../motivation/quote_service.dart';
 import '../tasks/tasks_controller.dart';
 import '../tasks/waiting_sheet.dart';
+import '../tasks/weekly_reset.dart';
+import '../tasks/weekly_reset_screen.dart';
+import 'errand_run_screen.dart';
 import 'picker_controller.dart';
 import 'picker_engine.dart';
 
@@ -110,6 +113,8 @@ class DashboardScreen extends ConsumerWidget {
                     child: _SituationBar(),
                   ),
                   const _CheckBackBanner(),
+                  const _ErrandRunBanner(),
+                  const _ResetBanner(),
                   const SizedBox(height: 20),
                   AnimatedSwitcher(
                     duration: Duration(
@@ -794,23 +799,89 @@ class _CheckBackBanner extends ConsumerWidget {
         .where((t) => followUpDue(t, now))
         .toList();
     if (due.isEmpty) return const SizedBox.shrink();
-    final text = due.length == 1
-        ? 'Check back: ${due.single.waitingOn.isEmpty ? due.single.title : due.single.waitingOn}'
-        : 'Check back on ${due.length} waiting tasks';
+    return _Banner(
+      icon: Icons.mark_email_unread_outlined,
+      color: s.warning,
+      text: due.length == 1
+          ? 'Check back: ${due.single.waitingOn.isEmpty ? due.single.title : due.single.waitingOn}'
+          : 'Check back on ${due.length} waiting tasks',
+      onTap: () => context.go('/tasks'),
+    );
+  }
+}
+
+/// "Errand run: Pharmacy + Post office · 45m" when you can go out.
+class _ErrandRunBanner extends ConsumerWidget {
+  const _ErrandRunBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final out = ref.watch(pickerInputsProvider.select((i) => i.willingToLeave));
+    final run = out ? ref.watch(errandRunProvider) : null;
+    if (run == null) return const SizedBox.shrink();
+    return _Banner(
+      icon: Icons.directions_car_outlined,
+      color: context.spec.primary,
+      text: 'Errand run: ${run.summary} · ${shortMinutes(run.minutes)}',
+      onTap: () => context.push('/errands'),
+    );
+  }
+}
+
+/// The weekly reset, offered on weekends (see `resetDue`).
+class _ResetBanner extends ConsumerWidget {
+  const _ResetBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.read(clockProvider)();
+    final stale = staleTasks(ref.watch(tasksProvider), now).length;
+    final due = resetDue(
+      staleCount: stale,
+      lastReset: ref.watch(lastResetProvider),
+      now: now,
+    );
+    if (!due) return const SizedBox.shrink();
+    return _Banner(
+      icon: Icons.cleaning_services_outlined,
+      color: context.spec.primary,
+      text:
+          'Weekly reset: $stale ${stale == 1 ? 'task' : 'tasks'} to sort · '
+          'about ${(stale / 2).ceil().clamp(1, 15)} min',
+      onTap: () => context.push('/reset'),
+    );
+  }
+}
+
+class _Banner extends StatelessWidget {
+  const _Banner({
+    required this.icon,
+    required this.color,
+    required this.text,
+    required this.onTap,
+  });
+  final IconData icon;
+  final Color color;
+  final String text;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
       child: Panel(
         radius: 14,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        onTap: () => context.go('/tasks'),
+        onTap: onTap,
         child: Row(
           children: [
-            Icon(Icons.mark_email_unread_outlined, size: 18, color: s.warning),
+            Icon(icon, size: 18, color: color),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 text,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 15, color: s.text2),
               ),

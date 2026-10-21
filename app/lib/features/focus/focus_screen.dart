@@ -16,6 +16,8 @@ import '../reminders/reminders.dart';
 import '../settings/settings_controller.dart';
 import '../tasks/checklist_editor.dart';
 import '../tasks/tasks_controller.dart';
+import 'company.dart';
+import 'company_widgets.dart';
 import 'visual_timer.dart';
 
 /// The Start screen: only the first step, a visual timer, and a quote.
@@ -51,6 +53,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
   // Read up front: dispose() can't use ref.
   late final Reminders _reminders;
   late final bool _alerts;
+  late final AmbientPlayer _ambient;
 
   Duration get _elapsed => _runningSince == null
       ? _banked
@@ -65,6 +68,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
     super.initState();
     _reminders = ref.read(remindersProvider);
     _alerts = ref.read(settingsProvider).timerAlerts;
+    _ambient = ref.read(ambientPlayerProvider);
     _runningSince = _now();
     _tick = Timer.periodic(const Duration(seconds: 1), (_) => _onTick());
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -76,12 +80,14 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
           .read(progressProvider.notifier)
           .recordStart(task, panic: widget.panic);
       _syncNotification();
+      _ambient.play(ref.read(companyProvider).sound);
     });
   }
 
   @override
   void dispose() {
     _tick?.cancel();
+    _ambient.stop();
     if (_alerts) _reminders.focusEnded();
     super.dispose();
   }
@@ -124,9 +130,11 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
     setState(() {
       if (_runningSince == null) {
         _runningSince = _now();
+        _ambient.resume();
       } else {
         _banked = _elapsed;
         _runningSince = null;
+        _ambient.pause();
       }
     });
     _syncNotification();
@@ -138,6 +146,15 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
       if (_remaining > Duration.zero) _prompted = false;
     });
     _syncNotification();
+  }
+
+  Future<void> _openCompany() async {
+    await showCompanySheet(context);
+    if (!mounted) return;
+    // Paused stays quiet until Resume.
+    final sound = ref.read(companyProvider).sound;
+    await _ambient.play(sound);
+    if (_runningSince == null) await _ambient.pause();
   }
 
   Future<void> _timeUp() async {
@@ -284,6 +301,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
       );
     }
     final paused = _runningSince == null;
+    final company = ref.watch(companyProvider);
     final hasStep = task.nextStep.isNotEmpty;
     final steps = task.steps;
     final nextIndex = steps.indexWhere((i) => !i.done);
@@ -342,6 +360,18 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
                                           weight: FontWeight.w500,
                                         ),
                                       ),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Company',
+                                      isSelected: company.any,
+                                      selectedIcon: Icon(
+                                        Icons.headphones_rounded,
+                                        color: s.primary,
+                                      ),
+                                      icon: const Icon(
+                                        Icons.headphones_outlined,
+                                      ),
+                                      onPressed: _openCompany,
                                     ),
                                   ],
                                 ),
@@ -451,6 +481,16 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
                                   ),
                                 ],
                               ),
+                              if (company.buddy)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    24,
+                                    22,
+                                    24,
+                                    0,
+                                  ),
+                                  child: BuddyLine(elapsed: _elapsed),
+                                ),
                               if (steps.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.fromLTRB(

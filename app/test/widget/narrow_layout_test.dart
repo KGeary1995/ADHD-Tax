@@ -5,6 +5,7 @@ import 'package:adhd_tax/features/capture/quick_add_sheet.dart';
 import 'package:adhd_tax/data/models/template.dart';
 import 'package:adhd_tax/features/gamification/rewards_controller.dart';
 import 'package:adhd_tax/features/notes/notes_controller.dart';
+import 'package:adhd_tax/features/picker/picker_controller.dart';
 import 'package:adhd_tax/features/templates/templates_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:adhd_tax/widgets/ui.dart';
@@ -148,6 +149,56 @@ void main() {
         for (final tab in ['Today', 'Tasks', 'Notes', 'Progress', 'Settings']) {
           expect(find.byTooltip(tab), findsOneWidget, reason: tab);
         }
+      });
+
+      testWidgets('weekly reset, errand run, company sheet, AI settings: '
+          'nothing overflows', (tester) async {
+        final c = await _pumpPhone(tester, scale);
+        final now = DateTime(2026, 10, 18, 21);
+        final tasks = c.read(tasksProvider.notifier);
+        for (final (title, place) in [
+          ('Return the library books that are overdue', 'Central library'),
+          ('Pick up the prescription refill', 'Pharmacy on Main Street'),
+        ]) {
+          tasks.save(
+            Task(
+              id: '',
+              title: title,
+              requiresLeavingHouse: true,
+              location: place,
+              priority: Priority.p2,
+              dueAt: now.add(const Duration(days: 1)),
+              createdAt: now.subtract(const Duration(days: 20)),
+              updatedAt: now.subtract(const Duration(days: 20)),
+            ),
+          );
+        }
+        c.read(pickerInputsProvider.notifier).setWillingToLeave(true);
+        c.read(pickerInputsProvider.notifier).setTime(120);
+        for (final path in ['/', '/reset', '/errands']) {
+          c.read(routerProvider).go(path);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: path);
+        }
+        c.read(routerProvider).go('/settings');
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.text('Anthropic API key'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(tester.takeException(), isNull, reason: 'AI settings');
+
+        final t = c.read(tasksProvider).first;
+        c.read(routerProvider).push('/focus/${t.id}?min=15');
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.tap(find.byTooltip('Company'));
+        for (var i = 0; i < 12; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(find.text('Company while you work'), findsOneWidget);
+        expect(tester.takeException(), isNull, reason: 'company sheet');
       });
 
       testWidgets('checklists, focus, reward shop, templates and typed '

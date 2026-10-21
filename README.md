@@ -20,6 +20,11 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **5-second capture** | Quick add (Ctrl+N) needs only a title. **Brain dump** turns a pasted list into tasks, one per line. "Add & start now" skips the list entirely. **Full task form** opens the complete editor (first step, due date, notes, energy) with what you've typed so far. |
 | **Type it the way you'd say it** | "Call insurance tomorrow 2pm 15 min #billing" fills in the due date and time, length and tag. Also weekdays, "tonight", "in 3 days", "4/15", "at 5", "1h 30m", "urgent" or `!!`, `#work`/`#personal`, and a `#tag` matching a project files it there. What it understood shows as chips; tap one to keep those words in the title. Offline, rule-based, no AI. |
 | **Checklists** | Steps inside a task. The next unticked step is the first step on Home and the focus screen (with **Step done**). Repeating tasks come back unticked. |
+| **Weekly reset** | On weekends Home offers to sort tasks that have sat untouched for a week, one at a time: Keep it, Make it smaller, Not this week, or Let it go. +20 XP. Also on the Tasks tab any day. |
+| **Errand run** | With "Can go out" on, Home suggests the errands that fit your time, grouped by place, as one trip to tick off. |
+| **Company while you work** | Headphones on the focus screen: background sound (brown noise, rain, fan) and an optional buddy line, like someone working at the next desk. |
+| **Quick add from anywhere (Mac, Windows)** | Ctrl+Shift+Space (⌃⇧Space on a Mac) in any app brings Unstuck forward with Quick add open. |
+| **Break it down with AI (optional)** | In a task's editor: Claude splits the task into 3–7 small steps for the checklist. Uses your own Anthropic API key (Settings → AI helper), kept on the device. Off for Work tasks unless you turn it on; Work tasks that look like they contain patient details are never sent. |
 | **Templates** | Reusable checklists and notes (Settings → Templates; **Template** in Quick add; **From a template** on Notes). One-tap examples: Opening checklist, Huddle notes, Weekly reset. Save any task or note as one. `{date}` becomes today's date. |
 | **XP, levels, achievements** | XP for *starting*, more for finishing, bonuses for dreaded tasks, old tasks, beating your estimate and errands. 18 achievements, ranks every 5 levels, and coins to spend in the **reward shop** (Progress tab) on treats you define, like "Fancy coffee out = 25". Streaks include 2 grace days a week and never reset to zero. |
 | **Celebrations** | Confetti plus an XP breakdown card when you finish, and a small toast when you start (it never covers the screen at that moment). Intensity runs Off / Subtle / Normal / Party. |
@@ -224,8 +229,8 @@ The decision logic (`picker_engine.dart`, `xp_rules.dart`, `achievements.dart`, 
 2. ~~**Phase 2: Google sign-in + Drive sync**~~ ✅ (needs your OAuth setup, above)
 3. **Phase 3: Google Calendar.** Free time detected automatically ("47 min until Staff Huddle"). Plan My Day drops suggested tasks into a dedicated "Unstuck" calendar, with two-way updates and "leave in 15 min" alerts.
 4. **Phase 4: Monday.com-style views.** Board, table, timeline, calendar, projects, command palette. (Repeating tasks are already done.)
-5. **Phase 5: ADHD extras.** ~~Learned estimate correction~~, errand batching, ~~Android home-screen widget~~, desktop global hotkey, ~~reward shop~~, body doubling, ~~daily shutdown~~.
-6. **Phase 6: optional AI (Claude).** "Break this down" and smarter capture, using your own API key. Off by default in Work. (Rule-based natural-language capture already works offline.)
+5. ~~**Phase 5: ADHD extras.**~~ Learned estimate correction, errand runs, home-screen widget, desktop hotkey, reward shop, body doubling, daily wrap-up and weekly reset are all in.
+6. **Phase 6: optional AI (Claude).** ~~"Break this down"~~ is in (your own API key, off for Work by default). Still open: smarter capture and a Plan-my-day explanation.
 
 ## Before using it for clinic work
 

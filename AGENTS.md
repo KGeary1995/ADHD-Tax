@@ -28,9 +28,10 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Mac app | Builds and publishes on `[mac]` pushes | **Yes**: opens and works after "Open Anyway" (Build 21, still named ADHD Tax) |
 | Notes (tags, #hashtags, Make tasks, task-linked notes), projects, Tasks board view, "Show on this device" (Personal / Work / Both) | Done | Not yet (tests and web screenshots) |
 | Checklists in tasks, reward shop, typed extras in Quick add ("tomorrow 2pm 15 min #tag"), templates, task tags | Done | Not yet (tests and web screenshots) |
-| Phase 3+ (Calendar, table/timeline views, AI) | Not started | — see docs/PLAN.md |
+| Weekly reset, errand runs, focus company (sounds + buddy), Mac/Windows Quick add hotkey, AI "Break it down" (own Anthropic key) | Done | **No.** Tests and web screenshots only. The hotkey and audio are native plugins compiled only in CI; nothing here runs them |
+| Phase 3+ (Calendar, table/timeline views) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-19 (checklists, rewards, typed extras, templates).
+Last updated: 2026-10-21 (weekly reset, errands, company, hotkey, AI breakdown).
 
 ## Toolchain
 
@@ -39,7 +40,7 @@ Last updated: 2026-10-19 (checklists, rewards, typed extras, templates).
 | Flutter / Dart | **3.47.7** / 3.13.5 | Pinned in `.github/workflows/ci.yml` (`FLUTTER_VERSION`). In Claude Code cloud sessions Flutter is at `/opt/flutter/bin` and not on PATH; `app/tool/check.sh` handles that. It warns about running as root; ignore it. |
 | Java | 17 (Temurin) | Android builds |
 | Node | 22 | Cloudflare deploy (`wrangler@4.145.0`) and the screenshot tool |
-| Python 3 + Pillow | any recent | Only for `app/tool/make_icons.py` |
+| Python 3 + Pillow, numpy | any recent | Only for `app/tool/make_icons.py` (Pillow) and `app/tool/make_sounds.py` (numpy) |
 | Xcode | CI's `macos-latest` | Mac and iOS builds happen in CI; no Mac needed locally |
 | Ruby + `xcodeproj` gem | any | Only for `app/tool/ios/add_extensions.rb` (adds the iOS widget/share targets) |
 
@@ -48,13 +49,14 @@ Last updated: 2026-10-19 (checklists, rewards, typed extras, templates).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 192 tests, ~30 s
+flutter test                         # 209 tests, ~35 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
 flutter build web --release --no-web-resources-cdn   # self-contained web build (no CDN; needed behind proxies)
 flutter build apk --release --no-shrink              # --no-shrink is REQUIRED (see Gotchas)
 python3 tool/make_icons.py           # redraw every app icon (web, iPhone, Mac, Android)
+python3 tool/make_sounds.py          # regenerate the focus-screen background sounds (numpy)
 ```
 
 Seeing UI changes without a phone: `app/tool/screenshots/shoot.mjs` (Playwright) screenshots the web build with demo data at any size, including a fake iPhone home-indicator inset. Usage is in the file header.
@@ -99,7 +101,7 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - **No PHI anywhere**: no patient names, dates of birth or MRNs in code, tests, fixtures, docs, commit messages or screenshots. Demo data uses generic tasks. The in-app PHI guard (`features/safety/phi_guard.dart`) is a warning, not a control.
 - **New synced collections or fields:** JSON scalars only (a list or map field compares by identity and gets re-stamped on every save; see `Note.tags`).
 - **Keep the sync data model backward compatible.** Devices run different builds. New `Task` fields must have defaults in `Task.fromJson`; never rename or reuse a field. Never rewrite or delete XP events: revoke one by tombstoning it (`ProgressController.revoke`).
-- **Pure logic stays pure Dart** (no Flutter imports): `picker_engine.dart`, `recurrence.dart`, `nudge_plan.dart`, `xp_rules.dart`, `achievements.dart`, `progress_event.dart`, `phi_guard.dart`, `quote_service.dart`, `hlc.dart`, `replica.dart`, `sync_engine.dart`, `estimate_calibration.dart`, `backup_file.dart`, `note.dart`, `checklist.dart`, `reward.dart`, `template.dart`, `quick_parse.dart`. Test them with plain unit tests.
+- **Pure logic stays pure Dart** (no Flutter imports): `picker_engine.dart`, `recurrence.dart`, `nudge_plan.dart`, `xp_rules.dart`, `achievements.dart`, `progress_event.dart`, `phi_guard.dart`, `quote_service.dart`, `hlc.dart`, `replica.dart`, `sync_engine.dart`, `estimate_calibration.dart`, `backup_file.dart`, `note.dart`, `checklist.dart`, `reward.dart`, `template.dart`, `quick_parse.dart`, `weekly_reset.dart`, `errand_run.dart`, `breakdown.dart` (HTTP through an injected `http.Client`). Test them with plain unit tests.
 - **Phone first.** Every screen must work at 360×800 with 1.3× text (`test/widget/narrow_layout_test.dart` enforces this for the capture screens). Prefer wrapping `ChoiceGroup` pills over `SegmentedButton`.
 - **One look.** Colors, fonts and type styles come from `core/theme/app_themes.dart` (`context.spec`: `display()`, `mono()`, `accent`, `primary`…) and shared pieces from `widgets/ui.dart` (`Panel`, `Group`/`GroupRow`/`SwitchRow`, `Pill`, `ChoiceGroup`, `Segmented`, `PageHeader`). Don't hard-code colors in screens, and check both light and dark. The approved design is the Claude Design canvas linked in docs/DECISIONS.md.
 - **No shame mechanics** (product principle): no red overdue walls, streaks never reset to zero, celebrations respect the Off/Subtle/Normal/Party setting, and starting earns XP.
@@ -119,4 +121,5 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - Starting `workflow_dispatch` through the GitHub API gave HTTP 403 on release creation; push-triggered runs publish fine. Use a `[mac]` commit to get a Mac build.
 - Home changes after 5 pm (the "Wrap up" link). A layout that fits in the afternoon overflowed in the evening and only failed tests run after 5 pm; `narrow_layout_test` now pins the clock to 9 pm. Pin `clockProvider` in any test whose layout depends on the time.
 - **Menus and sheets on tab screens need `useRootNavigator: true`** (`PopupMenuButton`, `showModalBottomSheet`). The tabs live in go_router's nested shell navigator, so without it they open *under* the floating nav bar and bottom items (e.g. Delete) can't be tapped. `test/flutter_test_config.dart` makes tests fail on any tap that wouldn't hit its target.
+- The focus screen ticks every second and the buddy dot animates forever, so `pumpAndSettle()` there can hang: pump fixed durations instead (`frames()` in `reset_errands_company_ai_test.dart`). Override `ambientPlayerProvider`, `aiKeyStoreProvider` and `httpClientProvider` in tests; the real ones need native plugins or the network.
 - Widget tests: `pumpApp()` in `test/widget/app_flow_test.dart` builds the full app with in-memory storage and accepts provider `overrides`. Use `FakeReminders` (`reminders_undo_test.dart`) for notification behavior. Snackbars need `pumpAndSettle()` before tapping their action.

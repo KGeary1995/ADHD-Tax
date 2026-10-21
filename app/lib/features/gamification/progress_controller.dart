@@ -110,7 +110,8 @@ class ProgressController extends Notifier<ProgressStats> {
   CelebrationEvent recordStart(Task t, {bool panic = false}) {
     final award = startXp(t);
     return _record(
-      t,
+      t.title,
+      t.workspace,
       award,
       CelebrationKind.started,
       (e) => e.copyWith(started: 1, panic: panic ? 1 : 0),
@@ -132,7 +133,8 @@ class ProgressController extends Notifier<ProgressStats> {
     );
     final tolerance = math.max(1, (t.estimateMin * 0.1).round());
     return _record(
-      t,
+      t.title,
+      t.workspace,
       award,
       CelebrationKind.completed,
       (e) => e.copyWith(
@@ -158,7 +160,8 @@ class ProgressController extends Notifier<ProgressStats> {
     bool keptGoingAfterFive = false,
   }) {
     return _record(
-      t,
+      t.title,
+      t.workspace,
       partialXp(minutes),
       CelebrationKind.partial,
       (e) => e.copyWith(
@@ -167,6 +170,18 @@ class ProgressController extends Notifier<ProgressStats> {
       ),
     );
   }
+
+  /// XP for something that isn't one task, like finishing the weekly
+  /// reset. Counts as progress (an active day), not a start or a finish.
+  CelebrationEvent recordBonus(String label, int xp, Workspace workspace) =>
+      _record(
+        label,
+        workspace,
+        XpAward([XpLine(label, xp)]),
+        CelebrationKind.partial,
+        (e) => e,
+        eventLabel: label,
+      );
 
   /// Takes back the XP from an undone action, on every device.
   void revoke(CelebrationEvent e) {
@@ -197,11 +212,13 @@ class ProgressController extends Notifier<ProgressStats> {
   }
 
   CelebrationEvent _record(
-    Task t,
+    String title,
+    Workspace workspace,
     XpAward award,
     CelebrationKind kind,
     ProgressEvent Function(ProgressEvent) counters, {
     bool quick = false,
+    String? eventLabel,
   }) {
     final now = _now();
     final event = counters(
@@ -213,7 +230,7 @@ class ProgressController extends Notifier<ProgressStats> {
           CelebrationKind.completed => ProgressKind.completed,
           CelebrationKind.partial => ProgressKind.partial,
         },
-        label: '${_verb(kind)}: ${t.title}',
+        label: eventLabel ?? '${_verb(kind)}: $title',
         xp: award.total,
         coins: award.coins,
       ),
@@ -226,21 +243,21 @@ class ProgressController extends Notifier<ProgressStats> {
     ref
         .read(replicasProvider.notifier)
         .write(
-          t.workspace,
+          workspace,
           (r, now) => r.put(collEvents, event.id, event.toJson(), now),
           events: true,
         );
 
     final celebration = CelebrationEvent(
       kind: kind,
-      taskTitle: t.title,
+      taskTitle: title,
       award: award,
       levelBefore: before.level,
       levelAfter: after.level,
       achievements: unlocked,
       quick: quick,
       eventId: event.id,
-      workspace: t.workspace,
+      workspace: workspace,
     );
     ref.read(celebrationQueueProvider.notifier).push(celebration);
     return celebration;

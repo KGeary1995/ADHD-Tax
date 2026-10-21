@@ -18,6 +18,7 @@ import '../notes/project_widgets.dart';
 import 'task_actions.dart';
 import 'task_board.dart';
 import 'tasks_controller.dart';
+import 'weekly_reset.dart';
 import 'waiting_sheet.dart';
 
 final _workspaceFilterProvider = NotifierProvider<_WorkspaceFilter, Workspace?>(
@@ -169,6 +170,14 @@ class TaskListScreen extends ConsumerWidget {
                       ref.read(taskProjectFilterProvider.notifier).set(null);
                     }
                   },
+                ),
+              if (staleTasks(ref.watch(tasksProvider), now) case final stale
+                  when stale.isNotEmpty)
+                Pill(
+                  label: 'Weekly reset · ${stale.length}',
+                  icon: Icons.cleaning_services_outlined,
+                  selected: false,
+                  onTap: () => context.push('/reset'),
                 ),
             ],
           ),

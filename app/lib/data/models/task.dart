@@ -92,6 +92,7 @@ class Task {
     this.projectId = '',
     this.checklist = '',
     this.tags = '',
+    this.reviewedAt,
   }) : assert(ugh >= 0 && ugh <= 3);
 
   final String id;
@@ -146,6 +147,10 @@ class Task {
   /// Comma-separated lowercase tags without '#', like `Note.tags` but kept
   /// as one string so it syncs as a scalar. '' for none.
   final String tags;
+
+  /// Last time it was kept on purpose in the weekly reset, so it isn't
+  /// asked about again for another week.
+  final DateTime? reviewedAt;
 
   List<ChecklistItem> get steps => parseChecklist(checklist);
 
@@ -207,6 +212,7 @@ class Task {
     String? projectId,
     String? checklist,
     String? tags,
+    Object? reviewedAt = _unset,
   }) {
     return Task(
       id: id,
@@ -251,6 +257,9 @@ class Task {
       projectId: projectId ?? this.projectId,
       checklist: checklist ?? this.checklist,
       tags: tags ?? this.tags,
+      reviewedAt: identical(reviewedAt, _unset)
+          ? this.reviewedAt
+          : reviewedAt as DateTime?,
     );
   }
 
@@ -285,6 +294,7 @@ class Task {
     'projectId': projectId,
     'checklist': checklist,
     'tags': tags,
+    'reviewedAt': reviewedAt?.toIso8601String(),
   };
 
   factory Task.fromJson(Map<String, Object?> j) {
@@ -324,6 +334,7 @@ class Task {
       projectId: j['projectId'] as String? ?? '',
       checklist: j['checklist'] as String? ?? '',
       tags: j['tags'] as String? ?? '',
+      reviewedAt: date('reviewedAt'),
     );
   }
 

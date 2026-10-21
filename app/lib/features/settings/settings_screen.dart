@@ -6,6 +6,8 @@ import '../../core/theme/app_themes.dart';
 import '../../widgets/ui.dart';
 import '../gamification/progress_controller.dart';
 import '../../sync/replicas_controller.dart';
+import '../ai/ai_settings_group.dart';
+import '../outside/desktop_hotkey.dart';
 import 'accounts_panel.dart';
 import 'backup_group.dart';
 import 'device_workspaces.dart';
@@ -70,6 +72,13 @@ class SettingsScreen extends ConsumerWidget {
           Group(
             label: 'Reuse',
             children: [
+              if (hotkeySupported)
+                SwitchRow(
+                  title: 'Quick add from anywhere',
+                  subtitle: 'Press $hotkeyLabel in any app',
+                  value: ref.watch(hotkeyEnabledProvider),
+                  onChanged: ref.read(hotkeyEnabledProvider.notifier).set,
+                ),
               GroupRow(
                 title: 'Templates',
                 subtitle: 'Checklists and notes you use again and again',
@@ -78,6 +87,8 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
+          gap,
+          const AiSettingsGroup(),
           gap,
           const BackupGroup(),
           gap,

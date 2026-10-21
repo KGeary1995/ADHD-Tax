@@ -14,12 +14,15 @@ import 'features/gamification/progress_screen.dart';
 import 'features/notes/note_editor_screen.dart';
 import 'features/notes/notes_screen.dart';
 import 'features/outside/device_bridge.dart';
+import 'features/outside/desktop_hotkey.dart';
 import 'features/outside/outside_bootstrap.dart';
 import 'features/picker/dashboard_screen.dart';
 import 'features/reminders/reminder_bootstrap.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/tasks/task_list_screen.dart';
+import 'features/tasks/weekly_reset_screen.dart';
+import 'features/picker/errand_run_screen.dart';
 import 'data/models/template.dart';
 import 'features/templates/template_editor_screen.dart';
 import 'features/templates/templates_screen.dart';
@@ -69,6 +72,8 @@ GoRouter buildRouter() => GoRouter(
     ),
     GoRoute(path: '/wrapup', builder: (_, _) => const WrapUpScreen()),
     GoRoute(path: '/templates', builder: (_, _) => const TemplatesScreen()),
+    GoRoute(path: '/reset', builder: (_, _) => const WeeklyResetScreen()),
+    GoRoute(path: '/errands', builder: (_, _) => const ErrandRunScreen()),
     GoRoute(
       path: '/template/:id',
       builder: (_, state) => TemplateEditorScreen(
@@ -133,8 +138,10 @@ class UnstuckApp extends ConsumerWidget {
         child: SyncBootstrap(
           child: ReminderBootstrap(
             child: OutsideBootstrap(
-              child: CelebrationOverlay(
-                child: child ?? const SizedBox.shrink(),
+              child: DesktopHotkey(
+                child: CelebrationOverlay(
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           ),

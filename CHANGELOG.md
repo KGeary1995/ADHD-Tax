@@ -2,7 +2,14 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-19 (Android, Mac, web)
+## Next build — 2026-10-21 (Android, Mac, web)
+- **Weekly reset**: on weekends Home offers "Weekly reset: N tasks to sort". It shows each task that has sat untouched for a week, one at a time: **Keep it**, **Make it smaller**, **Not this week** (hidden 7 days) or **Let it go** (archived), with **Back** if you tap the wrong one. +20 XP when you finish. Also on the Tasks tab any day ("Weekly reset · N").
+- **Errand run**: when Home is set to "Can go out", it suggests a run of errands that fit your time, grouped by place ("Errand run: Pharmacy + Post office · 45m", with 10 min travel per stop). Tap it for the list and tick each one off as you go.
+- **Company while you work** (headphones on the focus screen): background sound (Brown noise, Rain or Fan, mixed with your own music rather than stopping it) and an optional **buddy**, a quiet line under the timer like someone at the next desk ("Your buddy · Answering emails"). Pausing the timer pauses the sound. Remembered for next time.
+- **Quick add from anywhere (Mac and Windows)**: press **Ctrl+Shift+Space** (⌃⇧Space on a Mac) in any app and Unstuck comes forward with Quick add open. Settings → Reuse to turn it off.
+- **Break it down with AI** (optional): in a task's editor, under Checklist. Claude turns the task into 3–7 small steps you can edit before saving. Needs your own Anthropic API key (Settings → AI helper; it stays on the device and costs a fraction of a cent per task). Off for Work tasks unless you turn it on, and a Work task that looks like it has patient details is never sent.
+
+## Build 59 — 2026-10-19 (96cdaf7) (Android, Mac, web)
 - **Type it the way you'd say it**: in Quick add, "Call insurance tomorrow 2pm 15 min #billing" fills in the due date and time, the length and the tag, and saves the title as "Call insurance". What it picked up shows as chips under the box; tap one to keep those words in the title instead. It also understands weekdays ("by friday"), "tonight", "next week", "in 3 days", dates like "4/15" or "Nov 3", "at 5", "noon", "1h 30m", "urgent", `!!` (High), `#work` / `#personal`, and a `#tag` that matches a project's name files the task into that project. Works offline, in Brain dump too (one line each). No AI involved.
 - **Checklists inside a task**: break a task into steps in its editor (paste a list to add several at once). The next unticked step becomes the first step everywhere: Home shows "Step 2 of 4: …" and the focus screen has a **Step done** button plus the whole checklist to tick. A repeating task's next copy comes back unticked.
 - **Reward shop** (Progress tab): spend the coins you earn on treats you choose, e.g. Fancy coffee out = 25. Tap **Redeem** (with Undo). A 15-minute task started and finished earns about 2 coins. Spending never touches XP, level or streak.

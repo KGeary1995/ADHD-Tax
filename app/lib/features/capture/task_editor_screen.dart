@@ -11,6 +11,8 @@ import '../../data/models/note.dart' show parseTags;
 import '../../data/models/task.dart';
 import '../../widgets/task_chips.dart';
 import '../../widgets/ui.dart';
+import '../ai/ai_settings.dart';
+import '../ai/breakdown.dart';
 import '../notes/notes_controller.dart';
 import '../notes/notes_screen.dart';
 import '../notes/project_widgets.dart';
@@ -143,6 +145,48 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       final saved = ref.read(tasksProvider.notifier).byId(_task.id);
       if (saved != null) deleteWithUndo(context, ref, saved);
       _close();
+    }
+  }
+
+  bool _breakingDown = false;
+
+  /// Asks Claude for steps and adds them to the checklist (not saved until
+  /// Save, so they can be edited or dropped first).
+  Future<void> _breakDown() async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (_title.text.trim().isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Give the task a name first.')),
+      );
+      return;
+    }
+    setState(() => _breakingDown = true);
+    try {
+      final steps = await ref
+          .read(aiSettingsProvider.notifier)
+          .breakDown(
+            _task.copyWith(title: _title.text.trim(), notes: _notes.text),
+          );
+      if (!mounted) return;
+      setState(
+        () => _task = _task.copyWith(
+          checklist: encodeChecklist([
+            ..._task.steps,
+            for (final st in steps) ChecklistItem(st),
+          ]),
+        ),
+      );
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Added ${steps.length} steps. Edit or remove any, then Save.',
+          ),
+        ),
+      );
+    } on BreakdownException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _breakingDown = false);
     }
   }
 
@@ -287,10 +331,35 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   ),
                   field(
                     'Checklist',
-                    ChecklistEditor(
-                      value: _task.checklist,
-                      onChanged: (v) =>
-                          setState(() => _task = _task.copyWith(checklist: v)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ChecklistEditor(
+                          value: _task.checklist,
+                          onChanged: (v) => setState(
+                            () => _task = _task.copyWith(checklist: v),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: _breakingDown ? null : _breakDown,
+                            icon: _breakingDown
+                                ? const SizedBox.square(
+                                    dimension: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.auto_awesome_outlined),
+                            label: Text(
+                              _breakingDown
+                                  ? 'Breaking it down…'
+                                  : 'Break it down with AI',
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     help: _task.steps.isEmpty
                         ? 'Optional. Break it into steps you can tick off.'
