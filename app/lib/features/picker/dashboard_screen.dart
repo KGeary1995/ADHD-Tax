@@ -48,112 +48,176 @@ class DashboardScreen extends ConsumerWidget {
       main = _NothingPanel(reason: result.noPickReason!);
     }
 
-    return ContentWidth(
-      maxWidth: 560,
-      child: CustomScrollView(
-        slivers: [
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                14,
-                20,
-                14,
-                MediaQuery.paddingOf(context).bottom + 14,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+    const header = Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          Wordmark(),
+          SizedBox(width: 12),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      children: [
-                        Wordmark(),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SyncAlert(),
-                                SizedBox(width: 4),
-                                Flexible(child: LevelPill()),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 26),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text.rich(
-                        TextSpan(
-                          text: 'One thing. ',
-                          children: [
-                            TextSpan(
-                              text: 'Right now.',
-                              style: TextStyle(color: s.primary),
-                            ),
-                          ],
-                        ),
-                        style: s.display(31),
-                        maxLines: 1,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: _SituationBar(),
-                  ),
-                  const _CheckBackBanner(),
-                  const _ErrandRunBanner(),
-                  const _ResetBanner(),
-                  const SizedBox(height: 20),
-                  AnimatedSwitcher(
-                    duration: Duration(
-                      milliseconds: context.reduceMotion ? 0 : 250,
-                    ),
-                    child: KeyedSubtree(
-                      key: ValueKey(
-                        suggestion?.task.id ??
-                            (choices.isNotEmpty
-                                ? 'commit'
-                                : result.noPickReason?.name),
-                      ),
-                      child: main,
-                    ),
-                  ),
-                  if (suggestion != null) ...[
-                    const SizedBox(height: 10),
-                    _Tiles(task: suggestion.task),
-                  ],
-                  const SizedBox(height: 24),
-                  const Spacer(),
-                  // Tap to skip ahead. Dread-busting when the pick is one
-                  // you rated "Ugh" or worse.
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: QuoteRotator(
-                      context: (suggestion?.task.ugh ?? 0) >= 2
-                          ? QuoteContext.dreadTask
-                          : QuoteContext.dashboard,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  const _TodayLine(),
+                  SyncAlert(),
+                  SizedBox(width: 4),
+                  Flexible(child: LevelPill()),
                 ],
               ),
             ),
           ),
         ],
       ),
+    );
+    Widget headline(double size) => Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text.rich(
+          TextSpan(
+            text: 'One thing. ',
+            children: [
+              TextSpan(
+                text: 'Right now.',
+                style: TextStyle(color: s.primary),
+              ),
+            ],
+          ),
+          style: s.display(size),
+          maxLines: 1,
+        ),
+      ),
+    );
+    final card = AnimatedSwitcher(
+      duration: Duration(milliseconds: context.reduceMotion ? 0 : 250),
+      child: KeyedSubtree(
+        key: ValueKey(
+          suggestion?.task.id ??
+              (choices.isNotEmpty ? 'commit' : result.noPickReason?.name),
+        ),
+        child: main,
+      ),
+    );
+    // Tap to skip ahead. Dread-busting when the pick is one you rated
+    // "Ugh" or worse.
+    final quote = QuoteRotator(
+      context: (suggestion?.task.ugh ?? 0) >= 2
+          ? QuoteContext.dreadTask
+          : QuoteContext.dashboard,
+    );
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        // A computer: the one task stays front and center; everything
+        // around it moves to a column on the right instead of stacking
+        // above it.
+        if (c.maxWidth >= 1000) {
+          return ContentWidth(
+            maxWidth: 1180,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(
+                22,
+                28,
+                22,
+                MediaQuery.paddingOf(context).bottom + 24,
+              ),
+              children: [
+                header,
+                const SizedBox(height: 30),
+                headline(44),
+                const SizedBox(height: 24),
+                ResponsiveColumns(
+                  sideWidth: 360,
+                  main: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: _SituationBar(),
+                    ),
+                    const SizedBox(height: 18),
+                    card,
+                    if (suggestion != null) ...[
+                      const SizedBox(height: 10),
+                      _Tiles(task: suggestion.task),
+                    ],
+                  ],
+                  side: [
+                    // The banners carry their own top gap.
+                    const _CheckBackBanner(),
+                    const _ErrandRunBanner(),
+                    const _ResetBanner(),
+                    const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Panel(
+                        radius: 18,
+                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            quote,
+                            const SizedBox(height: 14),
+                            const _TodayLine(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
+        return ContentWidth(
+          maxWidth: 560,
+          child: CustomScrollView(
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    14,
+                    20,
+                    14,
+                    MediaQuery.paddingOf(context).bottom + 14,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      header,
+                      const SizedBox(height: 26),
+                      headline(31),
+                      const SizedBox(height: 20),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: _SituationBar(),
+                      ),
+                      const _CheckBackBanner(),
+                      const _ErrandRunBanner(),
+                      const _ResetBanner(),
+                      const SizedBox(height: 20),
+                      card,
+                      if (suggestion != null) ...[
+                        const SizedBox(height: 10),
+                        _Tiles(task: suggestion.task),
+                      ],
+                      const SizedBox(height: 24),
+                      const Spacer(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: quote,
+                      ),
+                      const SizedBox(height: 18),
+                      const _TodayLine(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

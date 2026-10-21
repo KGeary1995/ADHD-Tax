@@ -39,199 +39,257 @@ class ProgressScreen extends ConsumerWidget {
       ...achievements.where((a) => !p.unlocked.containsKey(a.id)),
     ];
 
-    return ContentWidth(
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(14, 24, 14, navClearance(context)),
+    final levelPanel = Panel(
+      radius: 26,
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8),
-            child: PageHeader('Progress'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(child: Text('Level $level', style: s.display(44))),
+              Text(
+                rankForLevel(level),
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: s.primary,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 22),
-          Panel(
-            radius: 26,
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(child: Text('Level $level', style: s.display(44))),
-                    Text(
-                      rankForLevel(level),
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: s.primary,
-                      ),
-                    ),
-                  ],
+          const SizedBox(height: 18),
+          Semantics(
+            label: 'XP to the next level',
+            value: '${(levelProgress(p.xp) * 100).round()}%',
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(end: levelProgress(p.xp)),
+                duration: Duration(milliseconds: motion),
+                builder: (_, v, _) => LinearProgressIndicator(
+                  value: v,
+                  minHeight: 10,
+                  borderRadius: BorderRadius.circular(5),
                 ),
-                const SizedBox(height: 18),
-                Semantics(
-                  label: 'XP to the next level',
-                  value: '${(levelProgress(p.xp) * 100).round()}%',
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(5),
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(end: levelProgress(p.xp)),
-                      duration: Duration(milliseconds: motion),
-                      builder: (_, v, _) => LinearProgressIndicator(
-                        value: v,
-                        minHeight: 10,
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  spacing: 12,
-                  children: [
-                    Text('${p.xp} XP', style: s.mono(13)),
-                    Text('$toNext to level ${level + 1}', style: s.mono(13)),
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 14, 8, 0),
-            child: LayoutBuilder(
-              builder: (context, c) {
-                final cols = c.maxWidth > 520 ? 3 : 2;
-                final w = (c.maxWidth - (cols - 1) * 20) / cols;
-                return Wrap(
-                  spacing: 20,
-                  children: [
-                    for (final (value, label) in stats)
-                      Container(
-                        width: w,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          border: Border(bottom: BorderSide(color: s.hairline)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              value,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: s.display(30, weight: FontWeight.w600),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              label,
-                              style: TextStyle(fontSize: 14, color: s.muted),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
-            child: Text(
-              'Streaks have 2 grace days a week. Missing a day never sends '
-              'you back to zero.',
-              style: TextStyle(color: s.muted, fontSize: 13, height: 1.4),
-            ),
-          ),
-          const SizedBox(height: 22),
-          const RewardShop(),
-          const SizedBox(height: 16),
-          const _EstimatesCard(),
-          const SizedBox(height: 26),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text.rich(
-                  TextSpan(
-                    text: 'Achievements',
-                    children: [
-                      TextSpan(
-                        text:
-                            '  ${p.unlocked.length} of ${achievements.length}',
-                        style: TextStyle(
-                          color: s.faint,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
-                  ),
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: s.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                for (final (i, a) in sorted.indexed)
-                  _AchievementRow(
-                    achievement: a,
-                    unlocked: p.unlocked.containsKey(a.id),
-                    last: i == sorted.length - 1,
-                  ),
-                if (p.recent.isNotEmpty) ...[
-                  const SizedBox(height: 26),
-                  const SectionTitle('Recent XP'),
-                  for (final r in p.recent.take(15))
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        border: Border(bottom: BorderSide(color: s.hairline)),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  r.label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    color: s.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  _ago(r.at, now),
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: s.muted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            '+${r.amount}',
-                            style: s.mono(
-                              15,
-                              color: s.primary,
-                              weight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ],
-            ),
+          const SizedBox(height: 10),
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 12,
+            children: [
+              Text('${p.xp} XP', style: s.mono(13)),
+              Text('$toNext to level ${level + 1}', style: s.mono(13)),
+            ],
           ),
         ],
       ),
+    );
+    final statBlock = Padding(
+      padding: const EdgeInsets.fromLTRB(8, 14, 8, 0),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final cols = c.maxWidth > 520 ? 3 : 2;
+          final w = (c.maxWidth - (cols - 1) * 20) / cols;
+          return Wrap(
+            spacing: 20,
+            children: [
+              for (final (value, label) in stats)
+                Container(
+                  width: w,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    border: Border(bottom: BorderSide(color: s.hairline)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: s.display(30, weight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        label,
+                        style: TextStyle(fontSize: 14, color: s.muted),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+    final streakNote = Padding(
+      padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
+      child: Text(
+        'Streaks have 2 grace days a week. Missing a day never sends '
+        'you back to zero.',
+        style: TextStyle(color: s.muted, fontSize: 13, height: 1.4),
+      ),
+    );
+    final achievementList = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text.rich(
+            TextSpan(
+              text: 'Achievements',
+              children: [
+                TextSpan(
+                  text: '  ${p.unlocked.length} of ${achievements.length}',
+                  style: TextStyle(color: s.faint, fontWeight: FontWeight.w400),
+                ),
+              ],
+            ),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: s.onSurface,
+            ),
+          ),
+          const SizedBox(height: 6),
+          // Two columns when there's room, so the list isn't a long scroll.
+          LayoutBuilder(
+            builder: (context, c) {
+              final cols = c.maxWidth >= 600 ? 2 : 1;
+              final w = (c.maxWidth - (cols - 1) * 24) / cols;
+              final lastRow = (sorted.length - 1) ~/ cols;
+              return Wrap(
+                spacing: 24,
+                children: [
+                  for (final (i, a) in sorted.indexed)
+                    SizedBox(
+                      width: w,
+                      child: _AchievementRow(
+                        achievement: a,
+                        unlocked: p.unlocked.containsKey(a.id),
+                        last: i ~/ cols == lastRow,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+    final recentXp = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionTitle('Recent XP'),
+          for (final r in p.recent.take(15))
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: s.hairline)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          r.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 15, color: s.onSurface),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _ago(r.at, now),
+                          style: TextStyle(fontSize: 13, color: s.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '+${r.amount}',
+                    style: s.mono(
+                      15,
+                      color: s.primary,
+                      weight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+    const header = Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: PageHeader('Progress'),
+    );
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        // A computer: where you stand on the left, what to spend and
+        // what you've earned lately on the right.
+        if (c.maxWidth >= 1000) {
+          return ContentWidth(
+            maxWidth: 1180,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(22, 28, 22, navClearance(context)),
+              children: [
+                header,
+                const SizedBox(height: 22),
+                ResponsiveColumns(
+                  sideWidth: 400,
+                  main: [
+                    levelPanel,
+                    statBlock,
+                    streakNote,
+                    const SizedBox(height: 26),
+                    achievementList,
+                  ],
+                  side: [
+                    const RewardShop(),
+                    const SizedBox(height: 16),
+                    const _EstimatesCard(),
+                    if (p.recent.isNotEmpty) ...[
+                      const SizedBox(height: 26),
+                      recentXp,
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
+        return ContentWidth(
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(14, 24, 14, navClearance(context)),
+            children: [
+              header,
+              const SizedBox(height: 22),
+              levelPanel,
+              statBlock,
+              streakNote,
+              const SizedBox(height: 22),
+              const RewardShop(),
+              const SizedBox(height: 16),
+              const _EstimatesCard(),
+              const SizedBox(height: 26),
+              achievementList,
+              if (p.recent.isNotEmpty) ...[
+                const SizedBox(height: 26),
+                recentXp,
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

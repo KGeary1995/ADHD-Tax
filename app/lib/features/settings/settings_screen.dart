@@ -24,95 +24,120 @@ class SettingsScreen extends ConsumerWidget {
     final ctl = ref.read(settingsProvider.notifier);
     const gap = SizedBox(height: 22);
 
-    return ContentWidth(
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(14, 24, 14, navClearance(context)),
+    // Where you are and how it's connected.
+    final device = <Widget>[
+      const FieldLabel('Appearance', inset: 8),
+      Segmented<Appearance>(
+        values: Appearance.values,
+        selected: settings.appearance,
+        labelOf: (a) => a.label,
+        onSelected: (a) => ctl.update((x) => x.copyWith(appearance: a)),
+      ),
+      gap,
+      const _ShowOnDevice(),
+      gap,
+      const RemindersPanel(),
+      gap,
+      const AccountsPanel(),
+    ];
+    // How it behaves, and your data.
+    final behavior = <Widget>[
+      Group(
+        label: 'Feel',
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8),
-            child: PageHeader('Settings'),
+          GroupRow(
+            title: 'Celebrations',
+            trailing: _Value(settings.celebration.label),
+            onTap: () => _pickCelebration(context, ref),
           ),
-          gap,
-          const FieldLabel('Appearance', inset: 8),
-          Segmented<Appearance>(
-            values: Appearance.values,
-            selected: settings.appearance,
-            labelOf: (a) => a.label,
-            onSelected: (a) => ctl.update((x) => x.copyWith(appearance: a)),
+          GroupRow(
+            title: 'Quotes',
+            trailing: _Value('every ${settings.quoteSeconds} s'),
+            onTap: () => _pickQuoteSpeed(context, ref),
           ),
-          gap,
-          const _ShowOnDevice(),
-          gap,
-          const RemindersPanel(),
-          gap,
-          const AccountsPanel(),
-          gap,
-          Group(
-            label: 'Feel',
-            children: [
-              GroupRow(
-                title: 'Celebrations',
-                trailing: _Value(settings.celebration.label),
-                onTap: () => _pickCelebration(context, ref),
-              ),
-              GroupRow(
-                title: 'Quotes',
-                trailing: _Value('every ${settings.quoteSeconds} s'),
-                onTap: () => _pickQuoteSpeed(context, ref),
-              ),
-              SwitchRow(
-                title: 'Patient-info guard',
-                subtitle: 'Warn on Work tasks that look like PHI',
-                value: settings.phiGuard,
-                onChanged: (v) => ctl.update((x) => x.copyWith(phiGuard: v)),
-              ),
-            ],
-          ),
-          gap,
-          Group(
-            label: 'Reuse',
-            children: [
-              if (hotkeySupported)
-                SwitchRow(
-                  title: 'Quick add from anywhere',
-                  subtitle: 'Press $hotkeyLabel in any app',
-                  value: ref.watch(hotkeyEnabledProvider),
-                  onChanged: ref.read(hotkeyEnabledProvider.notifier).set,
-                ),
-              GroupRow(
-                title: 'Templates',
-                subtitle: 'Checklists and notes you use again and again',
-                trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
-                onTap: () => context.push('/templates'),
-              ),
-            ],
-          ),
-          gap,
-          const AiSettingsGroup(),
-          gap,
-          const BackupGroup(),
-          gap,
-          Group(
-            label: 'Data',
-            children: [
-              GroupRow(
-                title: 'Reset XP and achievements',
-                subtitle: 'Your tasks stay. Applies on all synced devices.',
-                trailing: Icon(Icons.restart_alt_rounded, color: s.danger),
-                onTap: () => _reset(context, ref),
-              ),
-              GroupRow(
-                title: 'Licenses',
-                trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
-                onTap: () => showLicensePage(
-                  context: context,
-                  applicationName: 'Unstuck',
-                ),
-              ),
-            ],
+          SwitchRow(
+            title: 'Patient-info guard',
+            subtitle: 'Warn on Work tasks that look like PHI',
+            value: settings.phiGuard,
+            onChanged: (v) => ctl.update((x) => x.copyWith(phiGuard: v)),
           ),
         ],
       ),
+      gap,
+      Group(
+        label: 'Reuse',
+        children: [
+          if (hotkeySupported)
+            SwitchRow(
+              title: 'Quick add from anywhere',
+              subtitle: 'Press $hotkeyLabel in any app',
+              value: ref.watch(hotkeyEnabledProvider),
+              onChanged: ref.read(hotkeyEnabledProvider.notifier).set,
+            ),
+          GroupRow(
+            title: 'Templates',
+            subtitle: 'Checklists and notes you use again and again',
+            trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
+            onTap: () => context.push('/templates'),
+          ),
+        ],
+      ),
+      gap,
+      const AiSettingsGroup(),
+      gap,
+      const BackupGroup(),
+      gap,
+      Group(
+        label: 'Data',
+        children: [
+          GroupRow(
+            title: 'Reset XP and achievements',
+            subtitle: 'Your tasks stay. Applies on all synced devices.',
+            trailing: Icon(Icons.restart_alt_rounded, color: s.danger),
+            onTap: () => _reset(context, ref),
+          ),
+          GroupRow(
+            title: 'Licenses',
+            trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
+            onTap: () =>
+                showLicensePage(context: context, applicationName: 'Unstuck'),
+          ),
+        ],
+      ),
+    ];
+    const header = Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: PageHeader('Settings'),
+    );
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        // A computer: two columns of groups instead of one long scroll.
+        if (c.maxWidth >= 1000) {
+          final inner = (c.maxWidth < 1180 ? c.maxWidth : 1180) - 44;
+          return ContentWidth(
+            maxWidth: 1180,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(22, 28, 22, navClearance(context)),
+              children: [
+                header,
+                gap,
+                ResponsiveColumns(
+                  sideWidth: (inner - 28) / 2,
+                  main: device,
+                  side: behavior,
+                ),
+              ],
+            ),
+          );
+        }
+        return ContentWidth(
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(14, 24, 14, navClearance(context)),
+            children: [header, gap, ...device, gap, ...behavior],
+          ),
+        );
+      },
     );
   }
 }

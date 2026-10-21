@@ -764,3 +764,53 @@ class SideItem extends StatelessWidget {
     );
   }
 }
+
+/// Main content and a side column next to it on wide screens; stacked
+/// (main first) when there isn't room. For use inside a scroll view.
+class ResponsiveColumns extends StatelessWidget {
+  const ResponsiveColumns({
+    super.key,
+    required this.main,
+    required this.side,
+    this.sideWidth = 380,
+    this.gap = 28,
+    this.breakpoint = 900,
+  });
+
+  final List<Widget> main;
+  final List<Widget> side;
+  final double sideWidth;
+  final double gap;
+  final double breakpoint;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, c) {
+      if (c.maxWidth < breakpoint) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [...main, ...side],
+        );
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: main,
+            ),
+          ),
+          SizedBox(width: gap),
+          SizedBox(
+            width: sideWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: side,
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}

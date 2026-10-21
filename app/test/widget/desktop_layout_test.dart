@@ -1,10 +1,12 @@
 import 'package:adhd_tax/data/models/task.dart';
 import 'package:adhd_tax/features/capture/quick_add_sheet.dart';
+import 'package:adhd_tax/features/motivation/quote_rotator.dart';
 import 'package:adhd_tax/features/notes/notes_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:adhd_tax/widgets/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'app_flow_test.dart' show pumpApp;
 
@@ -71,6 +73,43 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(Dialog), findsOneWidget);
     expect(find.textContaining('Type when, how long'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('desktop pages use the width: two columns, not a phone strip', (
+    tester,
+  ) async {
+    final c = await pumpApp(tester, size: _desktop);
+    final t = c
+        .read(tasksProvider.notifier)
+        .create(title: 'Renew the parking permit');
+    await tester.pumpAndSettle();
+
+    // Left of [b] by a column's width, and starting near the same height.
+    void sideBySide(Finder a, Finder b) {
+      final pa = tester.getTopLeft(a), pb = tester.getTopLeft(b);
+      expect(pb.dx - pa.dx, greaterThan(300), reason: 'columns');
+      expect((pb.dy - pa.dy).abs(), lessThan(200), reason: 'same height');
+    }
+
+    // Home: the task card on the left, the quote on the right.
+    sideBySide(
+      find.text('Renew the parking permit'),
+      find.byType(QuoteRotator),
+    );
+
+    await tester.tap(find.text('Progress'));
+    await tester.pumpAndSettle();
+    sideBySide(find.textContaining('Level '), find.text('Reward shop'));
+
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    sideBySide(find.text('Appearance'), find.text('Feel'));
+
+    GoRouter.of(tester.element(find.byType(Scaffold).first))
+        .push('/task/${t.id}');
+    await tester.pumpAndSettle();
+    sideBySide(find.text('Task'), find.text('Workspace'));
     expect(tester.takeException(), isNull);
   });
 }

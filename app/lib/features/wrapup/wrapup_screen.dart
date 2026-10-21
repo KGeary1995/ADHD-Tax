@@ -118,6 +118,146 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
     }
 
     const gap = SizedBox(height: 28);
+    final today = <Widget>[
+      const SectionTitle('Today'),
+      const SizedBox(height: 6),
+      Text(
+        done.isEmpty
+            ? started > 0
+                  ? 'You started $started. Starting counts.'
+                  : 'A quiet day. That counts too.'
+            : '${done.length} done · $xpToday XP',
+        style: s.display(26, weight: FontWeight.w600),
+      ),
+      for (final t in done.take(6))
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Row(
+            children: [
+              Icon(Icons.check_rounded, size: 18, color: s.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  t.title,
+                  style: TextStyle(fontSize: 15, color: s.text2),
+                ),
+              ),
+            ],
+          ),
+        ),
+      if (done.length > 6)
+        Padding(
+          padding: const EdgeInsets.only(top: 8, left: 28),
+          child: Text(
+            '+${done.length - 6} more',
+            style: TextStyle(color: s.muted),
+          ),
+        ),
+      if (inProgress.isNotEmpty) ...[
+        gap,
+        SectionTitle('Still in progress', count: inProgress.length),
+        for (final t in inProgress)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: s.hairline)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: s.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    Pill(
+                      label: 'Done',
+                      selected: false,
+                      onTap: () => markDoneWithUndo(context, ref, t),
+                    ),
+                    Pill(
+                      label: 'Keep for tomorrow',
+                      selected: _pick == t.id,
+                      onTap: () => _choose(t),
+                    ),
+                    Pill(
+                      label: 'Back to the list',
+                      selected: false,
+                      onTap: () => ref
+                          .read(tasksProvider.notifier)
+                          .setStatus(t.id, TaskStatus.todo),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+      ],
+    ];
+    final tomorrow = <Widget>[
+      const SectionTitle("Tomorrow's first thing"),
+      const SizedBox(height: 4),
+      Text(
+        'Choose it now, and tomorrow starts with the decision already '
+        'made. It shows first on Home in the morning.',
+        style: TextStyle(fontSize: 14, color: s.muted, height: 1.4),
+      ),
+      const SizedBox(height: 10),
+      if (candidates.isEmpty)
+        Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Nothing on your list yet.',
+                style: TextStyle(color: s.text2),
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => showQuickAdd(context),
+                child: const Text('Add something for tomorrow'),
+              ),
+            ],
+          ),
+        ),
+      for (final t in candidates)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: _Candidate(
+            task: t,
+            selected: _pick == t.id,
+            onTap: () => _choose(t),
+          ),
+        ),
+      if (pinned != null && pinned.nextStep.isEmpty) ...[
+        const SizedBox(height: 16),
+        const FieldLabel('First 2-minute step (optional)'),
+        TextField(
+          controller: _firstStep,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            hintText: 'e.g. "Open the doc and read the first line"',
+          ),
+        ),
+      ],
+      const SizedBox(height: 28),
+      FilledButton(
+        onPressed: _finish,
+        style: FilledButton.styleFrom(minimumSize: const Size(0, 56)),
+        child: const Text('Done for today'),
+      ),
+    ];
+    // On a computer: today on the left, tomorrow's pick on the right.
+    final wide = MediaQuery.sizeOf(context).width >= 1000;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -138,7 +278,7 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
         ],
       ),
       body: ContentWidth(
-        maxWidth: 560,
+        maxWidth: wide ? 1080 : 560,
         child: ListView(
           padding: EdgeInsets.fromLTRB(
             22,
@@ -149,140 +289,18 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
           children: [
             Text('Wrap up the day', style: s.display(36)),
             gap,
-            const SectionTitle('Today'),
-            const SizedBox(height: 6),
-            Text(
-              done.isEmpty
-                  ? started > 0
-                        ? 'You started $started. Starting counts.'
-                        : 'A quiet day. That counts too.'
-                  : '${done.length} done · $xpToday XP',
-              style: s.display(26, weight: FontWeight.w600),
-            ),
-            for (final t in done.take(6))
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_rounded, size: 18, color: s.primary),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        t.title,
-                        style: TextStyle(fontSize: 15, color: s.text2),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (done.length > 6)
-              Padding(
-                padding: const EdgeInsets.only(top: 8, left: 28),
-                child: Text(
-                  '+${done.length - 6} more',
-                  style: TextStyle(color: s.muted),
-                ),
-              ),
-            if (inProgress.isNotEmpty) ...[
+            if (wide)
+              ResponsiveColumns(
+                sideWidth: 460,
+                gap: 48,
+                main: today,
+                side: tomorrow,
+              )
+            else ...[
+              ...today,
               gap,
-              SectionTitle('Still in progress', count: inProgress.length),
-              for (final t in inProgress)
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: s.hairline)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        t.title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: s.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          Pill(
-                            label: 'Done',
-                            selected: false,
-                            onTap: () => markDoneWithUndo(context, ref, t),
-                          ),
-                          Pill(
-                            label: 'Keep for tomorrow',
-                            selected: _pick == t.id,
-                            onTap: () => _choose(t),
-                          ),
-                          Pill(
-                            label: 'Back to the list',
-                            selected: false,
-                            onTap: () => ref
-                                .read(tasksProvider.notifier)
-                                .setStatus(t.id, TaskStatus.todo),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+              ...tomorrow,
             ],
-            gap,
-            const SectionTitle("Tomorrow's first thing"),
-            const SizedBox(height: 4),
-            Text(
-              'Choose it now, and tomorrow starts with the decision already '
-              'made. It shows first on Home in the morning.',
-              style: TextStyle(fontSize: 14, color: s.muted, height: 1.4),
-            ),
-            const SizedBox(height: 10),
-            if (candidates.isEmpty)
-              Panel(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Nothing on your list yet.',
-                      style: TextStyle(color: s.text2),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () => showQuickAdd(context),
-                      child: const Text('Add something for tomorrow'),
-                    ),
-                  ],
-                ),
-              ),
-            for (final t in candidates)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: _Candidate(
-                  task: t,
-                  selected: _pick == t.id,
-                  onTap: () => _choose(t),
-                ),
-              ),
-            if (pinned != null && pinned.nextStep.isEmpty) ...[
-              const SizedBox(height: 16),
-              const FieldLabel('First 2-minute step (optional)'),
-              TextField(
-                controller: _firstStep,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  hintText: 'e.g. "Open the doc and read the first line"',
-                ),
-              ),
-            ],
-            const SizedBox(height: 28),
-            FilledButton(
-              onPressed: _finish,
-              style: FilledButton.styleFrom(minimumSize: const Size(0, 56)),
-              child: const Text('Done for today'),
-            ),
           ],
         ),
       ),
