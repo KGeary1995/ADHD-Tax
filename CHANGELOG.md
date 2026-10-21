@@ -2,7 +2,10 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-21 (Mac, web, Android)
+## Next build — 2026-10-21 (Android, web)
+- **Google sync after an update (Android):** after installing a new build, the first quiet sign-in to Google can fail for a moment, and the app used to ask you to reconnect right away. It now retries by itself for about a minute (showing "Reconnecting to Google…") and only asks if it still can't get in.
+
+## Build 73 — 2026-10-21 (c10d388) (Mac, web, Android)
 - **Pop-ups are windows on a computer:** Waiting on, focus Company, Celebrations, Quote speed, the template picker, a note's Make tasks / Organize, and New project for… now open as a centered window instead of sliding up from the bottom of the screen. Phones keep the sheets.
 - **Settings on a computer** is a list of sections on the left (Look and feel, This device, Reminders, Sync, Shortcuts and templates, AI helper, Backup, Data) with the open one on the right, like Mac System Settings.
 - **Task editor on a computer:** in the right-hand column, labels sit beside their choices instead of above them, so it's much shorter.

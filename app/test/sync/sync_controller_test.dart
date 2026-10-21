@@ -81,6 +81,22 @@ class FakeAuth implements GoogleAuth {
       connected.remove(ws);
 }
 
+/// Like a phone just after an app update: the first few silent sign-ins
+/// come back empty even though the account is still authorized.
+class FlakyRestoreAuth extends FakeAuth {
+  FlakyRestoreAuth(super.accounts, {required this.failures});
+  int failures;
+
+  @override
+  Future<http.Client?> restore(Workspace ws, {String? email}) async {
+    if (failures > 0) {
+      failures--;
+      return null;
+    }
+    return super.restore(ws, email: email);
+  }
+}
+
 class _TaggedClient extends http.BaseClient {
   _TaggedClient(this.account);
   final FakeAccount account;
@@ -329,6 +345,52 @@ void main() {
       SyncPhase.synced,
     );
   });
+
+  test('after an update, a silent sign-in that fails at first is retried '
+      'quietly instead of asking to reconnect', () async {
+    final store = MemoryStore();
+    final first = device(FakeAuth(accounts()), store: store);
+    await first.read(syncProvider(Workspace.personal).notifier).connect();
+    first.dispose();
+
+    final auth = FlakyRestoreAuth(accounts(), failures: 2)
+      ..connected.add(Workspace.personal);
+    final updated = device(auth, store: store);
+    final ctl = updated.read(syncProvider(Workspace.personal).notifier);
+    await ctl.syncNow();
+    var s = updated.read(syncProvider(Workspace.personal));
+    expect(s.phase, SyncPhase.syncing);
+    expect(s.message, contains('Reconnecting'));
+    await ctl.syncNow();
+    expect(
+      updated.read(syncProvider(Workspace.personal)).phase,
+      isNot(SyncPhase.needsReconnect),
+    );
+    await ctl.syncNow();
+    s = updated.read(syncProvider(Workspace.personal));
+    expect(s.phase, SyncPhase.synced);
+    expect(s.email, 'kyle@gmail.com');
+  });
+
+  test(
+    'a sign-in that stays gone asks to reconnect after the retries',
+    () async {
+      final store = MemoryStore();
+      final first = device(FakeAuth(accounts()), store: store);
+      await first.read(syncProvider(Workspace.personal).notifier).connect();
+      first.dispose();
+
+      final again = device(FakeAuth(accounts()), store: store);
+      final ctl = again.read(syncProvider(Workspace.personal).notifier);
+      for (var i = 0; i <= SyncController.restoreRetries.length; i++) {
+        await ctl.syncNow();
+      }
+      expect(
+        again.read(syncProvider(Workspace.personal)).phase,
+        SyncPhase.needsReconnect,
+      );
+    },
+  );
 
   test('Work on a personal Gmail account is flagged', () async {
     final mixedUp = {Workspace.personal: personal, Workspace.work: personal};

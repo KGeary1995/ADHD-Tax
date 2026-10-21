@@ -50,7 +50,7 @@ Last updated: 2026-10-21 (desktop layout for every page).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 214 tests, ~35 s
+flutter test                         # 216 tests, ~40 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app

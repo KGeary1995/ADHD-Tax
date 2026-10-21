@@ -74,11 +74,23 @@ class SyncController extends Notifier<WorkspaceSync> {
   static const periodic = Duration(minutes: 3);
   static const afterEdit = Duration(seconds: 4);
 
+  /// Waits between silent sign-in retries before asking the user to
+  /// reconnect. Right after an Android update (a cold start), Google's
+  /// first silent token request can come back empty or fail even though
+  /// the grant is still there; a few seconds later it works.
+  static const restoreRetries = [
+    Duration(seconds: 5),
+    Duration(seconds: 20),
+    Duration(minutes: 1),
+  ];
+
   late SyncState _sync;
   http.Client? _client;
   AccountRemoteStore? _remote;
   Timer? _periodic;
   Timer? _debounce;
+  Timer? _retry;
+  int _restoreFailures = 0;
   bool _running = false;
   bool _again = false;
 
@@ -95,6 +107,7 @@ class SyncController extends Notifier<WorkspaceSync> {
     ref.onDispose(() {
       _periodic?.cancel();
       _debounce?.cancel();
+      _retry?.cancel();
       _client?.close();
     });
 
@@ -131,6 +144,8 @@ class SyncController extends Notifier<WorkspaceSync> {
       // A different account is a different Drive: start its sync state
       // fresh so everything local gets uploaded there.
       if (email != _sync.email) _sync = SyncState(email: email);
+      _restoreFailures = 0;
+      _retry?.cancel();
       _save();
       _startTimer();
       await syncNow();
@@ -150,6 +165,8 @@ class SyncController extends Notifier<WorkspaceSync> {
   Future<void> disconnect() async {
     _periodic?.cancel();
     _debounce?.cancel();
+    _retry?.cancel();
+    _restoreFailures = 0;
     final email = _sync.email;
     _client?.close();
     _client = null;
@@ -179,9 +196,16 @@ class SyncController extends Notifier<WorkspaceSync> {
           email: _sync.email,
           lastSyncedAt: _sync.lastSyncedAt,
         );
-        final remote = await _ensureRemote();
+        final AccountRemoteStore? remote;
+        try {
+          remote = await _ensureRemote();
+        } on Object {
+          if (ref.mounted && _retryRestore()) return;
+          rethrow;
+        }
         if (!ref.mounted) return;
         if (remote == null) {
+          if (_retryRestore()) return;
           state = WorkspaceSync(
             SyncPhase.needsReconnect,
             email: _sync.email,
@@ -190,6 +214,7 @@ class SyncController extends Notifier<WorkspaceSync> {
           );
           return;
         }
+        _restoreFailures = 0;
         final out = await syncOnce(
           replica: ref.read(replicasProvider)[workspace],
           remote: remote,
@@ -282,6 +307,22 @@ class SyncController extends Notifier<WorkspaceSync> {
     if (client == null) return null;
     _client = client;
     return _remote = ref.read(remoteFactoryProvider)(client);
+  }
+
+  /// The silent sign-in didn't work: try again shortly, quietly, before
+  /// telling the user to reconnect. False once the retries are used up.
+  bool _retryRestore() {
+    if (_restoreFailures >= restoreRetries.length) return false;
+    final wait = restoreRetries[_restoreFailures++];
+    _retry?.cancel();
+    _retry = Timer(wait, syncNow);
+    state = WorkspaceSync(
+      SyncPhase.syncing,
+      email: _sync.email,
+      lastSyncedAt: _sync.lastSyncedAt,
+      message: 'Reconnecting to Google…',
+    );
+    return true;
   }
 
   void _dropClient() {
