@@ -2,7 +2,11 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-21 (Android, Mac, web)
+## Next build — 2026-10-21 (Mac, web, Android)
+- **Desktop layout** (Mac, Windows, wide browser windows): Tasks and Notes now have a filter sidebar on the left (Show, Projects with counts, Tags, Weekly reset, Brain dump, templates) and use the width of the window, instead of a phone-width column with rows of pills. Notes show two or three side by side. The List / Board switch moves next to the title. Phones are unchanged.
+- **Quick add** opens as a centered window on a computer, and the box now shows an example ("Call insurance tomorrow 2pm 15 min #billing") plus a hint that you can type when, how long and #tags straight in.
+
+## Build 61 — 2026-10-21 (fc6533e) (Android, Mac, web)
 - **Weekly reset**: on weekends Home offers "Weekly reset: N tasks to sort". It shows each task that has sat untouched for a week, one at a time: **Keep it**, **Make it smaller**, **Not this week** (hidden 7 days) or **Let it go** (archived), with **Back** if you tap the wrong one. +20 XP when you finish. Also on the Tasks tab any day ("Weekly reset · N").
 - **Errand run**: when Home is set to "Can go out", it suggests a run of errands that fit your time, grouped by place ("Errand run: Pharmacy + Post office · 45m", with 10 min travel per stop). Tap it for the list and tick each one off as you go.
 - **Company while you work** (headphones on the focus screen): background sound (Brown noise, Rain or Fan, mixed with your own music rather than stopping it) and an optional **buddy**, a quiet line under the timer like someone at the next desk ("Your buddy · Answering emails"). Pausing the timer pauses the sound. Remembered for next time.

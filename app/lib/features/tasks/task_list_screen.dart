@@ -125,83 +125,109 @@ class TaskListScreen extends ConsumerWidget {
 
     final totalMin = [...doing, ...next].fold(0, (a, t) => a + t.estimateMin);
 
-    return ContentWidth(
-      maxWidth: view == TaskView.board ? 1400 : 640,
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(22, 24, 22, navClearance(context)),
+    final stale = staleTasks(ref.watch(tasksProvider), now);
+    final viewSwitch = Segmented<TaskView>(
+      values: TaskView.values,
+      selected: view,
+      inset: s.isDark,
+      labelOf: (v) => v == TaskView.list ? 'List' : 'Board',
+      onSelected: ref.read(taskViewProvider.notifier).set,
+    );
+
+    return SidebarLayout(
+      maxWidth: view == TaskView.board ? 1680 : 1240,
+      narrowMaxWidth: view == TaskView.board ? 1400 : 640,
+      sidebar: _TaskSidebar(
+        filter: filter,
+        projects: projects,
+        selected: project,
+        stale: stale.length,
+      ),
+      builder: (context, wide) => ListView(
+        padding: EdgeInsets.fromLTRB(
+          wide ? 12 : 22,
+          wide ? 40 : 24,
+          22,
+          navClearance(context),
+        ),
         children: [
           PageHeader(
             project?.name ?? 'Tasks',
             subtitle:
                 '${doing.length + next.length} open · about '
                 '${shortMinutes(totalMin)}',
-            trailing: OutlinedButton(
-              onPressed: () => showQuickAdd(context, brainDump: true),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 44),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                textStyle: const TextStyle(
-                  fontFamily: Fonts.ui,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              child: const Text('Brain dump'),
-            ),
+            // Wide: the filters are in the sidebar, so the view switch and
+            // the project's menu sit up here.
+            trailing: wide
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ?(project == null
+                          ? null
+                          : _ProjectMenu(project: project)),
+                      const SizedBox(width: 8),
+                      SizedBox(width: 200, child: viewSwitch),
+                    ],
+                  )
+                : OutlinedButton(
+                    onPressed: () => showQuickAdd(context, brainDump: true),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 44),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      textStyle: const TextStyle(
+                        fontFamily: Fonts.ui,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    child: const Text('Brain dump'),
+                  ),
           ),
           const SizedBox(height: 20),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              // A one-workspace device has nothing to choose between.
-              for (final w in [
-                if (!device.single) ...[null, ...Workspace.values],
-              ])
-                Pill(
-                  label: w?.label ?? 'Everything',
-                  selected: filter == w,
-                  solid: true,
-                  onTap: () {
-                    ref.read(_workspaceFilterProvider.notifier).set(w);
-                    if (w != null &&
-                        project != null &&
-                        project.workspace != w) {
-                      ref.read(taskProjectFilterProvider.notifier).set(null);
-                    }
-                  },
-                ),
-              if (staleTasks(ref.watch(tasksProvider), now) case final stale
-                  when stale.isNotEmpty)
-                Pill(
-                  label: 'Weekly reset · ${stale.length}',
-                  icon: Icons.cleaning_services_outlined,
-                  selected: false,
-                  onTap: () => context.push('/reset'),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _ProjectBar(
-            projects: projects,
-            selected: project,
-            workspace: device.single ? device.primary : filter,
-          ),
-          const SizedBox(height: 14),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              width: 220,
-              child: Segmented<TaskView>(
-                values: TaskView.values,
-                selected: view,
-                inset: s.isDark,
-                labelOf: (v) => v == TaskView.list ? 'List' : 'Board',
-                onSelected: ref.read(taskViewProvider.notifier).set,
-              ),
+          if (!wide) ...[
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                // A one-workspace device has nothing to choose between.
+                for (final w in [
+                  if (!device.single) ...[null, ...Workspace.values],
+                ])
+                  Pill(
+                    label: w?.label ?? 'Everything',
+                    selected: filter == w,
+                    solid: true,
+                    onTap: () {
+                      ref.read(_workspaceFilterProvider.notifier).set(w);
+                      if (w != null &&
+                          project != null &&
+                          project.workspace != w) {
+                        ref.read(taskProjectFilterProvider.notifier).set(null);
+                      }
+                    },
+                  ),
+                if (stale.isNotEmpty)
+                  Pill(
+                    label: 'Weekly reset · ${stale.length}',
+                    icon: Icons.cleaning_services_outlined,
+                    selected: false,
+                    onTap: () => context.push('/reset'),
+                  ),
+              ],
             ),
-          ),
-          const SizedBox(height: 22),
+            const SizedBox(height: 14),
+            _ProjectBar(
+              projects: projects,
+              selected: project,
+              workspace: device.single ? device.primary : filter,
+            ),
+            const SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(width: 220, child: viewSwitch),
+            ),
+            const SizedBox(height: 22),
+          ],
           if (view == TaskView.board && all.isNotEmpty)
             TaskBoard(tasks: all, showProject: project == null)
           else ...[
@@ -255,7 +281,63 @@ class TaskListScreen extends ConsumerWidget {
   }
 }
 
-/// Project filter pills, "+ Project", and rename/delete for the open one.
+/// "+ Project": asks which workspace when none is chosen, then names it
+/// and opens it.
+Future<void> _addProject(
+  BuildContext context,
+  WidgetRef ref,
+  Workspace? workspace,
+) async {
+  final ws =
+      workspace ??
+      await showModalBottomSheet<Workspace>(
+        useRootNavigator: true,
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ListTile(title: Text('New project for…')),
+              for (final w in Workspace.values)
+                ListTile(
+                  title: Text(w.label),
+                  onTap: () => Navigator.pop(ctx, w),
+                ),
+            ],
+          ),
+        ),
+      );
+  if (ws == null || !context.mounted) return;
+  final p = await showNewProjectDialog(context, ref, ws);
+  if (p != null) ref.read(taskProjectFilterProvider.notifier).set(p.id);
+}
+
+/// Rename / delete for the project being shown.
+class _ProjectMenu extends ConsumerWidget {
+  const _ProjectMenu({required this.project});
+  final Project project;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => PopupMenuButton<String>(
+    useRootNavigator: true,
+    tooltip: 'Project options',
+    icon: const Icon(Icons.more_horiz_rounded),
+    onSelected: (v) async {
+      if (v == 'rename') await showRenameProjectDialog(context, ref, project);
+      if (v == 'delete' &&
+          context.mounted &&
+          await confirmDeleteProject(context, ref, project)) {
+        ref.read(taskProjectFilterProvider.notifier).set(null);
+      }
+    },
+    itemBuilder: (_) => const [
+      PopupMenuItem(value: 'rename', child: Text('Rename project')),
+      PopupMenuItem(value: 'delete', child: Text('Delete project')),
+    ],
+  );
+}
+
+/// Phone: project filter pills, "+ Project", and the open one's menu.
 class _ProjectBar extends ConsumerWidget {
   const _ProjectBar({
     required this.projects,
@@ -269,32 +351,6 @@ class _ProjectBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final set = ref.read(taskProjectFilterProvider.notifier).set;
-    Future<void> add() async {
-      // Without a workspace filter, ask which one it's for.
-      final ws =
-          workspace ??
-          await showModalBottomSheet<Workspace>(
-            useRootNavigator: true,
-            context: context,
-            builder: (ctx) => SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const ListTile(title: Text('New project for…')),
-                  for (final w in Workspace.values)
-                    ListTile(
-                      title: Text(w.label),
-                      onTap: () => Navigator.pop(ctx, w),
-                    ),
-                ],
-              ),
-            ),
-          );
-      if (ws == null || !context.mounted) return;
-      final p = await showNewProjectDialog(context, ref, ws);
-      if (p != null) set(p.id);
-    }
-
     return Wrap(
       spacing: 6,
       runSpacing: 6,
@@ -318,26 +374,112 @@ class _ProjectBar extends ConsumerWidget {
           label: projects.isEmpty ? 'New project' : 'Project',
           icon: Icons.add_rounded,
           selected: false,
-          onTap: add,
+          onTap: () => _addProject(context, ref, workspace),
         ),
-        if (selected case final p?)
-          PopupMenuButton<String>(
-            useRootNavigator: true,
-            tooltip: 'Project options',
-            icon: const Icon(Icons.more_horiz_rounded),
-            onSelected: (v) async {
-              if (v == 'rename') await showRenameProjectDialog(context, ref, p);
-              if (v == 'delete' &&
-                  context.mounted &&
-                  await confirmDeleteProject(context, ref, p)) {
-                set(null);
-              }
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'rename', child: Text('Rename project')),
-              PopupMenuItem(value: 'delete', child: Text('Delete project')),
+        if (selected case final p?) _ProjectMenu(project: p),
+      ],
+    );
+  }
+}
+
+/// Desktop: the same filters as a sidebar, with counts.
+class _TaskSidebar extends ConsumerWidget {
+  const _TaskSidebar({
+    required this.filter,
+    required this.projects,
+    required this.selected,
+    required this.stale,
+  });
+  final Workspace? filter;
+  final List<Project> projects;
+  final Project? selected;
+  final int stale;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final device = ref.watch(deviceWorkspacesProvider);
+    final open = ref.watch(tasksProvider).where((t) => t.isOpen).toList();
+    int count(bool Function(Task) f) => open.where(f).length;
+    final setProject = ref.read(taskProjectFilterProvider.notifier).set;
+    void setWs(Workspace? w) {
+      ref.read(_workspaceFilterProvider.notifier).set(w);
+      if (w != null && selected != null && selected!.workspace != w) {
+        setProject(null);
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (!device.single)
+          SideSection(
+            label: 'Show',
+            children: [
+              SideItem(
+                label: 'Everything',
+                icon: Icons.all_inclusive_rounded,
+                count: count((_) => true),
+                selected: filter == null,
+                onTap: () => setWs(null),
+              ),
+              for (final w in Workspace.values)
+                SideItem(
+                  label: w.label,
+                  icon: w == Workspace.work
+                      ? Icons.work_outline_rounded
+                      : Icons.home_outlined,
+                  count: count((t) => t.workspace == w),
+                  selected: filter == w,
+                  onTap: () => setWs(w),
+                ),
             ],
           ),
+        SideSection(
+          label: 'Projects',
+          children: [
+            SideItem(
+              label: 'All projects',
+              icon: Icons.folder_open_outlined,
+              count: count((t) => filter == null || t.workspace == filter),
+              selected: selected == null,
+              onTap: () => setProject(null),
+            ),
+            for (final p in projects)
+              SideItem(
+                label: p.name,
+                dot: s.projectColor(p.color),
+                count: count((t) => t.projectId == p.id),
+                selected: selected?.id == p.id,
+                onTap: () => setProject(selected?.id == p.id ? null : p.id),
+              ),
+            SideItem(
+              label: 'New project',
+              icon: Icons.add_rounded,
+              onTap: () => _addProject(
+                context,
+                ref,
+                device.single ? device.primary : filter,
+              ),
+            ),
+          ],
+        ),
+        SideSection(
+          label: 'Tidy up',
+          children: [
+            SideItem(
+              label: 'Weekly reset',
+              icon: Icons.cleaning_services_outlined,
+              count: stale,
+              onTap: () => context.push('/reset'),
+            ),
+            SideItem(
+              label: 'Brain dump',
+              icon: Icons.bolt_outlined,
+              onTap: () => showQuickAdd(context, brainDump: true),
+            ),
+          ],
+        ),
       ],
     );
   }

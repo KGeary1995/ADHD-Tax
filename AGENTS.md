@@ -49,7 +49,7 @@ Last updated: 2026-10-21 (weekly reset, errands, company, hotkey, AI breakdown).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 209 tests, ~35 s
+flutter test                         # 211 tests, ~35 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
@@ -122,4 +122,5 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - Home changes after 5 pm (the "Wrap up" link). A layout that fits in the afternoon overflowed in the evening and only failed tests run after 5 pm; `narrow_layout_test` now pins the clock to 9 pm. Pin `clockProvider` in any test whose layout depends on the time.
 - **Menus and sheets on tab screens need `useRootNavigator: true`** (`PopupMenuButton`, `showModalBottomSheet`). The tabs live in go_router's nested shell navigator, so without it they open *under* the floating nav bar and bottom items (e.g. Delete) can't be tapped. `test/flutter_test_config.dart` makes tests fail on any tap that wouldn't hit its target.
 - The focus screen ticks every second and the buddy dot animates forever, so `pumpAndSettle()` there can hang: pump fixed durations instead (`frames()` in `reset_errands_company_ai_test.dart`). Override `ambientPlayerProvider`, `aiKeyStoreProvider` and `httpClientProvider` in tests; the real ones need native plugins or the network.
+- `pumpApp()` defaults to 1400×1000, a desktop size: Tasks and Notes show the sidebar (no filter pills) and Quick add is a `Dialog`, not a `BottomSheet`. Pass a phone `size` to test the phone layout.
 - Widget tests: `pumpApp()` in `test/widget/app_flow_test.dart` builds the full app with in-memory storage and accepts provider `overrides`. Use `FakeReminders` (`reminders_undo_test.dart`) for notification behavior. Snackbars need `pumpAndSettle()` before tapping their action.

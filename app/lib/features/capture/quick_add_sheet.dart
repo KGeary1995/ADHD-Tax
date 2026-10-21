@@ -30,19 +30,36 @@ Future<void> showQuickAdd(
   String initialNotes = '',
   String projectId = '',
 }) async {
-  final startNow = await showModalBottomSheet<Task>(
-    useRootNavigator: true,
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    constraints: const BoxConstraints(maxWidth: 640),
-    builder: (_) => QuickAddSheet(
-      brainDump: brainDump,
-      initialTitle: initialTitle,
-      initialNotes: initialNotes,
-      projectId: projectId,
-    ),
+  QuickAddSheet sheet({bool dialog = false}) => QuickAddSheet(
+    brainDump: brainDump,
+    initialTitle: initialTitle,
+    initialNotes: initialNotes,
+    projectId: projectId,
+    dialog: dialog,
   );
+  // A computer gets a centered window; a phone the bottom sheet, which
+  // stays in thumb reach and above the keyboard.
+  final size = MediaQuery.sizeOf(context);
+  final startNow = size.width >= wideBreakpoint && size.height >= 640
+      ? await showDialog<Task>(
+          useRootNavigator: true,
+          context: context,
+          builder: (_) => Dialog(
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600, maxHeight: 760),
+              child: sheet(dialog: true),
+            ),
+          ),
+        )
+      : await showModalBottomSheet<Task>(
+          useRootNavigator: true,
+          context: context,
+          isScrollControlled: true,
+          useSafeArea: true,
+          constraints: const BoxConstraints(maxWidth: 640),
+          builder: (_) => sheet(),
+        );
   if (startNow != null && context.mounted) {
     openFocus(context, startNow.id, minutes: startNow.estimateMin);
   }
@@ -55,8 +72,12 @@ class QuickAddSheet extends ConsumerStatefulWidget {
     this.initialTitle = '',
     this.initialNotes = '',
     this.projectId = '',
+    this.dialog = false,
   });
   final bool brainDump;
+
+  /// Shown as a centered window (desktop) rather than a bottom sheet.
+  final bool dialog;
 
   /// Opened while Tasks shows one project: new tasks go into it.
   final String projectId;
@@ -286,7 +307,12 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
         children: [
           Flexible(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(side, 0, side, 8),
+              padding: EdgeInsets.fromLTRB(
+                side,
+                widget.dialog ? 24 : 0,
+                side,
+                8,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -343,13 +369,26 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     decoration: InputDecoration(
                       hintText: _brainDump
                           ? 'Everything in your head, one per line.\nDon\'t sort it. Just get it out.'
-                          : 'What needs doing?',
+                          : 'e.g. Call insurance tomorrow 2pm 15 min #billing',
                       suffixIcon: VoiceButton(
                         controller: _title,
                         newLine: _brainDump,
                       ),
                     ),
                   ),
+                  if (!_brainDump && _title.text.trim().isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Type when, how long, #tags or "urgent" right in the '
+                        'box and they fill themselves in.',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: s.muted,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
                   if (_notes.isNotEmpty && !_brainDump)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),

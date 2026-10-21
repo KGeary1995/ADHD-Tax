@@ -150,10 +150,7 @@ void main() {
     expect(find.textContaining('Looks like patient info'), findsNothing);
 
     await tester.tap(
-      find.descendant(
-        of: find.byType(BottomSheet),
-        matching: find.text('Work'),
-      ),
+      find.descendant(of: find.byType(Dialog), matching: find.text('Work')),
     );
     await tester.pump();
     expect(find.textContaining('Looks like patient info'), findsOneWidget);

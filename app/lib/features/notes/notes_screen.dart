@@ -134,9 +134,104 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         filter.tag != null ||
         filter.query.trim().isNotEmpty;
 
-    return ContentWidth(
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(22, 24, 22, navClearance(context)),
+    final single = ref.watch(deviceWorkspacesProvider).single;
+    Future<void> fromTemplate() async {
+      final t = await pickTemplate(context, ref, TemplateKind.note);
+      if (t != null && context.mounted) useTemplate(context, ref, t);
+    }
+
+    final search = TextField(
+      controller: _search,
+      onChanged: ctl.query,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Search notes and #tags',
+        prefixIcon: const Icon(Icons.search_rounded),
+        suffixIcon: filter.query.isEmpty
+            ? null
+            : IconButton(
+                tooltip: 'Clear search',
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () {
+                  _search.clear();
+                  ctl.query('');
+                },
+              ),
+      ),
+    );
+
+    final sidebar = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (!single)
+          SideSection(
+            label: 'Show',
+            children: [
+              for (final w in [null, ...Workspace.values])
+                SideItem(
+                  label: w?.label ?? 'Everything',
+                  icon: switch (w) {
+                    null => Icons.all_inclusive_rounded,
+                    Workspace.work => Icons.work_outline_rounded,
+                    Workspace.personal => Icons.home_outlined,
+                  },
+                  count: all.where((n) => w == null || n.workspace == w).length,
+                  selected: filter.workspace == w,
+                  onTap: () => ctl.workspace(w),
+                ),
+            ],
+          ),
+        if (projects.isNotEmpty)
+          SideSection(
+            label: 'Projects',
+            children: [
+              for (final p in projects)
+                SideItem(
+                  label: p.name,
+                  dot: s.projectColor(p.color),
+                  count: all.where((n) => n.projectId == p.id).length,
+                  selected: filter.projectId == p.id,
+                  onTap: () =>
+                      ctl.project(filter.projectId == p.id ? null : p.id),
+                ),
+            ],
+          ),
+        if (tags.isNotEmpty)
+          SideSection(
+            label: 'Tags',
+            children: [
+              for (final t in tags)
+                SideItem(
+                  label: '#$t',
+                  icon: Icons.tag_rounded,
+                  count: inWorkspace.where((n) => n.allTags.contains(t)).length,
+                  selected: filter.tag == t,
+                  onTap: () => ctl.tag(filter.tag == t ? null : t),
+                ),
+            ],
+          ),
+        SideSection(
+          label: 'Start from',
+          children: [
+            SideItem(
+              label: 'A template',
+              icon: Icons.sticky_note_2_outlined,
+              onTap: fromTemplate,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    return SidebarLayout(
+      sidebar: sidebar,
+      builder: (context, wide) => ListView(
+        padding: EdgeInsets.fromLTRB(
+          wide ? 12 : 22,
+          wide ? 40 : 24,
+          22,
+          navClearance(context),
+        ),
         children: [
           PageHeader(
             'Notes',
@@ -145,89 +240,65 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                 : '${all.length} ${all.length == 1 ? 'note' : 'notes'}',
           ),
           const SizedBox(height: 18),
-          TextField(
-            controller: _search,
-            onChanged: ctl.query,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              hintText: 'Search notes and #tags',
-              prefixIcon: const Icon(Icons.search_rounded),
-              suffixIcon: filter.query.isEmpty
-                  ? null
-                  : IconButton(
-                      tooltip: 'Clear search',
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () {
-                        _search.clear();
-                        ctl.query('');
-                      },
-                    ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final w in [
-                if (!ref.watch(deviceWorkspacesProvider).single) ...[
-                  null,
-                  ...Workspace.values,
-                ],
-              ])
+          search,
+          if (!wide) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final w in [
+                  if (!single) ...[null, ...Workspace.values],
+                ])
+                  Pill(
+                    label: w?.label ?? 'Everything',
+                    selected: filter.workspace == w,
+                    solid: true,
+                    onTap: () => ctl.workspace(w),
+                  ),
                 Pill(
-                  label: w?.label ?? 'Everything',
-                  selected: filter.workspace == w,
-                  solid: true,
-                  onTap: () => ctl.workspace(w),
+                  label: 'From a template',
+                  icon: Icons.sticky_note_2_outlined,
+                  selected: false,
+                  onTap: fromTemplate,
                 ),
-              Pill(
-                label: 'From a template',
-                icon: Icons.sticky_note_2_outlined,
-                selected: false,
-                onTap: () async {
-                  final t = await pickTemplate(context, ref, TemplateKind.note);
-                  if (t != null && context.mounted) {
-                    useTemplate(context, ref, t);
-                  }
-                },
+              ],
+            ),
+            if (projects.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const FieldLabel('Projects'),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final p in projects)
+                    Pill(
+                      label: p.name,
+                      icon: Icons.circle,
+                      iconColor: s.projectColor(p.color),
+                      selected: filter.projectId == p.id,
+                      onTap: () =>
+                          ctl.project(filter.projectId == p.id ? null : p.id),
+                    ),
+                ],
               ),
             ],
-          ),
-          if (projects.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            const FieldLabel('Projects'),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final p in projects)
-                  Pill(
-                    label: p.name,
-                    icon: Icons.circle,
-                    iconColor: s.projectColor(p.color),
-                    selected: filter.projectId == p.id,
-                    onTap: () =>
-                        ctl.project(filter.projectId == p.id ? null : p.id),
-                  ),
-              ],
-            ),
-          ],
-          if (tags.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            const FieldLabel('Tags'),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final t in tags)
-                  Pill(
-                    label: '#$t',
-                    selected: filter.tag == t,
-                    onTap: () => ctl.tag(filter.tag == t ? null : t),
-                  ),
-              ],
-            ),
+            if (tags.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const FieldLabel('Tags'),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final t in tags)
+                    Pill(
+                      label: '#$t',
+                      selected: filter.tag == t,
+                      onTap: () => ctl.tag(filter.tag == t ? null : t),
+                    ),
+                ],
+              ),
+            ],
           ],
           const SizedBox(height: 22),
           if (all.isEmpty)
@@ -258,17 +329,46 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             ),
           if (pinned.isNotEmpty) ...[
             SectionTitle('Pinned', count: pinned.length),
-            for (final n in pinned) NoteTile(note: n),
+            _NoteGrid(notes: pinned),
             const SizedBox(height: 22),
           ],
           if (rest.isNotEmpty) ...[
             if (pinned.isNotEmpty) SectionTitle('Notes', count: rest.length),
-            for (final n in rest) NoteTile(note: n),
+            _NoteGrid(notes: rest),
           ],
         ],
       ),
     );
   }
+}
+
+/// Notes in one column on a phone, two or three side by side when there's
+/// room.
+class _NoteGrid extends StatelessWidget {
+  const _NoteGrid({required this.notes});
+  final List<Note> notes;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, c) {
+      final cols = c.maxWidth >= 1000 ? 3 : (c.maxWidth >= 640 ? 2 : 1);
+      if (cols == 1) {
+        return Column(children: [for (final n in notes) NoteTile(note: n)]);
+      }
+      const gap = 12.0;
+      final w = (c.maxWidth - gap * (cols - 1)) / cols;
+      return Wrap(
+        spacing: gap,
+        children: [
+          for (final n in notes)
+            SizedBox(
+              width: w,
+              child: NoteTile(note: n),
+            ),
+        ],
+      );
+    },
+  );
 }
 
 /// Deletes a note with an Undo bar, like tasks.

@@ -602,3 +602,165 @@ class SwipeActions extends StatelessWidget {
     );
   }
 }
+
+/// Below this content width, screens with a sidebar fall back to their
+/// phone layout (filters inline above the list).
+const sidebarBreakpoint = 980.0;
+
+/// Desktop layout for list screens: a filter sidebar on the left and the
+/// main column on the right, together centered and capped at [maxWidth].
+/// Narrower, only the main column shows, capped at [narrowMaxWidth].
+/// [builder] gets `wide` so it can leave out its inline filters.
+class SidebarLayout extends StatelessWidget {
+  const SidebarLayout({
+    super.key,
+    required this.sidebar,
+    required this.builder,
+    this.maxWidth = 1240,
+    this.narrowMaxWidth = 640,
+  });
+
+  final Widget sidebar;
+  final Widget Function(BuildContext context, bool wide) builder;
+  final double maxWidth;
+  final double narrowMaxWidth;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, c) {
+      if (c.maxWidth < sidebarBreakpoint) {
+        return ContentWidth(
+          maxWidth: narrowMaxWidth,
+          child: builder(context, false),
+        );
+      }
+      return Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 248,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 40, 4, 24),
+                  children: [sidebar],
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(child: builder(context, true)),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+/// A labelled group of [SideItem]s.
+class SideSection extends StatelessWidget {
+  const SideSection({super.key, required this.label, required this.children});
+  final String label;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+            child: Text(
+              label.toUpperCase(),
+              style: s.mono(11, color: s.muted, weight: FontWeight.w500),
+            ),
+          ),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+/// One sidebar row: icon or colored dot, label, and a quiet count.
+class SideItem extends StatelessWidget {
+  const SideItem({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.icon,
+    this.dot,
+    this.count,
+    this.selected = false,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final IconData? icon;
+
+  /// A project color instead of an icon.
+  final Color? dot;
+  final int? count;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    final fg = selected ? s.onSurface : s.text2;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Material(
+        color: selected ? s.surface : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  child: dot != null
+                      ? Center(
+                          child: Container(
+                            width: 9,
+                            height: 9,
+                            decoration: BoxDecoration(
+                              color: dot,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        )
+                      : Icon(
+                          icon,
+                          size: 18,
+                          color: selected ? s.primary : s.muted,
+                        ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: fg,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                ),
+                if (count != null && count! > 0)
+                  Text('$count', style: s.mono(12, color: s.muted)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
