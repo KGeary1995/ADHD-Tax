@@ -1,0 +1,394 @@
+name: CI
+
+# Actions minutes are limited (private repo), so: one run per commit (the
+# push run's checks show on the PR too; a pull_request trigger ran every
+# commit twice), nothing for docs-only commits, and Windows/Mac/iOS only
+# when asked for.
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  # Actions → CI → Run workflow: also builds the Mac and Windows apps.
+  workflow_dispatch:
+
+# Per event, so a manual run (which builds the Mac app) and a push don't
+# cancel each other.
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.47.7
+
+jobs:
+  test:
+    name: Analyze, test, build web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
+      # Google sign-in client ids from repository secrets (README → Set up
+      # Google sync). Empty until they're added, which builds without sync.
+      - name: Google sign-in keys
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+        run: |
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" > google_oauth.json
+      - run: flutter build web --release --no-web-resources-cdn --dart-define-from-file=google_oauth.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unstuck-web
+          path: app/build/web
+
+  android:
+    name: Build Android APK
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # publish the APK to the android-latest release
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      # The run number becomes the Android versionCode, so each build
+      # installs as an update over the last one. --no-shrink skips R8: it
+      # stripped plugin code called only from Dart and crashed startup, and a
+      # few MB doesn't matter for a sideloaded app.
+      # Google sign-in client ids from repository secrets (README → Set up
+      # Google sync). Empty until they're added, which builds without sync.
+      - name: Google sign-in keys
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+        run: |
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" > google_oauth.json
+      - run: flutter build apk --release --no-shrink --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unstuck-android
+          path: app/build/app/outputs/flutter-apk/app-release.apk
+      # One rolling release, so the phone download link never changes:
+      # https://github.com/<owner>/<repo>/releases/download/android-latest/Gumption.apk
+      # Unstuck.apk is the same file under the name used before the rename,
+      # so links already shared with friends keep working.
+      - name: Publish to android-latest release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk Gumption.apk
+          cp Gumption.apk Unstuck.apk
+          gh release delete android-latest --cleanup-tag --yes || true
+          gh release create android-latest Gumption.apk Unstuck.apk \
+            --target "$GITHUB_SHA" \
+            --title "Gumption for Android (latest build)" \
+            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. On your phone, tap Gumption.apk below to download and install. (Unstuck.apk is the same app under its old name.)"
+
+  # The Google Play bundle (.aab), signed with the private upload key from
+  # repository secrets (docs/STORE_RELEASE.md). Only on Run workflow or a
+  # commit message containing [play], when a build is going to Play.
+  play:
+    name: Build Play bundle (AAB)
+    needs: test
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[play]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # publish the bundle to the play-latest release
+    defaults:
+      run:
+        working-directory: app
+    env:
+      UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+    steps:
+      - name: Upload key missing
+        if: env.UPLOAD_KEYSTORE_BASE64 == ''
+        working-directory: .
+        run: |
+          echo "::error::Add the UPLOAD_KEYSTORE_BASE64, UPLOAD_STORE_PASSWORD, UPLOAD_KEY_ALIAS and UPLOAD_KEY_PASSWORD secrets first (docs/STORE_RELEASE.md)."
+          exit 1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Google sign-in keys
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+        run: |
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" > google_oauth.json
+      # Same versionCode scheme as the APK (the run number), and --no-shrink
+      # for the same reason.
+      - name: Build the bundle
+        env:
+          UPLOAD_STORE_PASSWORD: ${{ secrets.UPLOAD_STORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+        run: |
+          echo "$UPLOAD_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          UPLOAD_KEYSTORE="$RUNNER_TEMP/upload.jks" flutter build appbundle --release --no-shrink \
+            --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
+          rm -f "$RUNNER_TEMP/upload.jks"
+      - name: Publish to play-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cp build/app/outputs/bundle/release/app-release.aab Gumption-play.aab
+          gh release delete play-latest --cleanup-tag --yes || true
+          gh release create play-latest Gumption-play.aab \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Gumption for Google Play (latest bundle)" \
+            --notes "Build ${{ github.run_number }} at ${GITHUB_SHA::7}. Download Gumption-play.aab on a computer and upload it in Play Console → Test and release."
+
+  # Not published anywhere, and Windows minutes count double: build it only
+  # on Run workflow or a commit message containing [windows].
+  windows:
+    name: Build Windows
+    needs: test
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[windows]')
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      # Google sign-in client ids from repository secrets (README → Set up
+      # Google sync). Empty until they're added, which builds without sync.
+      - name: Google sign-in keys
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+        run: |
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" > google_oauth.json
+      - run: flutter build windows --release --dart-define-from-file=google_oauth.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unstuck-windows
+          path: app/build/windows/x64/runner/Release
+
+  # The iPhone version: the web build, hosted on Cloudflare Pages and added
+  # to the home screen from Safari. Needs two repository secrets (README →
+  # "Install on iPhone"); until they exist this job just says so.
+  web-publish:
+    name: Publish web app (iPhone)
+    needs: test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROJECT: ${{ vars.CLOUDFLARE_PROJECT || 'unstuck' }}
+      WRANGLER: wrangler@4.145.0
+    steps:
+      - name: Not set up yet
+        if: env.CLOUDFLARE_API_TOKEN == ''
+        run: echo "::notice::Add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets to publish the iPhone web app (README → Install on iPhone)."
+      - uses: actions/download-artifact@v4
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        with:
+          name: unstuck-web
+          path: web
+      - uses: actions/setup-node@v4
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        with:
+          node-version: '22'
+      - name: Deploy to Cloudflare Pages
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: |
+          # First run creates the project; later runs just deploy. Always
+          # deploying as the production branch keeps one fixed address, and
+          # with it the tasks saved on the phone (they belong to the address).
+          npx --yes "$WRANGLER" pages project create "$PROJECT" --production-branch=main || true
+          npx --yes "$WRANGLER" pages deploy web --project-name="$PROJECT" --branch=main --commit-dirty=true
+          {
+            echo "### iPhone web app"
+            echo "Open the project's \`.pages.dev\` address below in Safari, then Share → Add to Home Screen."
+            echo '```'
+            npx --yes "$WRANGLER" pages project list
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # macOS runners use 10x the Actions minutes on a private repo (about 100
+  # of the 2,000 free monthly minutes per build), so the Mac app builds on
+  # request, not on every push: Run workflow, or a push whose commit
+  # message contains [mac]. Pushes to main don't build it either: a merge
+  # would otherwise cost ~100 minutes every time.
+  macos:
+    name: Build macOS app
+    needs: test
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[mac]')
+    runs-on: macos-latest
+    permissions:
+      contents: write # publish to the macos-latest release
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      # Universal (Apple Silicon + Intel), signed for local use only: macOS
+      # asks once to "Open Anyway" (README → Install on Mac).
+      # Google sign-in client ids from repository secrets (README → Set up
+      # Google sync). Empty until they're added, which builds without sync.
+      - name: Google sign-in keys
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+        run: |
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" > google_oauth.json
+      - run: flutter build macos --release --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
+      - run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/Gumption.app" Gumption-macOS.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unstuck-macos
+          path: app/Gumption-macOS.zip
+      - name: Publish to macos-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release delete macos-latest --cleanup-tag --yes || true
+          gh release create macos-latest Gumption-macOS.zip \
+            --target "$GITHUB_SHA" \
+            --title "Gumption for Mac (latest build)" \
+            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. Download Gumption-macOS.zip, open it, and drag Gumption into Applications (delete the old Unstuck app if it's there)."
+
+  # The native iPhone/iPad app. Like the Mac build it runs on request:
+  # Run workflow, or a commit message containing [ios].
+  # Without the Apple secrets it only proves the app compiles; with them it
+  # signs (Xcode automatic signing through the App Store Connect API key)
+  # and uploads to TestFlight (README → Install on iPhone).
+  ios:
+    name: Build iOS app
+    needs: test
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[ios]')
+    runs-on: macos-latest
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Google sign-in keys
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: |
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_IOS_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_IOS_CLIENT_ID" > google_oauth.json
+          # Google Sign-In returns to the app through the reversed client id.
+          if [ -n "$GOOGLE_IOS_CLIENT_ID" ]; then
+            reversed=$(echo "$GOOGLE_IOS_CLIENT_ID" | awk -F. '{for (i=NF; i>0; i--) printf "%s%s", $i, (i>1 ? "." : "")}')
+            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:1 dict" \
+              -c "Add :CFBundleURLTypes:1:CFBundleURLSchemes array" \
+              -c "Add :CFBundleURLTypes:1:CFBundleURLSchemes:0 string $reversed" \
+              ios/Runner/Info.plist
+          fi
+      - name: Compile only (no Apple keys yet)
+        if: env.ASC_KEY_ID == ''
+        run: |
+          echo "::notice::Add the ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 and APPLE_TEAM_ID secrets to upload iPhone builds to TestFlight (README → Install on iPhone)."
+          flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
+      - name: Archive and upload to TestFlight
+        if: env.ASC_KEY_ID != ''
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          key=~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+          printf '%s' "$ASC_KEY_P8" > "$key"
+          auth=(-allowProvisioningUpdates
+                -authenticationKeyPath "$key"
+                -authenticationKeyID "$ASC_KEY_ID"
+                -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          # Flutter prepares the Xcode project; xcodebuild signs with the API
+          # key, creating certificates and profiles as needed.
+          flutter build ios --config-only --release --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner \
+            -configuration Release -destination generic/platform=iOS \
+            -archivePath build/Unstuck.xcarchive \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            "${auth[@]}" archive
+          sed "s/TEAM_ID/$APPLE_TEAM_ID/" ios/ExportOptions.plist > build/ExportOptions.plist
+          xcodebuild -exportArchive -archivePath build/Unstuck.xcarchive \
+            -exportOptionsPlist build/ExportOptions.plist -exportPath build/ipa \
+            "${auth[@]}"
+          {
+            echo "### iPhone build ${{ github.run_number }}"
+            echo "Uploaded to App Store Connect. It appears in TestFlight on your iPhone after Apple finishes processing (usually 10–30 minutes)."
+          } >> "$GITHUB_STEP_SUMMARY"

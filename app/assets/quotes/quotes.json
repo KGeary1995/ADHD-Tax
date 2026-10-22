@@ -1,0 +1,466 @@
+[
+ {
+  "text": "You don't need a plan. You need the next two minutes.",
+  "category": "starting"
+ },
+ {
+  "text": "Start ugly. Fix it later.",
+  "category": "starting"
+ },
+ {
+  "text": "Motivation shows up after you start, not before.",
+  "category": "starting"
+ },
+ {
+  "text": "Open the thing. That's the whole first step.",
+  "category": "starting"
+ },
+ {
+  "text": "The task is never as big as the dread around it.",
+  "category": "starting"
+ },
+ {
+  "text": "Set the timer. Begin badly. Keep the momentum.",
+  "category": "starting"
+ },
+ {
+  "text": "Just touch it. Five minutes, then you can decide.",
+  "category": "starting"
+ },
+ {
+  "text": "Your future self is already grateful you started.",
+  "category": "starting"
+ },
+ {
+  "text": "Starting is the hard part. You're about to do the hard part.",
+  "category": "starting"
+ },
+ {
+  "text": "Don't think about finishing. Think about beginning.",
+  "category": "starting"
+ },
+ {
+  "text": "Make it so small you can't say no.",
+  "category": "starting"
+ },
+ {
+  "text": "Lower the bar until you can step over it.",
+  "category": "starting"
+ },
+ {
+  "text": "Ready is a feeling. Starting is a decision.",
+  "category": "starting"
+ },
+ {
+  "text": "One tab. One task. One timer.",
+  "category": "starting"
+ },
+ {
+  "text": "Pick it up. Don't plan it, pick it up.",
+  "category": "starting"
+ },
+ {
+  "text": "Clear the runway: close everything except this.",
+  "category": "starting"
+ },
+ {
+  "text": "Momentum is built, not found.",
+  "category": "starting"
+ },
+ {
+  "text": "Right now beats perfect later.",
+  "category": "starting"
+ },
+ {
+  "text": "If it takes less than two minutes, it's already half done.",
+  "category": "starting"
+ },
+ {
+  "text": "You've started harder things than this.",
+  "category": "starting"
+ },
+ {
+  "text": "The first sentence can be terrible. Write it anyway.",
+  "category": "starting"
+ },
+ {
+  "text": "Action first. Feelings will catch up.",
+  "category": "starting"
+ },
+ {
+  "text": "Begin where you are, with what you've got.",
+  "category": "starting"
+ },
+ {
+  "text": "Nobody gets ready. They just begin.",
+  "category": "starting"
+ },
+ {
+  "text": "Small start. Real progress.",
+  "category": "starting"
+ },
+ {
+  "text": "Shrink the step until it's boring. Then do it.",
+  "category": "starting"
+ },
+ {
+  "text": "You're not behind. You're about to begin.",
+  "category": "starting"
+ },
+ {
+  "text": "Push the button. Let the app carry the decision.",
+  "category": "starting"
+ },
+ {
+  "text": "You don't have to want to. You just have to start for two minutes.",
+  "category": "dread"
+ },
+ {
+  "text": "The dread is the worst part, and you're about to skip past it.",
+  "category": "dread"
+ },
+ {
+  "text": "Avoiding it costs more energy than doing it.",
+  "category": "dread"
+ },
+ {
+  "text": "This task has been renting space in your head. Evict it.",
+  "category": "dread"
+ },
+ {
+  "text": "Ugh tasks shrink the moment you touch them.",
+  "category": "dread"
+ },
+ {
+  "text": "Do the scary email first. Everything after is easier.",
+  "category": "dread"
+ },
+ {
+  "text": "Feel the ugh. Start anyway. That's the whole trick.",
+  "category": "dread"
+ },
+ {
+  "text": "It's not hard. It's just annoying. You can do annoying.",
+  "category": "dread"
+ },
+ {
+  "text": "Ten minutes of discomfort beats ten days of dread.",
+  "category": "dread"
+ },
+ {
+  "text": "Bonus XP for dreaded tasks. Go collect it.",
+  "category": "dread"
+ },
+ {
+  "text": "The frog doesn't get smaller by staring at it.",
+  "category": "dread"
+ },
+ {
+  "text": "Be brave for five minutes. Then reassess.",
+  "category": "dread"
+ },
+ {
+  "text": "Future you is begging. Do this one.",
+  "category": "dread"
+ },
+ {
+  "text": "The anticipation is always worse than the task.",
+  "category": "dread"
+ },
+ {
+  "text": "Rip the band-aid. You'll feel lighter in 15 minutes.",
+  "category": "dread"
+ },
+ {
+  "text": "You can do hard things badly. That still counts.",
+  "category": "dread"
+ },
+ {
+  "text": "This one's been waiting. Let's give it an ending.",
+  "category": "dread"
+ },
+ {
+  "text": "Name the dread, then start anyway.",
+  "category": "dread"
+ },
+ {
+  "text": "Imagine how good 'done' will feel. Go get that feeling.",
+  "category": "dread"
+ },
+ {
+  "text": "It's a phone call, not a dragon.",
+  "category": "dread"
+ },
+ {
+  "text": "Skipping one isn't failing. Pick the next one.",
+  "category": "compassion"
+ },
+ {
+  "text": "Your brain works differently. Your tools should too.",
+  "category": "compassion"
+ },
+ {
+  "text": "Rest is not a reward you have to earn.",
+  "category": "compassion"
+ },
+ {
+  "text": "Progress, not perfection.",
+  "category": "compassion"
+ },
+ {
+  "text": "You're not lazy. Starting is genuinely harder for you. That's why this exists.",
+  "category": "compassion"
+ },
+ {
+  "text": "A slow day is still a day you showed up.",
+  "category": "compassion"
+ },
+ {
+  "text": "Be as kind to yourself as you'd be to a coworker.",
+  "category": "compassion"
+ },
+ {
+  "text": "Every restart counts. This is a restart.",
+  "category": "compassion"
+ },
+ {
+  "text": "You don't have to do it all. Just the next thing.",
+  "category": "compassion"
+ },
+ {
+  "text": "Doing it at 60% today beats 100% never.",
+  "category": "compassion"
+ },
+ {
+  "text": "The streak has grace days for a reason. Use them.",
+  "category": "compassion"
+ },
+ {
+  "text": "Yesterday doesn't get a vote on today.",
+  "category": "compassion"
+ },
+ {
+  "text": "You noticed you were stuck. That's step one.",
+  "category": "compassion"
+ },
+ {
+  "text": "Being overwhelmed means you care. Now pick one thing.",
+  "category": "compassion"
+ },
+ {
+  "text": "It's okay to choose the easy task to get moving.",
+  "category": "compassion"
+ },
+ {
+  "text": "There's no wrong order. There's just started and not started.",
+  "category": "compassion"
+ },
+ {
+  "text": "Unfinished is not the same as failed.",
+  "category": "compassion"
+ },
+ {
+  "text": "Some days the win is opening the app. That's today's win.",
+  "category": "compassion"
+ },
+ {
+  "text": "You're doing better than your inner critic says.",
+  "category": "compassion"
+ },
+ {
+  "text": "Lower the bar. Then clear it. Then celebrate.",
+  "category": "compassion"
+ },
+ {
+  "text": "You're in it now. Keep the streak of minutes going.",
+  "category": "momentum"
+ },
+ {
+  "text": "This is what it feels like when it's working.",
+  "category": "momentum"
+ },
+ {
+  "text": "Don't stop to admire it yet. Ride the wave.",
+  "category": "momentum"
+ },
+ {
+  "text": "Halfway through is the best place to keep going.",
+  "category": "momentum"
+ },
+ {
+  "text": "One more small step. Then another.",
+  "category": "momentum"
+ },
+ {
+  "text": "Focus is a muscle. You're using it right now.",
+  "category": "momentum"
+ },
+ {
+  "text": "Look at you, doing the thing.",
+  "category": "momentum"
+ },
+ {
+  "text": "Keep the tab open. Stay with it.",
+  "category": "momentum"
+ },
+ {
+  "text": "The hard part is behind you. This part is just work.",
+  "category": "momentum"
+ },
+ {
+  "text": "Every minute here is a minute future-you doesn't owe.",
+  "category": "momentum"
+ },
+ {
+  "text": "Finish the sentence. Finish the paragraph. Finish the page.",
+  "category": "momentum"
+ },
+ {
+  "text": "Done is better than perfect.",
+  "category": "momentum"
+ },
+ {
+  "text": "Steady beats fast.",
+  "category": "momentum"
+ },
+ {
+  "text": "You started. Now you're finishing. Who are you?!",
+  "category": "momentum"
+ },
+ {
+  "text": "Stay in the lane. Distractions can wait in the parking lot.",
+  "category": "momentum"
+ },
+ {
+  "text": "Every checkmark is proof you can.",
+  "category": "momentum"
+ },
+ {
+  "text": "Hyperfocus, but on the right thing for once.",
+  "category": "momentum"
+ },
+ {
+  "text": "Momentum is yours. Don't hand it to your phone.",
+  "category": "momentum"
+ },
+ {
+  "text": "Almost there. Land the plane.",
+  "category": "momentum"
+ },
+ {
+  "text": "Close the loop. Your brain will thank you.",
+  "category": "momentum"
+ },
+ {
+  "text": "Your to-do list called. It misses you.",
+  "category": "humor"
+ },
+ {
+  "text": "Plot twist: you actually do the thing.",
+  "category": "humor"
+ },
+ {
+  "text": "Procrastination is just optimism about tomorrow. Tomorrow is busy.",
+  "category": "humor"
+ },
+ {
+  "text": "This task won't do itself. I checked.",
+  "category": "humor"
+ },
+ {
+  "text": "Dopamine is on the other side of 'done'.",
+  "category": "humor"
+ },
+ {
+  "text": "Be the main character who does the task.",
+  "category": "humor"
+ },
+ {
+  "text": "The task is small. Your brain is being dramatic.",
+  "category": "humor"
+ },
+ {
+  "text": "You have the same 24 hours as Beyoncé, but way more open tabs.",
+  "category": "humor"
+ },
+ {
+  "text": "Executive dysfunction, meet executive decision.",
+  "category": "humor"
+ },
+ {
+  "text": "Today's forecast: 100% chance of getting one thing done.",
+  "category": "humor"
+ },
+ {
+  "text": "Your ADHD tax refund starts now.",
+  "category": "humor"
+ },
+ {
+  "text": "Stop re-reading the task. It hasn't changed.",
+  "category": "humor"
+ },
+ {
+  "text": "Fun fact: tasks are 73% less scary once started. (Source: vibes.)",
+  "category": "humor"
+ },
+ {
+  "text": "Do it now and you'll have nothing to feel guilty about at 2 AM.",
+  "category": "humor"
+ },
+ {
+  "text": "XP is waiting. Level up, hero.",
+  "category": "humor"
+ },
+ {
+  "text": "Every quest starts with a tiny, annoying fetch mission.",
+  "category": "humor"
+ },
+ {
+  "text": "Achievement unlocked: reading this instead of starting. Now start.",
+  "category": "humor"
+ },
+ {
+  "text": "Your couch will still be there in 15 minutes.",
+  "category": "humor"
+ },
+ {
+  "text": "The secret of getting ahead is getting started.",
+  "author": "Attributed to Mark Twain",
+  "category": "starting"
+ },
+ {
+  "text": "Well begun is half done.",
+  "author": "Aristotle",
+  "category": "starting"
+ },
+ {
+  "text": "A journey of a thousand miles begins with a single step.",
+  "author": "Lao Tzu",
+  "category": "starting"
+ },
+ {
+  "text": "Take the first step in faith. You don't have to see the whole staircase.",
+  "author": "Attributed to Martin Luther King Jr.",
+  "category": "starting"
+ },
+ {
+  "text": "If it's your job to eat a frog, it's best to do it first thing in the morning.",
+  "author": "Attributed to Mark Twain",
+  "category": "dread"
+ },
+ {
+  "text": "Nothing will work unless you do.",
+  "author": "Maya Angelou",
+  "category": "momentum"
+ },
+ {
+  "text": "It always seems impossible until it's done.",
+  "author": "Attributed to Nelson Mandela",
+  "category": "dread"
+ },
+ {
+  "text": "Small deeds done are better than great deeds planned.",
+  "author": "Peter Marshall",
+  "category": "starting"
+ }
+]
