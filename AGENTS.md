@@ -53,7 +53,7 @@ Last updated: 2026-10-22 (Build 91 passed the phone test in docs/PHONE_TEST.md).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 232 tests, ~60 s
+flutter test                         # 234 tests, ~60 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
