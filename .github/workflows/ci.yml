@@ -114,14 +114,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           cp build/app/outputs/flutter-apk/app-release.apk Gumption.apk
           cp Gumption.apk Unstuck.apk
-          gh release delete android-latest --cleanup-tag --yes || true
-          gh release create android-latest Gumption.apk Unstuck.apk \
-            --target "$GITHUB_SHA" \
-            --title "Gumption for Android (latest build)" \
-            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. On your phone, tap Gumption.apk below to download and install. (Unstuck.apk is the same app under its old name.)"
+          notes="Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. On your phone, tap Gumption.apk below to download and install. (Unstuck.apk is the same app under its old name.)"
+          # Replace the files in place; never delete the release. Deleting
+          # and recreating it made a new tag at this commit, which GitHub
+          # refuses (HTTP 403) when the commit's workflow file differs from
+          # the default branch's (Build 100), and left no download meanwhile.
+          if gh release view android-latest >/dev/null 2>&1; then
+            gh release upload android-latest Gumption.apk Unstuck.apk --clobber
+            gh release edit android-latest --notes "$notes"
+          else
+            gh release create android-latest Gumption.apk Unstuck.apk \
+              --target "$DEFAULT_BRANCH" \
+              --title "Gumption for Android (latest build)" --notes "$notes"
+          fi
 
   # The Google Play bundle (.aab), signed with the private upload key from
   # repository secrets (docs/STORE_RELEASE.md). Only on Run workflow or a
@@ -184,13 +193,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           cp build/app/outputs/bundle/release/app-release.aab Gumption-play.aab
-          gh release delete play-latest --cleanup-tag --yes || true
-          gh release create play-latest Gumption-play.aab \
-            --target "$GITHUB_SHA" --prerelease \
-            --title "Gumption for Google Play (latest bundle)" \
-            --notes "Build ${{ github.run_number }} at ${GITHUB_SHA::7}. Download Gumption-play.aab on a computer and upload it in Play Console → Test and release."
+          notes="Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. Download Gumption-play.aab on a computer and upload it in Play Console → Test and release."
+          # Same in-place update as android-latest (see there).
+          if gh release view play-latest >/dev/null 2>&1; then
+            gh release upload play-latest Gumption-play.aab --clobber
+            gh release edit play-latest --notes "$notes"
+          else
+            gh release create play-latest Gumption-play.aab \
+              --target "$DEFAULT_BRANCH" --prerelease \
+              --title "Gumption for Google Play (latest bundle)" --notes "$notes"
+          fi
 
   # Not published anywhere, and Windows minutes count double: build it only
   # on Run workflow or a commit message containing [windows].
@@ -321,12 +336,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          gh release delete macos-latest --cleanup-tag --yes || true
-          gh release create macos-latest Gumption-macOS.zip \
-            --target "$GITHUB_SHA" \
-            --title "Gumption for Mac (latest build)" \
-            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. Download Gumption-macOS.zip, open it, and drag Gumption into Applications (delete the old Unstuck app if it's there)."
+          notes="Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. Download Gumption-macOS.zip, open it, and drag Gumption into Applications (delete the old Unstuck app if it's there)."
+          # Same in-place update as android-latest (see there).
+          if gh release view macos-latest >/dev/null 2>&1; then
+            gh release upload macos-latest Gumption-macOS.zip --clobber
+            gh release edit macos-latest --notes "$notes"
+          else
+            gh release create macos-latest Gumption-macOS.zip \
+              --target "$DEFAULT_BRANCH" \
+              --title "Gumption for Mac (latest build)" --notes "$notes"
+          fi
 
   # The native iPhone/iPad app. Like the Mac build it runs on request:
   # Run workflow, or a commit message containing [ios].
