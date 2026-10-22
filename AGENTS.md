@@ -19,23 +19,23 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Redesign: one look, light + dark, bundled fonts, floating nav | Done | Not yet (web screenshots only) |
 | Phase 2: Google sign-in + Drive sync | Code done; Google Cloud keys (web, Android, desktop clients) added as secrets 2026-10-19; no iOS client yet | **Yes (Android, 2026-10-19):** Personal connected in the personal profile; Work connected from a second install in the Android **work profile** (the personal-profile app can't see work-profile accounts). **2026-10-22:** sync survives an app update since the silent sign-in retry (Build 77). Two-device sync not yet reported |
 | Phone layout fixes, full task form, back button | Done | Android: reported working |
-| Repeating tasks, Mark done + Undo, Android reminders | Done | Not yet reported |
-| Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | Not yet (web screenshots and tests) |
-| Android home-screen widget, Share → Gumption | Done | **No.** Native code only compiles in CI; nothing runs it here |
+| Repeating tasks, Mark done + Undo, Android reminders | Done | **Partly (Build 91):** Mark done + Undo and the focus timer's "Time's up" alert (screen off) pass; repeating tasks not yet tested |
+| Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | **Partly (Build 91):** wrap-up and voice capture pass; waiting-on and real task lengths not yet tested on a device |
+| Android home-screen widget, Share → Gumption | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (card widget Start and +, Share from Chrome opens one copy of the app) |
 | iPhone/iPad native app (notifications, widgets, Share, voice) | Code done; CI compiles it on `[ios]` pushes; TestFlight upload needs the Apple secrets | **No.** Compiles in CI (Build 35). On hold: the owner will join the Apple Developer Program once iPhone-using friends confirm they want it |
 | iPhone web app (home-screen) | Done; Cloudflare secrets added 2026-10-18, published by `web-publish` on every push to **https://unstuck-4o8.pages.dev** (Build 39+). Being trialled with iPhone-using friends to decide on the native app | No (Chromium emulation only) |
-| Backup file (Settings → Save / Restore) | Done | Not yet (tests and web screenshots) |
+| Backup file (Settings → Save / Restore) | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (save to Downloads, restore the same file) |
 | Mac app | Builds and publishes on `[mac]` pushes | **Yes**: opens and works after "Open Anyway" (Build 21, still named ADHD Tax) |
 | Notes (tags, #hashtags, Make tasks, task-linked notes), projects, Tasks board view, "Show on this device" (Personal / Work / Both) | Done | Not yet (tests and web screenshots) |
 | Checklists in tasks, reward shop, typed extras in Quick add ("tomorrow 2pm 15 min #tag"), templates, task tags | Done | Not yet (tests and web screenshots) |
-| Weekly reset, errand runs, focus company (sounds + buddy), Mac/Windows Quick add hotkey, AI "Break it down" (own Anthropic key) | Done | **No.** Tests and web screenshots only. The hotkey and audio are native plugins compiled only in CI; nothing here runs them |
-| Phone declutter: Tasks filters in one sheet and short rows, Quick add "More options", quieter Today | Done | Not yet (tests and web screenshots) |
+| Weekly reset, errand runs, focus company (sounds + buddy), Mac/Windows Quick add hotkey, AI "Break it down" (own Anthropic key) | Done | **Partly (Build 91):** errand run passes on Android. Weekly reset, focus company, the desktop hotkey and AI breakdown not yet tested on a device |
+| Phone declutter: Tasks filters in one sheet and short rows, Quick add "More options", quieter Today | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed |
 | Desktop layout: Tasks/Notes/Settings sidebars, desktop Today / Progress / editor / wrap-up, pop-ups and Quick add as windows | Done | Not yet (tests and 1440×900 web screenshots; the owner's Mac screenshots predate it) |
-| In-app guide ("How Gumption works") and example tasks | Done | Not yet (tests and web screenshots) |
-| Built-in first-step ideas and Suggest steps (no AI key), "Hold me to it" share from the focus screen | Done | Not yet (tests and web screenshots; the share sheet needs a device) |
+| In-app guide ("How Gumption works") and example tasks | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (guide and Go to buttons; example tasks not tested) |
+| Built-in first-step ideas and Suggest steps (no AI key), "Hold me to it" share from the focus screen | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (idea chips, Suggest steps, Hold me to it share sheet) |
 | Phase 3+ (Calendar, table/timeline views) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-21 (in-app guide, example tasks, sync retry).
+Last updated: 2026-10-22 (Build 91 passed the phone test in docs/PHONE_TEST.md).
 
 ## Toolchain
 
@@ -77,6 +77,7 @@ docs/ARCHITECTURE.md    how the code works: data model, sync/CRDT, state, platfo
 docs/DEPLOYMENT.md      CI/CD, releases, secrets, Google/Cloudflare setup, signing keys
 docs/TROUBLESHOOTING.md symptom → cause → fix, from real incidents
 docs/DECISIONS.md       why things are the way they are (read before "simplifying")
+docs/PHONE_TEST.md      15-minute checklist the owner runs on an Android phone after a build
 docs/STORE_RELEASE.md   plan for Google Play and App Store release: who does what, forms, gotchas
 docs/PLAN.md            original product plan and roadmap (partly superseded; see its banner)
 .github/workflows/ci.yml  test → Android / Windows / web publish / Mac
