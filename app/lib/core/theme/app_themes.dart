@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Unstuck has one look in a light and a dark version. [Appearance] picks
+/// Gumption has one look in a light and a dark version. [Appearance] picks
 /// which; "Match phone" follows the system setting.
 enum Appearance {
   light('Light'),

@@ -1,7 +1,7 @@
 import SwiftUI
 import WidgetKit
 
-// Home-screen widgets: the task Unstuck would pick right now, in three
+// Home-screen widgets: the task Gumption would pick right now, in three
 // sizes. The app stores its current pick in the shared App Group whenever
 // it changes (AppDelegate "updateWidget"); the widget only displays it.
 
@@ -46,7 +46,7 @@ struct PickEntry: TimelineEntry {
     }
     return PickEntry(
       date: Date(), title: title, meta: d["meta"] ?? "", step: d["step"] ?? "",
-      empty: d["empty"] ?? "Open Unstuck and it picks one thing for you.",
+      empty: d["empty"] ?? "Open Gumption and it picks one thing for you.",
       startRoute: d["startRoute"] ?? "/", nextUp: next)
   }
 }
@@ -107,7 +107,7 @@ struct PickView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       if family != .systemSmall {
-        Text(entry.title == nil ? "Unstuck" : entry.meta)
+        Text(entry.title == nil ? "Gumption" : entry.meta)
           .font(.system(size: 12, design: .monospaced))
           .foregroundColor(onTealMuted)
           .lineLimit(1)
@@ -171,7 +171,7 @@ struct PickWidget: Widget {
     StaticConfiguration(kind: "PickWidget", provider: Provider()) { entry in
       PickView(entry: entry)
     }
-    .configurationDisplayName("Unstuck")
+    .configurationDisplayName("Gumption")
     .description("Your one thing right now, with Start. The large size adds two more that fit.")
     .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
   }

@@ -2,7 +2,7 @@ import Social
 import UIKit
 import UniformTypeIdentifiers
 
-/// "Share → Unstuck": Apple's standard compose sheet. Post queues the text
+/// "Share → Gumption": Apple's standard compose sheet. Post queues the text
 /// (and any link) in the App Group; the app opens Quick add with it the next
 /// time it comes to the front. Extensions can't open their app directly.
 class ShareViewController: SLComposeServiceViewController {
@@ -10,7 +10,7 @@ class ShareViewController: SLComposeServiceViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "Unstuck"
+    title = "Gumption"
     placeholder = "What needs doing?"
     navigationController?.navigationBar.topItem?.rightBarButtonItem?.title = "Add"
   }

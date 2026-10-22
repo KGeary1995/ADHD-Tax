@@ -115,11 +115,11 @@ class _RemindersPanelState extends ConsumerState<RemindersPanel> {
                         _blocked
                             ? isIOSDevice
                                   ? 'Turn them on in iPhone Settings → '
-                                        'Unstuck → Notifications.'
+                                        'Gumption → Notifications.'
                                   : 'Android didn\'t show the prompt. Turn '
                                         'them on in Android Settings → Apps → '
-                                        'Unstuck → Notifications.'
-                            : 'Notifications are off for Unstuck, so none '
+                                        'Gumption → Notifications.'
+                            : 'Notifications are off for Gumption, so none '
                                   'of these will reach you.',
                         style: TextStyle(color: s.text2, fontSize: 14),
                       ),

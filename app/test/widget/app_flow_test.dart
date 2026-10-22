@@ -37,7 +37,7 @@ Future<ProviderContainer> pumpApp(
   );
   addTearDown(container.dispose);
   await tester.pumpWidget(
-    UncontrolledProviderScope(container: container, child: const UnstuckApp()),
+    UncontrolledProviderScope(container: container, child: const GumptionApp()),
   );
   await tester.pumpAndSettle();
   return container;

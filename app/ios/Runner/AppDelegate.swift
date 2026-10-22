@@ -12,7 +12,7 @@ let appGroup = "group.com.adhdtax.adhdTax"
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Lets reminders show as banners while Unstuck is open, too.
+    // Lets reminders show as banners while Gumption is open, too.
     UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }

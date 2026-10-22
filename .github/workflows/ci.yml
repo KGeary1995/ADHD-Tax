@@ -99,19 +99,22 @@ jobs:
           name: unstuck-android
           path: app/build/app/outputs/flutter-apk/app-release.apk
       # One rolling release, so the phone download link never changes:
-      # https://github.com/<owner>/<repo>/releases/download/android-latest/Unstuck.apk
+      # https://github.com/<owner>/<repo>/releases/download/android-latest/Gumption.apk
+      # Unstuck.apk is the same file under the name used before the rename,
+      # so links already shared with friends keep working.
       - name: Publish to android-latest release
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk Unstuck.apk
+          cp build/app/outputs/flutter-apk/app-release.apk Gumption.apk
+          cp Gumption.apk Unstuck.apk
           gh release delete android-latest --cleanup-tag --yes || true
-          gh release create android-latest Unstuck.apk \
+          gh release create android-latest Gumption.apk Unstuck.apk \
             --target "$GITHUB_SHA" \
-            --title "Unstuck for Android (latest build)" \
-            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. On your phone, tap Unstuck.apk below to download and install."
+            --title "Gumption for Android (latest build)" \
+            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. On your phone, tap Gumption.apk below to download and install. (Unstuck.apk is the same app under its old name.)"
 
   # Not published anywhere, and Windows minutes count double: build it only
   # on Run workflow or a commit message containing [windows].
@@ -232,21 +235,21 @@ jobs:
           printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s"}\n' \
             "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" > google_oauth.json
       - run: flutter build macos --release --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
-      - run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/Unstuck.app" Unstuck-macOS.zip
+      - run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/Gumption.app" Gumption-macOS.zip
       - uses: actions/upload-artifact@v4
         with:
           name: unstuck-macos
-          path: app/Unstuck-macOS.zip
+          path: app/Gumption-macOS.zip
       - name: Publish to macos-latest release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           gh release delete macos-latest --cleanup-tag --yes || true
-          gh release create macos-latest Unstuck-macOS.zip \
+          gh release create macos-latest Gumption-macOS.zip \
             --target "$GITHUB_SHA" \
-            --title "Unstuck for Mac (latest build)" \
-            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. Download Unstuck-macOS.zip, open it, and drag Unstuck into Applications."
+            --title "Gumption for Mac (latest build)" \
+            --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. Download Gumption-macOS.zip, open it, and drag Gumption into Applications (delete the old Unstuck app if it's there)."
 
   # The native iPhone/iPad app. Like the Mac build it runs on request:
   # Run workflow, a push to main, or a commit message containing [ios].

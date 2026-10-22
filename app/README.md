@@ -1,4 +1,4 @@
-# Unstuck — Flutter app
+# Gumption — Flutter app
 
 The project docs live at the repo root:
 

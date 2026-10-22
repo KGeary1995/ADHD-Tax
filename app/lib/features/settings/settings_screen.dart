@@ -97,7 +97,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: 'Licenses',
           trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
           onTap: () =>
-              showLicensePage(context: context, applicationName: 'Unstuck'),
+              showLicensePage(context: context, applicationName: 'Gumption'),
         ),
       ],
     );
@@ -107,7 +107,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       label: 'Help',
       children: [
         GroupRow(
-          title: 'How Unstuck works',
+          title: 'How Gumption works',
           subtitle: 'A short tour of every feature',
           trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
           onTap: () => context.push('/guide'),
@@ -150,7 +150,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       (
         Icons.devices_outlined,
         'This device',
-        'Which side this copy of Unstuck shows.',
+        'Which side this copy of Gumption shows.',
         [const _ShowOnDevice()],
       ),
       (
@@ -266,7 +266,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 }
 
 /// "Show on this device": both workspaces, or one, e.g. a second copy of
-/// Unstuck in an Android work profile that should only hold Work.
+/// Gumption in an Android work profile that should only hold Work.
 class _ShowOnDevice extends ConsumerWidget {
   const _ShowOnDevice();
 
@@ -308,7 +308,7 @@ class _ShowOnDevice extends ConsumerWidget {
               device.single
                   ? 'Only ${device.primary.label} tasks and notes appear '
                         'here, and new ones go to ${device.primary.label}.'
-                  : 'Use Personal or Work if this copy of Unstuck is for '
+                  : 'Use Personal or Work if this copy of Gumption is for '
                         'one side only, like a second copy in an Android '
                         'work profile.',
               if (hidden.isNotEmpty)

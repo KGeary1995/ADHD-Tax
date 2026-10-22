@@ -68,7 +68,7 @@ void main() {
           isA<FormatException>().having(
             (e) => e.message,
             'message',
-            contains("isn't an Unstuck backup"),
+            contains("isn't a Gumption backup"),
           ),
         ),
       );
@@ -113,7 +113,7 @@ void main() {
   test('file name carries the date', () {
     expect(
       backupFileName(DateTime(2026, 3, 7, 22)),
-      'Unstuck backup 2026-03-07.json',
+      'Gumption backup 2026-03-07.json',
     );
   });
 }

@@ -49,7 +49,7 @@ Task? nextOccurrence(Task done, DateTime finishedAt) {
 
   return Task.fromJson({
     ...done.toJson(),
-    // Never change this seed (it predates the rename to Unstuck): devices on
+    // Never change this seed (it predates both renames, to Unstuck and then Gumption): devices on
     // older builds must derive the same id for the same finished task.
     'id': const Uuid().v5(Namespace.url.value, 'adhd-tax:repeat:${done.id}'),
     'status': TaskStatus.todo.name,

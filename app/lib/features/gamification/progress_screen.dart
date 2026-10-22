@@ -387,7 +387,7 @@ class _EstimatesCard extends ConsumerWidget {
       final left = Calibration.minSamples - c.overall.samples;
       body =
           'Finish $left more ${left == 1 ? 'task' : 'tasks'} with the focus '
-          'timer and Unstuck learns how long things really take you, then '
+          'timer and Gumption learns how long things really take you, then '
           'picks tasks that truly fit your time.';
     } else {
       body =

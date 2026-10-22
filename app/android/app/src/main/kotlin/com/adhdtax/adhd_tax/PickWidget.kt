@@ -10,7 +10,7 @@ import android.view.View
 import android.widget.RemoteViews
 
 /**
- * Home-screen widgets: the task Unstuck would pick right now, with Start and
+ * Home-screen widgets: the task Gumption would pick right now, with Start and
  * a quick-add button. Four sizes share one renderer; each layout simply
  * leaves out the views it has no room for. The app pushes the current pick
  * whenever it changes (see MainActivity "updateWidget"); the widgets never
@@ -66,11 +66,11 @@ open class PickWidget : AppWidgetProvider() {
             val title = p.getString("title", null)
             val views = RemoteViews(context.packageName, layout)
             if (title.isNullOrBlank()) {
-                views.setTextViewText(R.id.widget_meta, "Unstuck")
+                views.setTextViewText(R.id.widget_meta, "Gumption")
                 views.setTextViewText(R.id.widget_title, "Nothing picked yet")
                 views.setTextViewText(
                     R.id.widget_step,
-                    p.getString("empty", null) ?: "Open Unstuck and it picks one thing for you.",
+                    p.getString("empty", null) ?: "Open Gumption and it picks one thing for you.",
                 )
                 views.setViewVisibility(R.id.widget_step, View.VISIBLE)
                 views.setViewVisibility(R.id.widget_start, View.GONE)

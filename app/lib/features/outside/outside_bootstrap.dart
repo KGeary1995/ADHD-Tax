@@ -92,7 +92,7 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
           ? {
               'empty': result.noPickReason == NoPickReason.noOpenTasks
                   ? 'Your list is empty. Tap + to add something.'
-                  : 'Nothing fits right now. Open Unstuck to change your situation.',
+                  : 'Nothing fits right now. Open Gumption to change your situation.',
             }
           : {
               ..._cardData(s),

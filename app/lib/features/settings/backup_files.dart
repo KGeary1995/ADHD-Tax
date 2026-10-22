@@ -29,7 +29,7 @@ class PickerBackupFiles implements BackupFiles {
       fileName: name,
       bytes: bytes,
       mimeType: 'application/json',
-      dialogTitle: 'Save Unstuck backup',
+      dialogTitle: 'Save Gumption backup',
     );
     // The browser download fallback returns null without a dialog.
     return uri != null || isWeb;
@@ -38,7 +38,7 @@ class PickerBackupFiles implements BackupFiles {
   @override
   Future<String?> open() async {
     final file = await FilePicker.pickFile(
-      dialogTitle: 'Choose an Unstuck backup',
+      dialogTitle: 'Choose a Gumption backup',
     );
     if (file == null) return null;
     return utf8.decode(await file.readAsBytes(), allowMalformed: true);

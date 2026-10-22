@@ -6,7 +6,7 @@ import '../../data/models/task.dart';
 const _key = 'device.workspaces';
 
 /// Which workspaces this install shows: both, or just one (e.g. a second
-/// copy of Unstuck in an Android work profile that should only hold Work).
+/// copy of Gumption in an Android work profile that should only hold Work).
 /// Device-local and never synced. Hidden data isn't deleted; it just stays
 /// out of every list, the picker, widgets and reminders.
 enum DeviceWorkspaces {

@@ -975,7 +975,7 @@ class _NothingPanel extends ConsumerWidget {
     final (String title, String body, List<Widget> actions) = switch (reason) {
       NoPickReason.noOpenTasks => (
         'Your list is empty.',
-        'Get everything out of your head, then let Unstuck choose.',
+        'Get everything out of your head, then let Gumption choose.',
         [
           FilledButton(
             onPressed: () => showQuickAdd(context),
@@ -989,7 +989,7 @@ class _NothingPanel extends ConsumerWidget {
           const ExamplesButton(),
           TextButton(
             onPressed: () => context.push('/guide'),
-            child: const Text('How Unstuck works'),
+            child: const Text('How Gumption works'),
           ),
         ],
       ),
@@ -1126,7 +1126,7 @@ class _ExamplesBanner extends ConsumerWidget {
     return _Banner(
       icon: Icons.science_outlined,
       color: context.spec.primary,
-      text: 'These are example tasks · How Unstuck works',
+      text: 'These are example tasks · How Gumption works',
       onTap: () => context.push('/guide'),
     );
   }

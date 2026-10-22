@@ -1,4 +1,4 @@
-# Adds the iOS home-screen widget and "Share → Unstuck" extensions to
+# Adds the iOS home-screen widget and "Share → Gumption" extensions to
 # ios/Runner.xcodeproj, plus the App Group they share with the app.
 # Already applied and committed; kept so the project file can be rebuilt
 # after `flutter create` or a hand edit gone wrong. Idempotent.

@@ -43,7 +43,7 @@ Future<void> _start() async {
             QuoteService.fromJsonString(quotes),
           ),
         ],
-        child: const UnstuckApp(),
+        child: const GumptionApp(),
       ),
     );
   } on Object catch (error, stack) {

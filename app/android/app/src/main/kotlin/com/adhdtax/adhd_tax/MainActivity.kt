@@ -8,7 +8,7 @@ import io.flutter.plugin.common.MethodChannel
 
 /**
  * Hands the app two kinds of outside requests over the "unstuck/android"
- * channel: text shared from another app ("Share → Unstuck"), and taps on the
+ * channel: text shared from another app ("Share → Gumption"), and taps on the
  * home-screen widget (open a route). Also lets the app refresh the widget.
  */
 class MainActivity : FlutterActivity() {

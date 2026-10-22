@@ -57,7 +57,7 @@ void main() {
 
     await openSettingsRow(tester, 'Save a backup file');
     expect(files.saved, isNotNull);
-    expect(files.savedName, startsWith('Unstuck backup '));
+    expect(files.savedName, startsWith('Gumption backup '));
     expect(find.textContaining('Backup saved'), findsOneWidget);
     expect(find.textContaining('Last saved today'), findsOneWidget);
     // Let the snackbar time out; the next app reuses the same messenger.
@@ -102,7 +102,7 @@ void main() {
       overrides: [backupFilesProvider.overrideWithValue(files)],
     );
     await openSettingsRow(tester, 'Restore from a backup file');
-    expect(find.text("That file isn't an Unstuck backup."), findsOneWidget);
+    expect(find.text("That file isn't a Gumption backup."), findsOneWidget);
     expect(find.text('Restore this backup?'), findsNothing);
   });
 

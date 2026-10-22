@@ -6,7 +6,7 @@ import 'platform_stub.dart' if (dart.library.io) 'platform_io.dart';
 /// One scheduled notification: a check-in nudge, a follow-up on a waiting
 /// task, or the evening wrap-up. Tapping it opens [route].
 class Nudge {
-  const Nudge(this.at, this.message, {this.title = 'Unstuck', this.route});
+  const Nudge(this.at, this.message, {this.title = 'Gumption', this.route});
   final DateTime at;
   final String message;
   final String title;

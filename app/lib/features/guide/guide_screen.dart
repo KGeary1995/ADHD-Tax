@@ -46,7 +46,7 @@ class ExamplesButton extends ConsumerWidget {
   }
 }
 
-/// How Unstuck works: what each part does, with a way to go and see it.
+/// How Gumption works: what each part does, with a way to go and see it.
 class GuideScreen extends StatelessWidget {
   const GuideScreen({super.key});
 
@@ -67,7 +67,7 @@ class GuideScreen extends StatelessWidget {
       _Section(
         Icons.adjust_rounded,
         'Today: one task, picked for you',
-        'Unstuck chooses one task from the time you have, whether you can go '
+        'Gumption chooses one task from the time you have, whether you can go '
             'out, your energy, and how urgent, important, old and dreaded '
             'each task is.',
         [
@@ -112,7 +112,7 @@ class GuideScreen extends StatelessWidget {
           '**+5** adds five minutes. Pause whenever you need to.',
           'The headphones add background sound (brown noise, rain, fan) and '
               'an optional "buddy" line, like someone at the next desk.',
-          'After five timed tasks Unstuck learns how long things really take '
+          'After five timed tasks Gumption learns how long things really take '
               'you, and picks tasks that truly fit.',
         ],
         'Start something',
@@ -182,7 +182,7 @@ class GuideScreen extends StatelessWidget {
             'account, or neither.',
         [
           '**Sync**: a hidden folder in your own Google Drive that only '
-              'Unstuck can open.',
+              'Gumption can open.',
           '**Backup file**: everything in one file you keep, to restore on '
               'any device.',
           if (android)
@@ -198,11 +198,11 @@ class GuideScreen extends StatelessWidget {
         _Section(
           Icons.widgets_outlined,
           'Outside the app',
-          'Unstuck can help without being open.',
+          'Gumption can help without being open.',
           [
-            '**Widgets**: long-press your home screen → Widgets → Unstuck. '
+            '**Widgets**: long-press your home screen → Widgets → Gumption. '
                 'They show the current pick with Start.',
-            '**Share** text from any app to Unstuck to turn it into a task.',
+            '**Share** text from any app to Gumption to turn it into a task.',
           ],
           null,
           null,
@@ -224,7 +224,7 @@ class GuideScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('How Unstuck works')),
+      appBar: AppBar(title: const Text('How Gumption works')),
       body: ContentWidth(
         maxWidth: 760,
         child: ListView(
@@ -249,7 +249,7 @@ class GuideScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              "Unstuck is for when the hard part isn't remembering a task but "
+              "Gumption is for when the hard part isn't remembering a task but "
               'starting it. It picks one task for you, shrinks it to a first '
               'step, and rewards you the moment you begin.',
               style: TextStyle(fontSize: 16, height: 1.5, color: s.text2),

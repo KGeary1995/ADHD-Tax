@@ -46,7 +46,7 @@ class AccountsPanel extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
           child: Text(
             'Each workspace syncs to its own Google account, in a hidden '
-            'app folder in that account\'s Drive. Unstuck can\'t see '
+            'app folder in that account\'s Drive. Gumption can\'t see '
             'anything else in your Drive.',
             style: TextStyle(color: s.muted, fontSize: 12, height: 1.4),
           ),

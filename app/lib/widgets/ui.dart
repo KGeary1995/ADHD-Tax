@@ -453,9 +453,9 @@ class ChoiceGroup<T> extends StatelessWidget {
   );
 }
 
-/// The Unstuck mark: a tangle pulled straight into an arrow.
-class UnstuckMark extends StatelessWidget {
-  const UnstuckMark({super.key, this.size = 22, this.color});
+/// The Gumption mark: a tangle pulled straight into an arrow.
+class GumptionMark extends StatelessWidget {
+  const GumptionMark({super.key, this.size = 22, this.color});
   final double size;
   final Color? color;
 
@@ -500,7 +500,7 @@ class _MarkPainter extends CustomPainter {
   bool shouldRepaint(_MarkPainter old) => old.color != color;
 }
 
-/// Logo mark plus the word "Unstuck".
+/// Logo mark plus the word "Gumption".
 class Wordmark extends StatelessWidget {
   const Wordmark({super.key});
 
@@ -508,10 +508,10 @@ class Wordmark extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      const UnstuckMark(),
+      const GumptionMark(),
       const SizedBox(width: 9),
       Text(
-        'Unstuck',
+        'Gumption',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(

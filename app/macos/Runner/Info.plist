@@ -29,8 +29,8 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Unstuck listens only after you tap the mic, to type a task for you.</string>
+	<string>Gumption listens only after you tap the mic, to type a task for you.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Unstuck turns what you say into a task when you tap the mic.</string>
+	<string>Gumption turns what you say into a task when you tap the mic.</string>
 </dict>
 </plist>

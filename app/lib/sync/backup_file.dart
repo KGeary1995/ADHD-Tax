@@ -32,7 +32,7 @@ class BackupFile {
   );
 
   String encode(DateTime now) => const JsonEncoder.withIndent(' ').convert({
-    'app': 'Unstuck',
+    'app': 'Gumption',
     'kind': kind,
     'v': version,
     'exportedAt': now.toUtc().toIso8601String(),
@@ -48,15 +48,15 @@ class BackupFile {
     try {
       j = jsonDecode(text);
     } on FormatException {
-      throw const FormatException("That file isn't an Unstuck backup.");
+      throw const FormatException("That file isn't a Gumption backup.");
     }
     if (j is! Map || j['kind'] != kind) {
-      throw const FormatException("That file isn't an Unstuck backup.");
+      throw const FormatException("That file isn't a Gumption backup.");
     }
     final v = j['v'];
     if (v is! int || v > version) {
       throw const FormatException(
-        'That backup is from a newer version of Unstuck. Update the app, '
+        'That backup is from a newer version of Gumption. Update the app, '
         'then try again.',
       );
     }
@@ -93,8 +93,8 @@ class BackupFile {
   }
 }
 
-/// `Unstuck backup 2026-10-18.json`
+/// `Gumption backup 2026-10-18.json`
 String backupFileName(DateTime now) {
   String two(int n) => n.toString().padLeft(2, '0');
-  return 'Unstuck backup ${now.year}-${two(now.month)}-${two(now.day)}.json';
+  return 'Gumption backup ${now.year}-${two(now.month)}-${two(now.day)}.json';
 }

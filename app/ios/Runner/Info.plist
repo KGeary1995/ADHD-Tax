@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Unstuck</string>
+	<string>Gumption</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Unstuck</string>
+	<string>Gumption</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -85,8 +85,8 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Unstuck listens only after you tap the mic, to type a task for you.</string>
+	<string>Gumption listens only after you tap the mic, to type a task for you.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Unstuck turns what you say into a task when you tap the mic.</string>
+	<string>Gumption turns what you say into a task when you tap the mic.</string>
 </dict>
 </plist>

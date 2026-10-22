@@ -123,14 +123,14 @@ GoRouter buildRouter() => GoRouter(
 
 final routerProvider = Provider<GoRouter>((ref) => buildRouter());
 
-class UnstuckApp extends ConsumerWidget {
-  const UnstuckApp({super.key});
+class GumptionApp extends ConsumerWidget {
+  const GumptionApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appearance = ref.watch(settingsProvider.select((s) => s.appearance));
     return MaterialApp.router(
-      title: 'Unstuck',
+      title: 'Gumption',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(lightSpec),
       darkTheme: buildTheme(darkSpec),
@@ -353,7 +353,7 @@ class _Rail extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 24),
-          const Tooltip(message: 'Unstuck', child: UnstuckMark(size: 28)),
+          const Tooltip(message: 'Gumption', child: GumptionMark(size: 28)),
           const SizedBox(height: 28),
           _AddButton(onAdd: onAdd, label: addLabel),
           const SizedBox(height: 20),

@@ -1,4 +1,4 @@
-"""Draws the Unstuck icon and writes every size each platform needs.
+"""Draws the Gumption icon and writes every size each platform needs.
 
 A tangled loop that straightens into an arrow: stuck, then moving. Teal on
 deep teal. Run from app/:  python3 tool/make_icons.py   (needs Pillow)
