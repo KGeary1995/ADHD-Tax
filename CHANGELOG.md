@@ -2,7 +2,10 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-21 (Android, web, Mac)
+## Next build — 2026-10-22 (Mac)
+- **Fewer keychain password prompts on Mac:** the app was saving your Google sign-in to the Mac keychain every time its hourly access pass renewed, and each save could make macOS ask for your password again. It now only saves when something that matters changes. Choose **Always Allow** on the prompts you do get; see the note about updates below.
+
+## Build 77 — 2026-10-21 (52025bd) (Android, web, Mac)
 - **How Unstuck works**, inside the app: a guide to every feature, with "your first five minutes" and a **Go to…** button on each part that takes you to the real screen. Find it on an empty Today screen, or in Settings → Help.
 - **Try with example tasks:** fills the app with sample tasks (an errand run, a checklist, something you're waiting on, a repeating task) and two notes, so a new user can look around before adding their own. **Remove example tasks** (Today's banner, the guide, or Settings → Help) takes away only those; anything you added stays.
 - **Google sync after an update (Android):** after installing a new build, the first quiet sign-in to Google can fail for a moment, and the app used to ask you to reconnect right away. It now retries by itself for about a minute (showing "Reconnecting to Google…") and only asks if it still can't get in.

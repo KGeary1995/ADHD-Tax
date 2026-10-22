@@ -115,7 +115,16 @@ class DesktopGoogleAuth implements GoogleAuth {
 
   http.Client _client(Workspace ws, AccessCredentials creds) {
     final client = autoRefreshingClient(_clientId, creds, http.Client());
-    client.credentialUpdates.listen((c) => _save(ws, c));
+    // The access token renews about hourly; only the refresh token needs
+    // keeping. Writing the keychain on every renewal made macOS ask for the
+    // keychain password again and again (ad-hoc signed builds aren't
+    // trusted by the item's access list).
+    var kept = creds.refreshToken;
+    client.credentialUpdates.listen((c) {
+      if (c.refreshToken == null || c.refreshToken == kept) return;
+      kept = c.refreshToken;
+      _save(ws, c);
+    });
     return client;
   }
 
