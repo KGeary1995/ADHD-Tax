@@ -116,6 +116,74 @@ jobs:
             --title "Gumption for Android (latest build)" \
             --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. On your phone, tap Gumption.apk below to download and install. (Unstuck.apk is the same app under its old name.)"
 
+  # The Google Play bundle (.aab), signed with the private upload key from
+  # repository secrets (docs/STORE_RELEASE.md). Only on Run workflow or a
+  # commit message containing [play], when a build is going to Play.
+  play:
+    name: Build Play bundle (AAB)
+    needs: test
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[play]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # publish the bundle to the play-latest release
+    defaults:
+      run:
+        working-directory: app
+    env:
+      UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+    steps:
+      - name: Upload key missing
+        if: env.UPLOAD_KEYSTORE_BASE64 == ''
+        working-directory: .
+        run: |
+          echo "::error::Add the UPLOAD_KEYSTORE_BASE64, UPLOAD_STORE_PASSWORD, UPLOAD_KEY_ALIAS and UPLOAD_KEY_PASSWORD secrets first (docs/STORE_RELEASE.md)."
+          exit 1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Google sign-in keys
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+        run: |
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" > google_oauth.json
+      # Same versionCode scheme as the APK (the run number), and --no-shrink
+      # for the same reason.
+      - name: Build the bundle
+        env:
+          UPLOAD_STORE_PASSWORD: ${{ secrets.UPLOAD_STORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+        run: |
+          echo "$UPLOAD_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          UPLOAD_KEYSTORE="$RUNNER_TEMP/upload.jks" flutter build appbundle --release --no-shrink \
+            --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
+          rm -f "$RUNNER_TEMP/upload.jks"
+      - name: Publish to play-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cp build/app/outputs/bundle/release/app-release.aab Gumption-play.aab
+          gh release delete play-latest --cleanup-tag --yes || true
+          gh release create play-latest Gumption-play.aab \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Gumption for Google Play (latest bundle)" \
+            --notes "Build ${{ github.run_number }} at ${GITHUB_SHA::7}. Download Gumption-play.aab on a computer and upload it in Play Console → Test and release."
+
   # Not published anywhere, and Windows minutes count double: build it only
   # on Run workflow or a commit message containing [windows].
   windows:

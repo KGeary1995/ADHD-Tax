@@ -33,6 +33,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(SideItem, 'Help'));
     await tester.pumpAndSettle();
+    // The store listings' pages are one tap away (Apple asks for this).
+    expect(find.text('Privacy policy'), findsOneWidget);
+    expect(find.text('Support'), findsWidgets);
     await tester.tap(find.text('Remove example tasks'));
     await tester.pumpAndSettle();
 

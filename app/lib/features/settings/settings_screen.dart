@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../core/links.dart';
 
 import '../../core/theme/app_themes.dart';
 import '../../widgets/ui.dart';
@@ -134,6 +137,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             );
           },
+        ),
+        GroupRow(
+          title: 'Support',
+          subtitle: 'Questions, or something not working',
+          trailing: Icon(Icons.open_in_new_rounded, color: s.faint),
+          onTap: () => launchUrl(Uri.parse(Links.support)),
+        ),
+        GroupRow(
+          title: 'Privacy policy',
+          subtitle: 'No ads, no tracking, no server',
+          trailing: Icon(Icons.open_in_new_rounded, color: s.faint),
+          onTap: () => launchUrl(Uri.parse(Links.privacy)),
         ),
       ],
     );
