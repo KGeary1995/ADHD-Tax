@@ -312,8 +312,10 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
-      # Universal (Apple Silicon + Intel), signed for local use only: macOS
-      # asks once to "Open Anyway" (README → Install on Mac).
+      # Universal (Apple Silicon + Intel). With the Developer ID secrets it's
+      # signed and notarized, so it opens without a warning and keychain
+      # "Always Allow" survives updates; without them it's ad-hoc signed and
+      # macOS asks to "Open Anyway" (README → Install on Mac).
       # Google sign-in client ids from repository secrets (README → Set up
       # Google sync). Empty until they're added, which builds without sync.
       - name: Google sign-in keys
@@ -327,6 +329,63 @@ jobs:
           printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s"}\n' \
             "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" > google_oauth.json
       - run: flutter build macos --release --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
+      # Re-sign the finished app with the owner's Developer ID certificate
+      # (inside out, hardened runtime, same entitlements), then notarize it
+      # with the App Store Connect API key the iOS job uses, and staple the
+      # ticket so it opens offline too.
+      - name: Sign with Developer ID and notarize
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          if [ -z "$MACOS_CERT_P12" ]; then
+            echo "::notice::No Developer ID certificate (MACOS_CERT_P12); the Mac app stays ad-hoc signed."
+            exit 0
+          fi
+          app="build/macos/Build/Products/Release/Gumption.app"
+          kc="$RUNNER_TEMP/signing.keychain-db"
+          kcpass=$(uuidgen)
+          security create-keychain -p "$kcpass" "$kc"
+          security set-keychain-settings -lut 21600 "$kc"
+          security unlock-keychain -p "$kcpass" "$kc"
+          printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERT_PASSWORD" -f pkcs12 -k "$kc" -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$kcpass" "$kc" >/dev/null
+          security list-keychains -d user -s "$kc" $(security list-keychains -d user | tr -d '"')
+          identity=$(security find-identity -v -p codesigning "$kc" | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.*)"/\1/')
+          if [ -z "$identity" ]; then
+            echo "::error::MACOS_CERT_P12 has no 'Developer ID Application' identity:"
+            security find-identity -v -p codesigning "$kc"
+            exit 1
+          fi
+          echo "Signing as: $identity"
+          find "$app/Contents/Frameworks" -depth \( -name '*.dylib' -o -name '*.framework' \) -print0 |
+            while IFS= read -r -d '' item; do
+              codesign --force --timestamp --options runtime --sign "$identity" "$item"
+            done
+          codesign --force --timestamp --options runtime \
+            --entitlements macos/Runner/Release.entitlements --sign "$identity" "$app"
+          codesign --verify --strict --deep --verbose=2 "$app"
+          mkdir -p ~/.appstoreconnect/private_keys
+          key=~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+          printf '%s' "$ASC_KEY_P8" > "$key"
+          ditto -c -k --keepParent "$app" "$RUNNER_TEMP/notarize.zip"
+          result=$(xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" --key "$key" \
+            --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" --wait --timeout 30m --output-format json) || true
+          echo "$result"
+          id=$(printf '%s' "$result" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))' 2>/dev/null || true)
+          status=$(printf '%s' "$result" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status",""))' 2>/dev/null || true)
+          if [ "$status" != "Accepted" ]; then
+            [ -n "$id" ] && xcrun notarytool log "$id" --key "$key" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" || true
+            echo "::error::Notarization status: ${status:-no result}"
+            exit 1
+          fi
+          xcrun stapler staple "$app"
+          spctl --assess --type execute --verbose=2 "$app"
       - run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/Gumption.app" Gumption-macOS.zip
       - uses: actions/upload-artifact@v4
         with:
@@ -342,7 +401,9 @@ jobs:
           # Same in-place update as android-latest (see there).
           if gh release view macos-latest >/dev/null 2>&1; then
             gh release upload macos-latest Gumption-macOS.zip --clobber
-            gh release edit macos-latest --notes "$notes"
+            gh release edit macos-latest --title "Gumption for Mac (latest build)" --notes "$notes"
+            # The pre-rename zip is a stale build; don't offer it any more.
+            gh release delete-asset macos-latest Unstuck-macOS.zip --yes || true
           else
             gh release create macos-latest Gumption-macOS.zip \
               --target "$DEFAULT_BRANCH" \

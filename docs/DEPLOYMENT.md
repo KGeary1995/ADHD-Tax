@@ -48,6 +48,7 @@ Every build job first writes `app/google_oauth.json` from secrets and builds wit
 | `CLOUDFLARE_API_TOKEN` | secret | `web-publish` | Cloudflare → My Profile → API Tokens → custom token, permission *Account · Cloudflare Pages · Edit* |
 | `CLOUDFLARE_ACCOUNT_ID` | secret | `web-publish` | Cloudflare → Workers & Pages (right sidebar) |
 | `CLOUDFLARE_PROJECT` | variable (optional) | `web-publish` | Defaults to `unstuck` |
+| `MACOS_CERT_P12`, `MACOS_CERT_PASSWORD` | secret | `macos` | The owner's **Developer ID Application** certificate exported from Keychain Access as a .p12 (base64) and its export password. With them the Mac app is re-signed (hardened runtime) and notarized with the `ASC_*` API key; without them it stays ad-hoc signed |
 | `UPLOAD_KEYSTORE_BASE64`, `UPLOAD_STORE_PASSWORD`, `UPLOAD_KEY_ALIAS`, `UPLOAD_KEY_PASSWORD` | secret | `play` | The Play upload key, generated 2026-10-22 and sent to the owner as a file (never committed). Alias `upload`, PKCS12, store and key password the same. SHA-1 `1D:05:72:5F:78:9E:F9:29:CA:9C:4A:08:B2:89:99:7F:01:04:37:4F` |
 
 The Google client ids and the desktop "secret" end up inside the shipped apps. That's normal for installed and browser apps (Google documents installed-app secrets as non-confidential). They're kept as secrets only to keep them out of the repo history.
@@ -72,7 +73,7 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 
 ## Mac distribution
 
-- CI builds a universal app, signed ad hoc (`CODE_SIGN_IDENTITY = "-"`), with no Apple Developer account. Gatekeeper blocks the first launch: **System Settings → Privacy & Security → Open Anyway**, or `xattr -dr com.apple.quarantine "/Applications/Gumption.app"`.
+- CI builds a universal app. With `MACOS_CERT_P12`/`MACOS_CERT_PASSWORD` it re-signs it inside out with the Developer ID certificate (hardened runtime, `Release.entitlements`), notarizes it with `xcrun notarytool` using the App Store Connect API key, and staples the ticket: no Gatekeeper warning, and keychain "Always Allow" survives updates because the signature stays the same. Without those secrets it's signed ad hoc (`CODE_SIGN_IDENTITY = "-"`), as before 2026-10-22. Gatekeeper blocks the first launch: **System Settings → Privacy & Security → Open Anyway**, or `xattr -dr com.apple.quarantine "/Applications/Gumption.app"`.
 - Sandbox entitlements (`macos/Runner/*.entitlements`) include `network.client` (Drive) and `network.server` (the loopback OAuth redirect).
 - Data lives in the app's sandbox container (bundle id `com.adhdtax.adhdTax`) and survives updates.
 - Proper signing and notarization would need the $99/year Apple Developer Program; that would also enable TestFlight for a native iPhone app.

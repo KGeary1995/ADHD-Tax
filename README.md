@@ -115,6 +115,13 @@ The web app still works on any phone: added to the home screen it opens full scr
 2. Drag **Gumption** into **Applications** and open it.
 3. The first time, macOS says it can't verify the developer: click **Done**, then go to **System Settings → Privacy & Security**, scroll down to "Gumption was blocked", and click **Open Anyway**. You do this once for each new version.
 
+**Signed Mac builds (no warning).** Builds made after the Developer ID secrets are in place are signed and notarized by Apple, so they open normally and keychain "Always Allow" keeps working after updates. One-time setup with the Apple Developer account (no Xcode needed):
+
+1. On the Mac, open **Keychain Access → Keychain Access menu → Certificate Assistant → Request a Certificate From a Certificate Authority**. Enter your email and name, choose **Saved to disk**, Continue. It saves `CertificateSigningRequest.certSigningRequest`.
+2. At [developer.apple.com/account/resources/certificates/add](https://developer.apple.com/account/resources/certificates/add) choose **Developer ID Application** (G2 Sub-CA if asked), upload that file, and **Download** the certificate. Double-click it to add it to your keychain.
+3. In Keychain Access → **My Certificates**, right-click **Developer ID Application: <your name> (<Team ID>)** → **Export**, save as `devid.p12` with a password you choose.
+4. In Terminal: `base64 -i ~/Desktop/devid.p12 | pbcopy` (adjust the path), then add GitHub secrets `MACOS_CERT_P12` (paste) and `MACOS_CERT_PASSWORD` (the export password). Keep the .p12 in your password manager.
+
 The Mac app is built on request, because macOS build machines cost 10x the free GitHub Actions minutes (about 100 of the 2,000 monthly minutes per build). To build a new version, go to **Actions → CI → Run workflow** and choose **mac**. Or put `[mac]` in a commit message.
 
 ## Run it
