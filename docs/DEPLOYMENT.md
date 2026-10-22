@@ -17,7 +17,7 @@ The repo is **private**, so release downloads need a signed-in GitHub session.
 
 ## CI workflow (`.github/workflows/ci.yml`)
 
-Triggers: `push` (except docs-only commits) and `workflow_dispatch` (Run workflow), which asks which extra app to build: `ios` (default), `mac`, `play`, `windows` or `all`; no `pull_request`, so each commit builds once. Pushes to `main` build like any branch: test, Android and web only (they used to add Mac and iOS, ~200 minutes per merge; dropped 2026-10-22). Concurrency group = `ci-<event>-<ref>` with cancel-in-progress, so a newer push cancels an older push run on the same branch, but manual runs and pushes don't cancel each other.
+Triggers: `push` (except docs-only commits) and `workflow_dispatch` (Run workflow), which asks which extra app to build: `ios` (default), `mac`, `ios+mac`, `play`, `windows` or `all`; no `pull_request`, so each commit builds once. Pushes to `main` build like any branch: test, Android and web only (they used to add Mac and iOS, ~200 minutes per merge; dropped 2026-10-22). Concurrency group = `ci-<event>-<ref>` with cancel-in-progress, so a newer push cancels an older push run on the same branch, but manual runs and pushes don't cancel each other.
 
 | Job | Runs on | Does | Publishes |
 |---|---|---|---|

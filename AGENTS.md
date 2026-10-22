@@ -95,7 +95,7 @@ app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks
 2. `./tool/check.sh` must pass.
 3. Push. CI runs once per commit (push only; docs-only commits, i.e. `*.md` and `docs/`, skip CI entirely): `test` (format, analyze, test, web build), then in parallel:
    - **Android**: builds the APK and replaces the `android-latest` release asset. The phone download link never changes.
-   - **Run workflow** (`workflow_dispatch`) asks which extra app to build (`ios` by default, `mac`, `play`, `windows` or `all`); "on `workflow_dispatch`" below means "when chosen there".
+   - **Run workflow** (`workflow_dispatch`) asks which extra app to build (`ios` by default, `mac`, `ios+mac`, `play`, `windows` or `all`); "on `workflow_dispatch`" below means "when chosen there".
    - **Windows**: only on `workflow_dispatch` or **commit messages containing `[windows]`**; builds an artifact (not published as a release).
    - **web-publish**: deploys to Cloudflare Pages if the Cloudflare secrets exist (otherwise it posts a notice).
    - **macOS**: only on `workflow_dispatch` or **commit messages containing `[mac]`** (pushes to `main` don't build it) (macOS runners cost 10× minutes). Publishes to the `macos-latest` release.

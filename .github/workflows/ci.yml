@@ -16,7 +16,7 @@ on:
       build:
         description: Extra app to build
         type: choice
-        options: [ios, mac, play, windows, all]
+        options: [ios, mac, ios+mac, play, windows, all]
         default: ios
 
 # Per event, so a manual run and a push don't
@@ -297,7 +297,7 @@ jobs:
     needs: test
     if: >-
       (github.event_name == 'workflow_dispatch' &&
-        (inputs.build == 'mac' || inputs.build == 'all')) ||
+        (contains(inputs.build, 'mac') || inputs.build == 'all')) ||
       contains(github.event.head_commit.message, '[mac]')
     runs-on: macos-latest
     permissions:
@@ -359,7 +359,7 @@ jobs:
     needs: test
     if: >-
       (github.event_name == 'workflow_dispatch' &&
-        (inputs.build == 'ios' || inputs.build == 'all')) ||
+        (contains(inputs.build, 'ios') || inputs.build == 'all')) ||
       contains(github.event.head_commit.message, '[ios]')
     runs-on: macos-latest
     env:
