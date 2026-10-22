@@ -1,4 +1,4 @@
-# Getting Unstuck into Google Play and the App Store
+# Getting Gumption into Google Play and the App Store
 
 The plan for moving from sideloaded/TestFlight builds to public store listings. Written 2026-10-22. Store rules change; re-check anything marked *verify* when you get to it.
 
@@ -10,7 +10,7 @@ The plan for moving from sideloaded/TestFlight builds to public store listings. 
 |---|---|---|
 | Seller: individual or company | **Individual** to start | Free and fast. Your legal name shows as the seller. You can migrate to a company later on Apple; on Google you'd need a new account (apps can be transferred). |
 | Price | **Free** to start | Paid apps add tax forms, banking, refunds and support load. In-app purchase or a paid tier can come later. |
-| Store name | **"Unstuck: One Task Focus"** or similar | Plain "Unstuck" is likely taken on the App Store (names are unique there). The app's home-screen name stays "Unstuck" either way. |
+| Store name | **Decided: "Gumption: Task Starter"** (2026-10-22) | "Unstuck" was taken by several ADHD apps. No app called Gumption was found, but **[you]** still run the trademark search (tmsearch.uspto.gov, classes 9 and 42) before paying for anything. The home-screen name is "Gumption". Apple subtitle / Play short description idea: "Picks your task. Built for ADHD." |
 | Positioning | **Productivity app "built for ADHD brains"**, no medical claims | Words like *treats*, *therapy* or *symptoms* trigger health-app review on both stores. Describe what it does (picks a task, focus timer), not what it cures. |
 | Web address | Keep **unstuck-4o8.pages.dev** for now; optionally buy a domain (~$12/yr) | Both stores and Google's sign-in screen need a privacy policy and support URL. A real domain looks more trustworthy and makes Google's brand verification simpler. |
 | Support email | **A dedicated address** (e.g. a new Gmail) | It's shown publicly on both listings. |

@@ -6,8 +6,8 @@ Everything about getting builds onto devices: CI, release links, secrets, signin
 
 | Platform | Built by | Delivered via | Link |
 |---|---|---|---|
-| Android | CI `android` job, every push | GitHub release **`android-latest`** (asset replaced each build) | `https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/Unstuck.apk` |
-| Mac | CI `macos` job, on `[mac]` commits, pushes to `main`, or Run workflow | GitHub release **`macos-latest`** | `https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Unstuck-macOS.zip` |
+| Android | CI `android` job, every push | GitHub release **`android-latest`** (asset replaced each build) | `https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/Gumption.apk` (the same file is also published as `Unstuck.apk`, so links from before the rename keep working) |
+| Mac | CI `macos` job, on `[mac]` commits, pushes to `main`, or Run workflow | GitHub release **`macos-latest`** | `https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Gumption-macOS.zip` |
 | iPhone / iPad (native) | CI `ios` job, on `[ios]` commits, pushes to `main`, or Run workflow | App Store Connect → **TestFlight** (needs the Apple secrets; until then the job only compiles) | TestFlight app on the device |
 | Web (and iPhone without an Apple account) | CI `test` job builds; `web-publish` deploys | Cloudflare Pages project `unstuck` (or repo variable `CLOUDFLARE_PROJECT`) | **`https://unstuck-4o8.pages.dev`** (project created by Build 39; the suffix is Cloudflare's because `unstuck` was taken) |
 | Windows | CI `windows` job, on Run workflow or a `[windows]` commit | Run artifact `unstuck-windows` only (no release yet) | Actions → run → Artifacts |
@@ -69,7 +69,7 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 
 ## Mac distribution
 
-- CI builds a universal app, signed ad hoc (`CODE_SIGN_IDENTITY = "-"`), with no Apple Developer account. Gatekeeper blocks the first launch: **System Settings → Privacy & Security → Open Anyway**, or `xattr -dr com.apple.quarantine "/Applications/Unstuck.app"`.
+- CI builds a universal app, signed ad hoc (`CODE_SIGN_IDENTITY = "-"`), with no Apple Developer account. Gatekeeper blocks the first launch: **System Settings → Privacy & Security → Open Anyway**, or `xattr -dr com.apple.quarantine "/Applications/Gumption.app"`.
 - Sandbox entitlements (`macos/Runner/*.entitlements`) include `network.client` (Drive) and `network.server` (the loopback OAuth redirect).
 - Data lives in the app's sandbox container (bundle id `com.adhdtax.adhdTax`) and survives updates.
 - Proper signing and notarization would need the $99/year Apple Developer Program; that would also enable TestFlight for a native iPhone app.

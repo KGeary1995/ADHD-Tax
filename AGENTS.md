@@ -4,11 +4,11 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 
 ## What this is
 
-**Unstuck** (formerly *ADHD Tax*; the repo and internal ids keep the old name) is a task-initiation app for an ADHD user who struggles to *start* tasks. It picks one task for you (based on time available, energy, whether you can leave the house), shrinks it to a first step, runs a visual focus timer, and rewards starting with XP. Personal and Work tasks are kept apart and each syncs to its own Google account through Drive.
+**Gumption** (store name *Gumption: Task Starter*; formerly *Unstuck*, originally *ADHD Tax*; the repo and internal ids keep the old names) is a task-initiation app for an ADHD user who struggles to *start* tasks. It picks one task for you (based on time available, energy, whether you can leave the house), shrinks it to a first step, runs a visual focus timer, and rewards starting with XP. Personal and Work tasks are kept apart and each syncs to its own Google account through Drive.
 
 - **One Flutter codebase** in `app/` → Android (APK, sideloaded), iPhone/iPad (native, TestFlight), Mac, Windows, web. The web build is also the no-account iPhone option.
 - **No backend server.** Data lives on each device and syncs through a hidden Google Drive app-data folder per Google account.
-- **Naming:** the user-visible name is **Unstuck**. Internal identifiers keep the old name **on purpose**: the Android applicationId `com.adhdtax.adhd_tax`, the Mac bundle id `com.adhdtax.adhdTax`, the Dart package `adhd_tax`, the repo `KGeary1995/ADHD-Tax`, the web token key `adhdtax.googleToken.*`, and the repeat-copy id seed `adhd-tax:repeat:` (pinned by a test). Changing them installs a separate, empty app, breaks Google Sign-In's Android client, or duplicates repeating tasks across devices. See docs/DECISIONS.md.
+- **Naming:** the user-visible name is **Gumption** (since 2026-10-22). Internal identifiers keep the old names **on purpose**: the Android applicationId `com.adhdtax.adhd_tax`, the Mac bundle id `com.adhdtax.adhdTax`, the Dart package `adhd_tax`, the repo `KGeary1995/ADHD-Tax`, the web token key `adhdtax.googleToken.*`, and the repeat-copy id seed `adhd-tax:repeat:` (pinned by a test). From the Unstuck era: the `unstuck/android` method channel, the `unstuck://` URL scheme, the backup file `kind` `unstuck-backup` (old backups must still restore), the iOS target folders `UnstuckWidget`/`UnstuckShare`, the Cloudflare project `unstuck` (the web address), and a copy of the APK published as `Unstuck.apk` so old links work. Changing them installs a separate, empty app, breaks Google Sign-In's Android client, or duplicates repeating tasks across devices. See docs/DECISIONS.md.
 - **Owner context:** the user works in ophthalmology clinic operations. Work tasks must never contain patient information (PHI). See "Rules" below.
 
 ## Status (keep this section current)
@@ -21,7 +21,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Phone layout fixes, full task form, back button | Done | Android: reported working |
 | Repeating tasks, Mark done + Undo, Android reminders | Done | Not yet reported |
 | Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | Not yet (web screenshots and tests) |
-| Android home-screen widget, Share → Unstuck | Done | **No.** Native code only compiles in CI; nothing runs it here |
+| Android home-screen widget, Share → Gumption | Done | **No.** Native code only compiles in CI; nothing runs it here |
 | iPhone/iPad native app (notifications, widgets, Share, voice) | Code done; CI compiles it on `[ios]` pushes; TestFlight upload needs the Apple secrets | **No.** Compiles in CI (Build 35). On hold: the owner will join the Apple Developer Program once iPhone-using friends confirm they want it |
 | iPhone web app (home-screen) | Done; Cloudflare secrets added 2026-10-18, published by `web-publish` on every push to **https://unstuck-4o8.pages.dev** (Build 39+). Being trialled with iPhone-using friends to decide on the native app | No (Chromium emulation only) |
 | Backup file (Settings → Save / Restore) | Done | Not yet (tests and web screenshots) |
@@ -30,7 +30,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Checklists in tasks, reward shop, typed extras in Quick add ("tomorrow 2pm 15 min #tag"), templates, task tags | Done | Not yet (tests and web screenshots) |
 | Weekly reset, errand runs, focus company (sounds + buddy), Mac/Windows Quick add hotkey, AI "Break it down" (own Anthropic key) | Done | **No.** Tests and web screenshots only. The hotkey and audio are native plugins compiled only in CI; nothing here runs them |
 | Desktop layout: Tasks/Notes/Settings sidebars, desktop Today / Progress / editor / wrap-up, pop-ups and Quick add as windows | Done | Not yet (tests and 1440×900 web screenshots; the owner's Mac screenshots predate it) |
-| In-app guide ("How Unstuck works") and example tasks | Done | Not yet (tests and web screenshots) |
+| In-app guide ("How Gumption works") and example tasks | Done | Not yet (tests and web screenshots) |
 | Built-in first-step ideas and Suggest steps (no AI key), "Hold me to it" share from the focus screen | Done | Not yet (tests and web screenshots; the share sheet needs a device) |
 | Phase 3+ (Calendar, table/timeline views) | Not started | — see docs/PLAN.md |
 
@@ -122,7 +122,7 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - `shared_preferences_android` and `path_provider_android` are **pinned** in `dependency_overrides`; newer versions crash release builds at startup (Pigeon JNI). Don't remove the pins.
 - Android release builds must use `--no-shrink`. R8 strips plugin code that's only called from Dart.
 - Impeller is disabled in `AndroidManifest.xml` (black screen on some GPUs).
-- `MainActivity` is `singleTask` with Flutter deep linking off: shares and widget taps arrive over the `unstuck/android` channel (`features/outside/`). With the template's `singleTop` + empty `taskAffinity`, a share from another app would start a second copy of Unstuck in that app's task.
+- `MainActivity` is `singleTask` with Flutter deep linking off: shares and widget taps arrive over the `unstuck/android` channel (`features/outside/`). With the template's `singleTop` + empty `taskAffinity`, a share from another app would start a second copy of the app in that app's task.
 - There's no Android SDK or Xcode in cloud sessions: Kotlin, Swift, resource and Xcode-project changes are only compiled by CI (Android job; iOS job on `[ios]`). Read them twice before pushing. Change the iOS targets through `tool/ios/add_extensions.rb`, not by hand.
 - iOS: the widget and share extension share data with the app through the App Group `group.com.adhdtax.adhdTax`; all three entitlements files must list it.
 - `main.dart` wraps startup in `runZonedGuarded` and shows `StartupErrorApp` instead of a black screen. Keep it: it's how the owner reports crashes (screenshot + "Copy details").

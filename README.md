@@ -1,6 +1,6 @@
-# Unstuck
+# Gumption
 
-*Formerly "ADHD Tax". The GitHub repo keeps its old name.*
+*Formerly "Unstuck", and before that "ADHD Tax". The GitHub repo keeps its old name. In the app stores it will be **Gumption: Task Starter**.*
 
 **Pick one task. Start it. Level up.**
 
@@ -23,7 +23,7 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **Weekly reset** | On weekends Home offers to sort tasks that have sat untouched for a week, one at a time: Keep it, Make it smaller, Not this week, or Let it go. +20 XP. Also on the Tasks tab any day. |
 | **Errand run** | With "Can go out" on, Home suggests the errands that fit your time, grouped by place, as one trip to tick off. |
 | **Company while you work** | Headphones on the focus screen: background sound (brown noise, rain, fan) and an optional buddy line, like someone working at the next desk. |
-| **Quick add from anywhere (Mac, Windows)** | Ctrl+Shift+Space (⌃⇧Space on a Mac) in any app brings Unstuck forward with Quick add open. |
+| **Quick add from anywhere (Mac, Windows)** | Ctrl+Shift+Space (⌃⇧Space on a Mac) in any app brings Gumption forward with Quick add open. |
 | **Break it down with AI (optional)** | In a task's editor: Claude splits the task into 3–7 small steps for the checklist. Uses your own Anthropic API key (Settings → AI helper), kept on the device. Off for Work tasks unless you turn it on; Work tasks that look like they contain patient details are never sent. |
 | **Templates** | Reusable checklists and notes (Settings → Templates; **Template** in Quick add; **From a template** on Notes). One-tap examples: Opening checklist, Huddle notes, Weekly reset. Save any task or note as one. `{date}` becomes today's date. |
 | **XP, levels, achievements** | XP for *starting*, more for finishing, bonuses for dreaded tasks, old tasks, beating your estimate and errands. 18 achievements, ranks every 5 levels, and coins to spend in the **reward shop** (Progress tab) on treats you define, like "Fancy coffee out = 25". Streaks include 2 grace days a week and never reset to zero. |
@@ -34,15 +34,15 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **Reminders (Android)** | A countdown in your notifications while you focus, plus a "time's up" alert even if you've switched apps. Check-in nudges ("pick one thing?") at times you choose, skipped for 90 minutes after you've started or finished something. Settings → Reminders. |
 | **Undo** | **Mark done**, Archive and Delete from the task list each show an Undo bar. Undoing a done also takes back its XP and the next copy of a repeating task. |
 | **Waiting on someone** | Park a task with who it's waiting on and when to check back. On the day it moves to **Check back** at the top of Tasks (and Android reminds you): back to your list, still waiting, or done. |
-| **Real task lengths** | After 5 tasks timed with the focus timer, Unstuck learns how long things really take you ("about 1.6× your guess") and picks tasks that truly fit your time. See Progress. |
+| **Real task lengths** | After 5 tasks timed with the focus timer, Gumption learns how long things really take you ("about 1.6× your guess") and picks tasks that truly fit your time. See Progress. |
 | **Evening wrap-up** | 3 minutes at night (Android reminds you, or tap **Wrap up** on Home after 5 pm): today's wins, what's still open, and tomorrow's first thing, which then shows first on Home in the morning. |
-| **Share and voice** | On Android, share text from any app to **Unstuck** to make it a task. The mic in Quick add types what you say (Android, Mac, and Chrome/Safari). |
+| **Share and voice** | On Android, share text from any app to **Gumption** to make it a task. The mic in Quick add types what you say (Android, Mac, and Chrome/Safari). |
 | **Notes** | A Notes tab for thoughts, call outcomes and meeting notes. Pin, search, and organize with **projects** and **tags** (chips, or type `#tag` in the text). **Make tasks** turns the lines you tick into tasks; a task's editor shows its notes and "Add a note". |
 | **Projects and board** | Group tasks and notes by project. Tasks has a **List / Board** switch: To do · Doing · Waiting · Done. On a phone, tabs show one column at a time (tap or swipe); hold a card and drop it on a tab to move it, or use its ⋮ menu. Wide screens show all four columns. "Pick for me" still works across everything. |
-| **Home-screen widgets (Android)** | Long-press your home screen → Widgets → Unstuck. Four sizes: **start** (2×1), **square** (2×2), **card** (4×2) and **card + next up** (4×3, with two more tasks that fit right now). Each shows the current pick with **Start**; the bigger ones add **+**. They update whenever the app is open. |
+| **Home-screen widgets (Android)** | Long-press your home screen → Widgets → Gumption. Four sizes: **start** (2×1), **square** (2×2), **card** (4×2) and **card + next up** (4×3, with two more tasks that fit right now). Each shows the current pick with **Start**; the bigger ones add **+**. They update whenever the app is open. |
 | **Backup file** | Settings → **Save a backup file** puts every task, note, all your XP and your settings in one file you keep (Files, Drive, email…). Not your API key or Google sign-in, on purpose. **Restore from a backup file** adds it back in; anything newer on the device is kept, so restoring an old file never undoes work. No Google account needed. |
 | **Ideas when you're stuck** | An empty first step offers three ideas for that kind of task (calls, emails, forms, bills, cleaning, errands…), and **Suggest steps** fills in a checklist, with no AI key needed. **Hold me to it** on the focus screen texts a friend that you've started (Work tasks never include the title). |
-| **Guide and example tasks** | **How Unstuck works** (Settings → Help, or the empty Today screen) walks through every feature with buttons to each screen. **Try with example tasks** fills the app with samples to look around; **Remove example tasks** takes away only those. |
+| **Guide and example tasks** | **How Gumption works** (Settings → Help, or the empty Today screen) walks through every feature with buttons to each screen. **Try with example tasks** fills the app with samples to look around; **Remove example tasks** takes away only those. |
 | **Patient-info guard** | Work tasks that look like PHI (DOB, MRN, "pt Jane Doe") show a warning to use initials or a ticket number instead. |
 
 ### Sync between devices (Phase 2)
@@ -62,22 +62,24 @@ Without Google setup, the app works exactly as before, storing everything on the
 
 Open this link on the phone (signed in to GitHub, since the repo is private):
 
-**https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/Unstuck.apk**
+**https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/Gumption.apk**
+
+(The old link ending in `Unstuck.apk` still works: it's the same file.)
 
 Tap the downloaded file to install it. The first time, Android asks you to allow installs from Chrome or Files; Play Protect may also say it doesn't recognize the app, and **More details → Install anyway** gets past that. Every push rebuilds that same link, and new versions install over the old one without losing your tasks.
 
 ## Install on iPhone and iPad (native app, TestFlight)
 
-The native app has everything the Android app has: timer alerts, check-ins, follow-up and wrap-up reminders, home-screen widgets (small, medium, large), **Share → Unstuck**, voice, and Google sign-in that stays signed in. It installs through Apple's **TestFlight** app, not the App Store.
+The native app has everything the Android app has: timer alerts, check-ins, follow-up and wrap-up reminders, home-screen widgets (small, medium, large), **Share → Gumption**, voice, and Google sign-in that stays signed in. It installs through Apple's **TestFlight** app, not the App Store.
 
 **One-time Apple setup (about 30 minutes, plus Apple's approval wait).**
 
 1. **Join the Apple Developer Program** ($99/year) at [developer.apple.com/programs/enroll](https://developer.apple.com/programs/enroll/). Approval can take a day or two. Then open [developer.apple.com/account](https://developer.apple.com/account) → **Membership details** and copy your **Team ID**.
 2. **Register the app's identifiers** at [developer.apple.com/account/resources](https://developer.apple.com/account/resources/identifiers/list):
-   - **Identifiers → + → App Groups → Continue.** Description `Unstuck`, identifier `group.com.adhdtax.adhdTax`.
-   - **Identifiers → + → App IDs → App → Continue.** Description `Unstuck`, **Explicit** Bundle ID `com.adhdtax.adhdTax`. Under Capabilities tick **App Groups**, then **Edit/Configure** and choose `group.com.adhdtax.adhdTax`. Register.
+   - **Identifiers → + → App Groups → Continue.** Description `Gumption`, identifier `group.com.adhdtax.adhdTax`.
+   - **Identifiers → + → App IDs → App → Continue.** Description `Gumption`, **Explicit** Bundle ID `com.adhdtax.adhdTax`. Under Capabilities tick **App Groups**, then **Edit/Configure** and choose `group.com.adhdtax.adhdTax`. Register.
    - (The widget and share extensions' IDs are created automatically by the first build.)
-3. **Create the app** in [App Store Connect](https://appstoreconnect.apple.com/apps): **+ → New App**. Platform **iOS**, Name **Unstuck** (if it's taken, anything, e.g. *Unstuck Focus*; only you see it), language English, Bundle ID `com.adhdtax.adhdTax`, SKU `unstuck`, User Access **Full Access**.
+3. **Create the app** in [App Store Connect](https://appstoreconnect.apple.com/apps): **+ → New App**. Platform **iOS**, Name **Gumption: Task Starter**, language English, Bundle ID `com.adhdtax.adhdTax`, SKU `gumption`, User Access **Full Access**.
 4. **Create an API key** for the builds: App Store Connect → **Users and Access → Integrations → App Store Connect API → Team Keys → +**. Name `GitHub CI`, Access **Admin** (needed to create signing certificates). **Download** the `.p8` file (only possible once) and copy the **Key ID** and the **Issuer ID** shown above the list.
 5. In GitHub, open this repo → **Settings → Secrets and variables → Actions → New repository secret**, and add:
 
@@ -91,7 +93,7 @@ The native app has everything the Android app has: timer alerts, check-ins, foll
 6. Start a build: **Actions → CI → Run workflow** (or ask Claude for an `[ios]` build). When **Build iOS app** finishes, the build shows in App Store Connect → **TestFlight** after Apple processes it (10–30 minutes).
 7. **TestFlight → Internal Testing → +** (create a group, e.g. "Me"), add yourself. Install the **TestFlight** app on your iPhone/iPad, accept the invite, tap **Install**. Later builds show up there to update with one tap.
 
-**Widgets:** long-press the home screen → **+** → Unstuck. **Share:** in any app's share sheet, choose Unstuck (you may need **More** the first time), edit the text, tap **Add**; the next time you open Unstuck, Quick add opens with it.
+**Widgets:** long-press the home screen → **+** → Gumption. **Share:** in any app's share sheet, choose Gumption (you may need **More** the first time), edit the text, tap **Add**; the next time you open Gumption, Quick add opens with it.
 
 ### iPhone web app (no Apple account)
 
@@ -105,13 +107,13 @@ The web app still works on any phone: added to the home screen it opens full scr
 4. In GitHub, open this repo → **Settings → Secrets and variables → Actions → New repository secret**. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 5. Push anything, or go to **Actions → CI → Run workflow**. When the **Publish web app (iPhone)** job finishes, its summary shows the address. **Ours is https://unstuck-4o8.pages.dev** (live since Build 39; `unstuck.pages.dev` was taken, so Cloudflare added a suffix).
 
-**On the iPhone:** open that address in **Safari**, tap **Share → Add to Home Screen**, and from then on open Unstuck from the home screen. Tasks saved in the home-screen app are separate from the Safari tab, so use the icon.
+**On the iPhone:** open that address in **Safari**, tap **Share → Add to Home Screen**, and from then on open Gumption from the home screen. Tasks saved in the home-screen app are separate from the Safari tab, so use the icon.
 
 ## Install on Mac
 
-1. Download **https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Unstuck-macOS.zip** (signed in to GitHub). Safari unzips it.
-2. Drag **Unstuck** into **Applications** and open it.
-3. The first time, macOS says it can't verify the developer: click **Done**, then go to **System Settings → Privacy & Security**, scroll down to "Unstuck was blocked", and click **Open Anyway**. You do this once for each new version.
+1. Download **https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Gumption-macOS.zip** (signed in to GitHub). Safari unzips it.
+2. Drag **Gumption** into **Applications** and open it.
+3. The first time, macOS says it can't verify the developer: click **Done**, then go to **System Settings → Privacy & Security**, scroll down to "Gumption was blocked", and click **Open Anyway**. You do this once for each new version.
 
 The Mac app is built on request, because macOS build machines cost 10x the free GitHub Actions minutes (about 100 of the 2,000 monthly minutes per build). To build a new version, go to **Actions → CI → Run workflow**. Merges to `main` also build one.
 
@@ -143,10 +145,10 @@ Sync needs your own Google Cloud sign-in keys. They're free, and the app can onl
 
 **A. Create the Google project**
 
-1. Go to [console.cloud.google.com](https://console.cloud.google.com), sign in with your **personal** Google account, and create a project called "Unstuck".
+1. Go to [console.cloud.google.com](https://console.cloud.google.com), sign in with your **personal** Google account, and create a project called "Gumption".
 2. **APIs & Services → Library:** search for **Google Drive API** and click **Enable**.
 3. Open **Google Auth Platform** (the menu item formerly called "OAuth consent screen") and click **Get started**:
-   - **App name:** Unstuck. **Support email:** yours. **Audience:** External. **Contact email:** yours. Agree and **Create**.
+   - **App name:** Gumption (if you set this up as "Unstuck", change it under **Branding**). **Support email:** yours. **Audience:** External. **Contact email:** yours. Agree and **Create**.
    - **Data Access → Add or remove scopes:** tick `.../auth/drive.appdata` and `.../auth/drive.file`, then **Update → Save**. Both are "non-sensitive", so Google doesn't need to review the app.
    - **Audience → Publish app**, so the status is **In production**. If you leave it in Testing, Google signs you out every 7 days and sync quietly stops.
 
@@ -176,7 +178,7 @@ For a build on your own computer, put the same three values in `app/google_oauth
 
 **Clinic account:** many Google Workspace admins block apps they haven't approved. If connecting Work fails with "access blocked", ask your admin to trust the Web and Desktop client IDs under Admin console → Security → API controls. Personal sync works either way.
 
-**Android work profile:** if your clinic account lives in the phone's work profile (apps with a briefcase badge), the regular Unstuck can't see it. Install Unstuck a second time inside the work profile (open the download link in the work profile's Chrome) and connect Work there; use Personal in the regular app. Then set **Settings → Show on this device** to **Work** in the work copy and **Personal** in the regular one, so each only shows (and adds to) its own side. The two copies don't share data, and each needs updating when a new build comes out.
+**Android work profile:** if your clinic account lives in the phone's work profile (apps with a briefcase badge), the regular Gumption can't see it. Install Gumption a second time inside the work profile (open the download link in the work profile's Chrome) and connect Work there; use Personal in the regular app. Then set **Settings → Show on this device** to **Work** in the work copy and **Personal** in the regular one, so each only shows (and adds to) its own side. The two copies don't share data, and each needs updating when a new build comes out.
 
 **iPhone and web:** browsers only get one-hour Google sign-ins, so after an hour the sync badge shows **Reconnect** (one tap). The app remembers a sign-in until it expires, so reopening it within the hour doesn't ask again. Android and Mac stay signed in.
 
@@ -229,7 +231,7 @@ The decision logic (`picker_engine.dart`, `xp_rules.dart`, `achievements.dart`, 
 
 1. ~~**Phase 1: offline MVP**~~ ✅
 2. ~~**Phase 2: Google sign-in + Drive sync**~~ ✅ (needs your OAuth setup, above)
-3. **Phase 3: Google Calendar.** Free time detected automatically ("47 min until Staff Huddle"). Plan My Day drops suggested tasks into a dedicated "Unstuck" calendar, with two-way updates and "leave in 15 min" alerts.
+3. **Phase 3: Google Calendar.** Free time detected automatically ("47 min until Staff Huddle"). Plan My Day drops suggested tasks into a dedicated "Gumption" calendar, with two-way updates and "leave in 15 min" alerts.
 4. **Phase 4: Monday.com-style views.** Board, table, timeline, calendar, projects, command palette. (Repeating tasks are already done.)
 5. ~~**Phase 5: ADHD extras.**~~ Learned estimate correction, errand runs, home-screen widget, desktop hotkey, reward shop, body doubling, daily wrap-up and weekly reset are all in.
 6. **Phase 6: optional AI (Claude).** ~~"Break this down"~~ is in (your own API key, off for Work by default). Still open: smarter capture and a Plan-my-day explanation.

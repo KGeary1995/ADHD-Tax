@@ -189,7 +189,7 @@ Every bottom sheet goes through `showAppSheet` (`widgets/ui.dart`): a modal bott
 - Notifications use the same `DeviceReminders` as Android (no ongoing countdown on iOS; at most 60 scheduled, soonest first, because iOS keeps 64).
 
 **Android** — `MainActivity.kt` (launchMode `singleTask`, Flutter deep linking off) talks to Dart over the channel:
-- **Share → Unstuck**: an `ACTION_SEND text/plain` intent becomes a `SharedText` request; `taskFromShare` turns the subject or first line into the title and the rest into notes, and Quick add opens prefilled.
+- **Share → Gumption**: an `ACTION_SEND text/plain` intent becomes a `SharedText` request; `taskFromShare` turns the subject or first line into the title and the rest into notes, and Quick add opens prefilled.
 - **Home-screen widgets** (`PickWidget.kt`, `res/layout/pick_widget*.xml`, `res/xml/pick_widget*_info.xml`): RemoteViews copies of Home's teal card in four sizes, each its own provider so the launcher lists them: `PickWidgetSmall` 2×1, `PickWidgetSquare` 2×2, `PickWidget` 4×2 (the original class name, so placed widgets survive), `PickWidgetLarge` 4×3 with "Next up" (`nextUpProvider`, two more that fit). One renderer fills whichever views a layout has; RemoteViews skips the rest. They never compute anything; `OutsideBootstrap` pushes the current pick (`updateWidget`) whenever it changes, so they show the last pick from when the app was open. Taps open `/` (card), `/focus/<id>?min=N` (Start, or a Next-up row) or `/add` (+) through the same channel.
 - Elsewhere `NoDeviceBridge` does nothing. Tests use a fake bridge.
 
@@ -203,7 +203,7 @@ Every bottom sheet goes through `showAppSheet` (`widgets/ui.dart`): a modal bott
 
 One look in two brightnesses: `darkSpec` and `lightSpec` (`ThemeSpec` tokens: background, surface, hairline, outline, text levels, teal `accent` fill vs `primary` teal text, the near-black `ink` of the Start button, nav colors). `AppSettings.appearance` (Light / Dark / Match phone) picks `ThemeMode`; old `themeId` values map to light or dark on load. Widgets read tokens via `context.spec`, plus `s.display(size)` (Bricolage Grotesque) and `s.mono(size)` (Geist Mono); body text is Geist. Fonts are bundled TTFs in `app/assets/fonts/` (OFL, registered with `LicenseRegistry` in `main.dart`). Reduced motion follows the OS (`context.reduceMotion`).
 
-Shared pieces live in `widgets/ui.dart`: `Panel` (card), `Group`/`GroupRow`/`SwitchRow` (settings-style lists), `Pill`/`ChoiceGroup` (wrapping single choice), `Segmented`, `PageHeader`, `SectionTitle`, `FieldLabel`, `UnstuckMark`/`Wordmark` (the logo drawn in code), `navClearance()`. `widgets/task_chips.dart` has `TaskMeta` (the one-line "Due 5 pm · 1h · Critical" summary) and date/duration formatters.
+Shared pieces live in `widgets/ui.dart`: `Panel` (card), `Group`/`GroupRow`/`SwitchRow` (settings-style lists), `Pill`/`ChoiceGroup` (wrapping single choice), `Segmented`, `PageHeader`, `SectionTitle`, `FieldLabel`, `GumptionMark`/`Wordmark` (the logo drawn in code), `navClearance()`. `widgets/task_chips.dart` has `TaskMeta` (the one-line "Due 5 pm · 1h · Critical" summary) and date/duration formatters.
 
 Navigation (`app.dart`): phones get a floating pill nav (`extendBody`, so screens pad with `navClearance`) with the teal Add button; at ≥760 px a slim rail. Tab buttons are icon-only with tooltips (tests find them with `find.byTooltip('Tasks')`).
 
