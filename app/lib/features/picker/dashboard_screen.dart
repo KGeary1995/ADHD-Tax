@@ -247,9 +247,13 @@ class DashboardScreen extends ConsumerWidget {
                       const SizedBox(height: 20),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: _SituationBar(),
+                        child: Row(
+                          children: [
+                            Expanded(child: _SituationBar()),
+                            _CheckBackChip(),
+                          ],
+                        ),
                       ),
-                      const _CheckBackBanner(),
                       const _ErrandRunBanner(),
                       const _ResetBanner(),
                       const _ExamplesBanner(),
@@ -431,14 +435,19 @@ class _TaskCard extends StatelessWidget {
     final s = context.spec;
     final t = suggestion.task;
     final now = DateTime.now();
-    final time = suggestion.isChunk
+    // A phone gets the short version ("30 min · due tomorrow") so it stays
+    // on one line; the full times are in the editor.
+    final time = !large
+        ? formatMinutes(suggestion.plannedMin)
+        : suggestion.isChunk
         ? '${suggestion.plannedMin} of ${t.estimateMin} min'
         : suggestion.plannedMin != t.estimateMin
         ? '~${suggestion.plannedMin} min'
         : formatMinutes(t.estimateMin);
     final meta = [
       time,
-      if (t.dueAt != null) 'due ${formatDue(t.dueAt!, now)}',
+      if (t.dueAt != null)
+        'due ${large ? formatDue(t.dueAt!, now) : formatDueDay(t.dueAt!, now)}',
     ].join(' · ');
     final hasFirstStep = t.nextStep.isNotEmpty;
     final steps = t.steps;
@@ -747,24 +756,15 @@ class _TodayPanel extends ConsumerWidget {
   }
 }
 
-/// "2 done today · 40 XP today · Overwhelmed?"
+/// "Wrap up · Overwhelmed?" under the quote. Today's counts live on
+/// Progress (and in the level pill), so the phone's Home stays quiet.
 class _TodayLine extends ConsumerWidget {
   const _TodayLine();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.spec;
-    final p = ref.watch(progressProvider);
     final now = ref.read(clockProvider)();
-    final done = p.completedOn(now);
-    final xpToday = p.recent
-        .where(
-          (r) =>
-              r.at.year == now.year &&
-              r.at.month == now.month &&
-              r.at.day == now.day,
-        )
-        .fold(0, (a, r) => a + r.amount);
     final style = s.mono(12, color: s.isDark ? const Color(0xFF7C8885) : null);
     Widget link(String text, Color? color, VoidCallback onTap) => InkWell(
       borderRadius: BorderRadius.circular(8),
@@ -781,31 +781,14 @@ class _TodayLine extends ConsumerWidget {
         ),
       ),
     );
-    // Stats left, links right; on a narrow phone with large text the links
-    // drop to their own line instead of overflowing.
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 18,
+        spacing: 14,
         children: [
-          Wrap(
-            spacing: 18,
-            runSpacing: 4,
-            children: [
-              Text('$done done today', style: style),
-              Text('$xpToday XP today', style: style),
-            ],
-          ),
-          Wrap(
-            spacing: 10,
-            children: [
-              if (now.hour >= 17)
-                link('Wrap up', s.primary, () => context.push('/wrapup')),
-              link('Overwhelmed?', null, () => overwhelm(context, ref)),
-            ],
-          ),
+          if (now.hour >= 17)
+            link('Wrap up', s.primary, () => context.push('/wrapup')),
+          link('Overwhelmed?', null, () => overwhelm(context, ref)),
         ],
       ),
     );
@@ -1069,6 +1052,51 @@ class _CheckBackBanner extends ConsumerWidget {
           ? 'Check back: ${due.single.waitingOn.isEmpty ? due.single.title : due.single.waitingOn}'
           : 'Check back on ${due.length} waiting tasks',
       onTap: () => context.go('/tasks'),
+    );
+  }
+}
+
+/// Phone: the check-back reminder as a small badge beside the situation
+/// bar instead of a banner of its own.
+class _CheckBackChip extends ConsumerWidget {
+  const _CheckBackChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final now = ref.read(clockProvider)();
+    final due = ref.watch(tasksProvider).where((t) => followUpDue(t, now));
+    if (due.isEmpty) return const SizedBox.shrink();
+    final n = due.length;
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: Tooltip(
+        message: 'Check back on $n waiting ${n == 1 ? 'task' : 'tasks'}',
+        child: Panel(
+          radius: 14,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          onTap: () => context.go('/tasks'),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.mark_email_unread_outlined,
+                size: 18,
+                color: s.warning,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '$n',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: s.text2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

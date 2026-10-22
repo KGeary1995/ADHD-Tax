@@ -14,6 +14,20 @@ Future<void> tab(WidgetTester tester, String name) async {
   await tester.pumpAndSettle();
 }
 
+/// Phone Tasks: workspace, project and list/board are in one sheet.
+Future<void> openFilters(WidgetTester tester) async {
+  await tester.tap(find.byIcon(Icons.filter_list_rounded));
+  await tester.pumpAndSettle();
+}
+
+Future<void> showBoard(WidgetTester tester) async {
+  await openFilters(tester);
+  await tester.tap(find.text('Board'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Done').last);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('write a note with #tags, find it, turn lines into tasks', (
     tester,
@@ -76,12 +90,15 @@ void main() {
     c.read(tasksProvider.notifier).create(title: 'Loose task');
     await tab(tester, 'Tasks');
 
+    await openFilters(tester);
     await tester.tap(find.text('New project'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Personal').last);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'Move house');
     await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
     // Tasks now shows that project, so + files into it.
@@ -100,8 +117,7 @@ void main() {
     expect(booked.projectId, project.id);
 
     // Board view, then Move to Done from the card's menu.
-    await tester.tap(find.text('Board'));
-    await tester.pumpAndSettle();
+    await showBoard(tester);
     for (final col in ['To do', 'Doing', 'Waiting', 'Done']) {
       expect(find.text(col), findsWidgets);
     }
@@ -128,8 +144,6 @@ void main() {
     tasks.create(title: 'Book room');
     c.read(keyValueStoreProvider).write('tasks.view', 'board');
     await tab(tester, 'Tasks');
-    await tester.tap(find.text('Board'));
-    await tester.pumpAndSettle();
 
     // One column at a time: To do first.
     expect(find.text('Order toner'), findsOneWidget);
@@ -180,8 +194,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(tasks.byId(b.id)!.status, TaskStatus.done);
 
-    await tester.tap(find.text('Board'));
-    await tester.pumpAndSettle();
+    await showBoard(tester);
     final menu = find.descendant(
       of: find
           .ancestor(of: find.text('Board card'), matching: find.byType(Row))

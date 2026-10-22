@@ -134,6 +134,12 @@ class TaskListScreen extends ConsumerWidget {
       onSelected: ref.read(taskViewProvider.notifier).set,
     );
 
+    final filterLabel = [
+      if (!device.single) filter?.label ?? 'Everything',
+      ?project?.name,
+      if (view == TaskView.board) 'Board',
+    ].join(' · ');
+
     return SidebarLayout(
       maxWidth: view == TaskView.board ? 1680 : 1240,
       narrowMaxWidth: view == TaskView.board ? 1400 : 640,
@@ -184,28 +190,20 @@ class TaskListScreen extends ConsumerWidget {
                   ),
           ),
           const SizedBox(height: 20),
+          // Phone: one row instead of four. The workspace, project and
+          // list/board choices live in a sheet behind one button.
           if (!wide) ...[
             Wrap(
               spacing: 6,
               runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                // A one-workspace device has nothing to choose between.
-                for (final w in [
-                  if (!device.single) ...[null, ...Workspace.values],
-                ])
-                  Pill(
-                    label: w?.label ?? 'Everything',
-                    selected: filter == w,
-                    solid: true,
-                    onTap: () {
-                      ref.read(_workspaceFilterProvider.notifier).set(w);
-                      if (w != null &&
-                          project != null &&
-                          project.workspace != w) {
-                        ref.read(taskProjectFilterProvider.notifier).set(null);
-                      }
-                    },
-                  ),
+                Pill(
+                  label: filterLabel.isEmpty ? 'All tasks' : filterLabel,
+                  icon: Icons.filter_list_rounded,
+                  selected: filter != null || project != null,
+                  onTap: () => _showFilterSheet(context),
+                ),
                 if (stale.isNotEmpty)
                   Pill(
                     label: 'Weekly reset · ${stale.length}',
@@ -213,18 +211,8 @@ class TaskListScreen extends ConsumerWidget {
                     selected: false,
                     onTap: () => context.push('/reset'),
                   ),
+                if (project case final p?) _ProjectMenu(project: p),
               ],
-            ),
-            const SizedBox(height: 14),
-            _ProjectBar(
-              projects: projects,
-              selected: project,
-              workspace: device.single ? device.primary : filter,
-            ),
-            const SizedBox(height: 14),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: SizedBox(width: 220, child: viewSwitch),
             ),
             const SizedBox(height: 22),
           ],
@@ -256,10 +244,19 @@ class TaskListScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-            _Section(title: 'In progress', tasks: doing),
-            _Section(title: 'Up next', tasks: next),
-            _Section(title: 'Waiting on someone', tasks: waiting),
-            _Section(title: 'Coming up', tasks: comingUp, quiet: true),
+            _Section(title: 'In progress', tasks: doing, compact: !wide),
+            _Section(title: 'Up next', tasks: next, compact: !wide),
+            _Section(
+              title: 'Waiting on someone',
+              tasks: waiting,
+              compact: !wide,
+            ),
+            _Section(
+              title: 'Coming up',
+              tasks: comingUp,
+              quiet: true,
+              compact: !wide,
+            ),
             if (done.isNotEmpty)
               Theme(
                 data: Theme.of(context)
@@ -280,6 +277,84 @@ class TaskListScreen extends ConsumerWidget {
     );
   }
 }
+
+/// Phone: Show / Project / View in one sheet. Every choice applies
+/// straight away; Done just closes it.
+Future<void> _showFilterSheet(BuildContext context) => showAppSheet<void>(
+  context: context,
+  builder: (ctx) => SafeArea(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: Consumer(
+        builder: (ctx, ref, _) {
+          final s = ctx.spec;
+          final device = ref.watch(deviceWorkspacesProvider);
+          final filter = ref.watch(_workspaceFilterProvider);
+          final projects = ref
+              .watch(projectsProvider)
+              .where((p) => filter == null || p.workspace == filter)
+              .toList();
+          final projectId = ref.watch(taskProjectFilterProvider);
+          final project = projects.where((p) => p.id == projectId).firstOrNull;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Show tasks', style: s.display(26)),
+              const SizedBox(height: 18),
+              // A one-workspace device has nothing to choose between.
+              if (!device.single) ...[
+                const FieldLabel('Which side'),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final w in [null, ...Workspace.values])
+                      Pill(
+                        label: w?.label ?? 'Everything',
+                        selected: filter == w,
+                        solid: true,
+                        onTap: () {
+                          ref.read(_workspaceFilterProvider.notifier).set(w);
+                          if (w != null &&
+                              project != null &&
+                              project.workspace != w) {
+                            ref
+                                .read(taskProjectFilterProvider.notifier)
+                                .set(null);
+                          }
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+              ],
+              const FieldLabel('Project'),
+              _ProjectBar(
+                projects: projects,
+                selected: project,
+                workspace: device.single ? device.primary : filter,
+              ),
+              const SizedBox(height: 18),
+              const FieldLabel('View'),
+              Segmented<TaskView>(
+                values: TaskView.values,
+                selected: ref.watch(taskViewProvider),
+                inset: s.isDark,
+                labelOf: (v) => v == TaskView.list ? 'List' : 'Board',
+                onSelected: ref.read(taskViewProvider.notifier).set,
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Done'),
+              ),
+            ],
+          );
+        },
+      ),
+    ),
+  ),
+);
 
 /// "+ Project": asks which workspace when none is chosen, then names it
 /// and opens it.
@@ -489,9 +564,11 @@ class _Section extends StatelessWidget {
     required this.title,
     required this.tasks,
     this.quiet = false,
+    this.compact = false,
   });
   final String title;
   final List<Task> tasks;
+  final bool compact;
 
   /// Not actionable yet: dimmed.
   final bool quiet;
@@ -508,7 +585,11 @@ class _Section extends StatelessWidget {
           for (final (i, t) in tasks.indexed)
             Opacity(
               opacity: quiet ? 0.75 : 1,
-              child: _TaskTile(task: t, last: i == tasks.length - 1),
+              child: _TaskTile(
+                task: t,
+                last: i == tasks.length - 1,
+                compact: compact,
+              ),
             ),
         ],
       ),
@@ -517,9 +598,14 @@ class _Section extends StatelessWidget {
 }
 
 class _TaskTile extends ConsumerWidget {
-  const _TaskTile({required this.task, this.last = false});
+  const _TaskTile({
+    required this.task,
+    this.last = false,
+    this.compact = false,
+  });
   final Task task;
   final bool last;
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -581,6 +667,7 @@ class _TaskTile extends ConsumerWidget {
                       TaskMeta(
                         task: task,
                         now: now,
+                        compact: compact,
                         extra: extras.isEmpty ? null : extras.join(' · '),
                       ),
                     ],

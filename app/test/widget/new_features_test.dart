@@ -60,8 +60,9 @@ void main() {
     now = DateTime(2026, 10, 20, 9, 30);
     c.read(routerProvider).go('/');
     await tester.pumpAndSettle();
-    expect(find.text('Check back: Insurance callback'), findsOneWidget);
-    await tester.tap(find.text('Check back: Insurance callback'));
+    // A phone shows it as a badge beside the situation bar.
+    expect(find.byTooltip('Check back on 1 waiting task'), findsOneWidget);
+    await tester.tap(find.byTooltip('Check back on 1 waiting task'));
     await tester.pumpAndSettle();
     expect(
       find.textContaining('Waiting on Insurance callback'),

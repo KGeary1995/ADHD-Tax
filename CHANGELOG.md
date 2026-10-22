@@ -4,6 +4,11 @@ What changed in each build, newest first. Build number = CI run number (= Androi
 
 ## Next build — 2026-10-22 (Android, web)
 - **The app is now called Gumption** ("Gumption: Task Starter" in the app stores, when it gets there). "Unstuck" turned out to be taken by several ADHD apps. Only the name changed: it updates over your current install, and your tasks, XP and Google sync carry on. The download link is now `…/android-latest/Gumption.apk`; the old `Unstuck.apk` link still works. On an iPhone home screen the old name stays until you remove the icon and add it again from Safari. The Mac app changes name with the next Mac build; delete the old Unstuck app then.
+- **A calmer phone layout:**
+  - **Tasks:** the four rows of filters are now one button ("Everything", or e.g. "Work · Car") that opens a sheet with Personal/Work, projects and List/Board. Each task shows only when it's due and how long it takes; priority, tags and the rest are in the task.
+  - **Quick add:** just the task, how long, and Personal/Work. Priority, dread and "Leave the house" are under **More options**, which stays open if you leave it open. Typing "urgent" or "tomorrow 2pm" still fills them in.
+  - **Today:** the card's top line is short ("30 min · due tomorrow"), "check back" is a small badge next to your situation instead of its own row, and today's done/XP counts moved off Home (they're on Progress).
+  - Computers are unchanged.
 - **New headline on Today:** "Don't decide. Just start." replaces "One thing. Right now." (also at the top of the guide).
 
 ## Build 89 — 2026-10-22 (3abe8f0) (Android, web, Mac)

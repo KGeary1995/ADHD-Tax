@@ -12,6 +12,7 @@ class TaskMeta extends StatelessWidget {
     this.plannedMin,
     this.now,
     this.extra,
+    this.compact = false,
   });
 
   final Task task;
@@ -23,6 +24,10 @@ class TaskMeta extends StatelessWidget {
   /// Appended at the end, e.g. "sitting for 9 days".
   final String? extra;
 
+  /// A phone's task list: only when it's due, how long it takes and who
+  /// it's waiting on. Everything else is one tap away in the editor.
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
     final s = context.spec;
@@ -31,8 +36,14 @@ class TaskMeta extends StatelessWidget {
         ? null
         : '${t.hardDeadline ? 'Hard deadline' : 'Due'} '
               '${formatDue(t.dueAt!, now ?? DateTime.now())}';
-    final parts = taskFacts(t, plannedMin: plannedMin);
-    if (extra != null) parts.add(extra!);
+    final parts = compact
+        ? [
+            if (t.status == TaskStatus.waiting && t.waitingOn.isNotEmpty)
+              'Waiting on ${t.waitingOn}',
+            formatMinutes(t.estimateMin),
+          ]
+        : taskFacts(t, plannedMin: plannedMin);
+    if (extra != null && !compact) parts.add(extra!);
     return Text.rich(
       TextSpan(
         children: [
@@ -82,6 +93,15 @@ String formatDue(DateTime d, DateTime now) {
   if (day == today.add(const Duration(days: 1))) {
     return hasTime ? 'tomorrow ${formatClock(d)}' : 'tomorrow';
   }
+  return formatDate(d);
+}
+
+/// The day only: "today", "tomorrow", otherwise "Oct 21".
+String formatDueDay(DateTime d, DateTime now) {
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(d.year, d.month, d.day);
+  if (day == today) return 'today';
+  if (day == today.add(const Duration(days: 1))) return 'tomorrow';
   return formatDate(d);
 }
 

@@ -65,6 +65,8 @@ Future<void> showQuickAdd(
   }
 }
 
+const _moreKey = 'quickadd.more';
+
 class QuickAddSheet extends ConsumerStatefulWidget {
   const QuickAddSheet({
     super.key,
@@ -107,6 +109,16 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   bool _estimateTouched = false;
   bool _priorityTouched = false;
   bool _workspaceTouched = false;
+
+  /// Phone: priority, dread and "leave the house" sit behind "More
+  /// options" so capture is a title and a length. Remembered on this device.
+  late bool _more =
+      widget.dialog || ref.read(keyValueStoreProvider).read(_moreKey) == 'open';
+
+  void _toggleMore() {
+    setState(() => _more = !_more);
+    ref.read(keyValueStoreProvider).write(_moreKey, _more ? 'open' : 'closed');
+  }
 
   @override
   void initState() {
@@ -447,31 +459,10 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                         }),
                       ),
                     ),
-                    section(
-                      'Priority',
-                      ChoiceGroup(
-                        values: Priority.values,
-                        selected: priority,
-                        labelOf: (p) => p.label,
-                        onSelected: (p) => setState(() {
-                          _priority = p;
-                          _priorityTouched = true;
-                        }),
-                      ),
-                    ),
-                    section(
-                      'How much do you dread it?',
-                      ChoiceGroup(
-                        values: [for (var i = 0; i < ughLabels.length; i++) i],
-                        selected: _ugh,
-                        labelOf: (i) => ughLabels[i],
-                        onSelected: (i) => setState(() => _ugh = i),
-                      ),
-                    ),
                   ],
                   const SizedBox(height: 18),
-                  // Where it goes and whether it's an errand: two yes/no
-                  // facts, kept apart from the dread scale above.
+                  // Where it goes: Personal or Work stays in view, so Work
+                  // tasks don't land in the personal account by accident.
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
@@ -505,15 +496,60 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                             }
                           }),
                         ),
-                      if (!_brainDump)
-                        Pill(
+                    ],
+                  ),
+                  if (!_brainDump && !widget.dialog)
+                    Container(
+                      padding: const EdgeInsets.only(top: 8),
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        style: link,
+                        onPressed: _toggleMore,
+                        icon: Icon(
+                          _more
+                              ? Icons.expand_less_rounded
+                              : Icons.expand_more_rounded,
+                          size: 20,
+                        ),
+                        label: Text(_more ? 'Fewer options' : 'More options'),
+                      ),
+                    ),
+                  if (!_brainDump && _more) ...[
+                    section(
+                      'Priority',
+                      ChoiceGroup(
+                        values: Priority.values,
+                        selected: priority,
+                        labelOf: (p) => p.label,
+                        onSelected: (p) => setState(() {
+                          _priority = p;
+                          _priorityTouched = true;
+                        }),
+                      ),
+                    ),
+                    section(
+                      'How much do you dread it?',
+                      ChoiceGroup(
+                        values: [for (var i = 0; i < ughLabels.length; i++) i],
+                        selected: _ugh,
+                        labelOf: (i) => ughLabels[i],
+                        onSelected: (i) => setState(() => _ugh = i),
+                      ),
+                    ),
+                    // A yes/no fact of its own, kept apart from the dread scale.
+                    Padding(
+                      padding: const EdgeInsets.only(top: 18),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Pill(
                           label: 'Leave the house',
                           icon: Icons.directions_car_outlined,
                           selected: _leave,
                           onTap: () => setState(() => _leave = !_leave),
                         ),
-                    ],
-                  ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

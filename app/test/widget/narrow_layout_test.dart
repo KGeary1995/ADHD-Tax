@@ -46,13 +46,17 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
 
-        for (final label in [
-          'How long?',
-          'Priority',
-          'How much do you dread it?',
-          'Personal',
-          'Work',
-        ]) {
+        // A phone starts with just a length and Personal/Work.
+        for (final label in ['How long?', 'Personal', 'Work']) {
+          expect(find.text(label), findsOneWidget, reason: label);
+        }
+        expect(find.text('Priority'), findsNothing);
+        await tester.ensureVisible(find.text('More options'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('More options'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        for (final label in ['Priority', 'How much do you dread it?']) {
           expect(find.text(label), findsOneWidget, reason: label);
         }
         // A yes/no toggle of its own, outside the dread levels' group.
@@ -142,7 +146,12 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull, reason: path);
         }
+        await tester.tap(find.byIcon(Icons.filter_list_rounded));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: 'filter sheet');
         await tester.tap(find.text('Board'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Done').last);
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: 'board');
         // Five tabs and + in the floating bar.
@@ -287,6 +296,8 @@ void main() {
     showQuickAdd(tester.element(find.byType(Scaffold).first));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Renew license');
+    await tester.tap(find.text('More options'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Critical'));
     await tester.pump();
     await tester.tap(find.text('Full form'));
