@@ -9,6 +9,7 @@ void main() {
   for (final (link, file) in [
     (Links.privacy, 'web/privacy/index.html'),
     (Links.support, 'web/support/index.html'),
+    (Links.terms, 'web/terms/index.html'),
   ]) {
     test('$link is a page in web/', () {
       expect(link, '${Links.site}/${file.split('/')[1]}/');

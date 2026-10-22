@@ -11,6 +11,7 @@ Shared facts:
 | Support email | info@ophthalmicacademy.com |
 | Website / support URL | https://unstuck-4o8.pages.dev/support/ |
 | Privacy policy URL | https://unstuck-4o8.pages.dev/privacy/ |
+| Terms of use URL | https://unstuck-4o8.pages.dev/terms/ (optional on both stores; Apple otherwise uses its standard licence agreement) |
 | Category | Productivity |
 
 ## Google Play

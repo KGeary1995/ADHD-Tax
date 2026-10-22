@@ -3,7 +3,7 @@
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
 ## Next build — 2026-10-22 (Android, web)
-- **Privacy policy and Support pages** are online at unstuck-4o8.pages.dev/privacy and /support, and linked from **Settings → Help**. The app stores and Google's sign-in screen need them.
+- **Privacy policy and Support pages** are online at unstuck-4o8.pages.dev/privacy and /support, and linked from **Settings → Help**. The app stores and Google's sign-in screen need them. A short **Terms of use** page sits beside them (/terms).
 
 ## Build 91 — 2026-10-22 (d3ddd5d) (Android, web)
 - **A calmer phone layout:**

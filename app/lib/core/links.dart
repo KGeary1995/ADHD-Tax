@@ -5,4 +5,5 @@ abstract final class Links {
   static const site = 'https://unstuck-4o8.pages.dev';
   static const privacy = '$site/privacy/';
   static const support = '$site/support/';
+  static const terms = '$site/terms/';
 }

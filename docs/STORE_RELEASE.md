@@ -37,7 +37,7 @@ USPTO search for marks containing "gumption": 38 results, 18 live. Not legal adv
      - App logo: `app/web/icons/Icon-192.png` scaled to 120×120 (Claude can export one).
      - Application home page: `https://unstuck-4o8.pages.dev/`
      - Privacy policy: `https://unstuck-4o8.pages.dev/privacy/`
-     - Terms of service: leave empty.
+     - Terms of service: `https://unstuck-4o8.pages.dev/terms/` (live with the next build after 2026-10-22).
      - Authorized domain: `unstuck-4o8.pages.dev` (allowed because `pages.dev` is a public suffix). Google asks you to prove you own it in Search Console: add a **URL-prefix** property for `https://unstuck-4o8.pages.dev/`, choose **HTML file**, and send Claude the file's name and contents; Claude adds it to `app/web/` and it goes live with the next build.
      - Then **submit for verification**.
    - Takes a few days. Until then, store users see "Google hasn't verified this app" when connecting sync. The scopes are non-sensitive, so no security review is needed (*verify* when submitting).
