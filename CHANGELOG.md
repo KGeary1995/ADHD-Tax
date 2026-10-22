@@ -4,6 +4,7 @@ What changed in each build, newest first. Build number = CI run number (= Androi
 
 ## Next build — 2026-10-22 (Android, web)
 - **The app is now called Gumption** ("Gumption: Task Starter" in the app stores, when it gets there). "Unstuck" turned out to be taken by several ADHD apps. Only the name changed: it updates over your current install, and your tasks, XP and Google sync carry on. The download link is now `…/android-latest/Gumption.apk`; the old `Unstuck.apk` link still works. On an iPhone home screen the old name stays until you remove the icon and add it again from Safari. The Mac app changes name with the next Mac build; delete the old Unstuck app then.
+- **New headline on Today:** "Don't decide. Just start." replaces "One thing. Right now." (also at the top of the guide).
 
 ## Build 89 — 2026-10-22 (3abe8f0) (Android, web, Mac)
 - **Ideas for a first step:** when a task has no first step yet, its editor offers three ideas for that kind of task. "Call the dentist" gets "Find the number and put it on screen"; a form gets "Fill in just your name and the date". Tap one to use it. Built in: no AI, works offline, nothing leaves your phone.

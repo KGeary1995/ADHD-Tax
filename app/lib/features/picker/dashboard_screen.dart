@@ -79,10 +79,10 @@ class DashboardScreen extends ConsumerWidget {
         alignment: Alignment.centerLeft,
         child: Text.rich(
           TextSpan(
-            text: 'One thing. ',
+            text: "Don't decide. ",
             children: [
               TextSpan(
-                text: 'Right now.',
+                text: 'Just start.',
                 style: TextStyle(color: s.primary),
               ),
             ],
