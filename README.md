@@ -115,7 +115,7 @@ The web app still works on any phone: added to the home screen it opens full scr
 2. Drag **Gumption** into **Applications** and open it.
 3. The first time, macOS says it can't verify the developer: click **Done**, then go to **System Settings → Privacy & Security**, scroll down to "Gumption was blocked", and click **Open Anyway**. You do this once for each new version.
 
-The Mac app is built on request, because macOS build machines cost 10x the free GitHub Actions minutes (about 100 of the 2,000 monthly minutes per build). To build a new version, go to **Actions → CI → Run workflow**. Merges to `main` also build one.
+The Mac app is built on request, because macOS build machines cost 10x the free GitHub Actions minutes (about 100 of the 2,000 monthly minutes per build). To build a new version, go to **Actions → CI → Run workflow**. Or put `[mac]` in a commit message.
 
 ## Run it
 

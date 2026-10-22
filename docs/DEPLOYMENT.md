@@ -7,8 +7,8 @@ Everything about getting builds onto devices: CI, release links, secrets, signin
 | Platform | Built by | Delivered via | Link |
 |---|---|---|---|
 | Android | CI `android` job, every push | GitHub release **`android-latest`** (asset replaced each build) | `https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/Gumption.apk` (the same file is also published as `Unstuck.apk`, so links from before the rename keep working) |
-| Mac | CI `macos` job, on `[mac]` commits, pushes to `main`, or Run workflow | GitHub release **`macos-latest`** | `https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Gumption-macOS.zip` |
-| iPhone / iPad (native) | CI `ios` job, on `[ios]` commits, pushes to `main`, or Run workflow | App Store Connect → **TestFlight** (needs the Apple secrets; until then the job only compiles) | TestFlight app on the device |
+| Mac | CI `macos` job, on `[mac]` commits or Run workflow | GitHub release **`macos-latest`** | `https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Gumption-macOS.zip` |
+| iPhone / iPad (native) | CI `ios` job, on `[ios]` commits or Run workflow | App Store Connect → **TestFlight** (needs the Apple secrets; until then the job only compiles) | TestFlight app on the device |
 | Web (and iPhone without an Apple account) | CI `test` job builds; `web-publish` deploys | Cloudflare Pages project `unstuck` (or repo variable `CLOUDFLARE_PROJECT`) | **`https://unstuck-4o8.pages.dev`** (project created by Build 39; the suffix is Cloudflare's because `unstuck` was taken) |
 | Google Play bundle | CI `play` job, on Run workflow or a `[play]` commit | GitHub release **`play-latest`** (pre-release), then uploaded by hand in Play Console | `…/releases/download/play-latest/Gumption-play.aab` |
 | Windows | CI `windows` job, on Run workflow or a `[windows]` commit | Run artifact `unstuck-windows` only (no release yet) | Actions → run → Artifacts |
@@ -17,7 +17,7 @@ The repo is **private**, so release downloads need a signed-in GitHub session.
 
 ## CI workflow (`.github/workflows/ci.yml`)
 
-Triggers: `push`, `pull_request`, `workflow_dispatch`. Concurrency group = `ci-<event>-<ref>` with cancel-in-progress, so a newer push cancels an older push run on the same branch, but manual runs and pushes don't cancel each other.
+Triggers: `push` (except docs-only commits) and `workflow_dispatch`; no `pull_request`, so each commit builds once. Pushes to `main` build like any branch: test, Android and web only (they used to add Mac and iOS, ~200 minutes per merge; dropped 2026-10-22). Concurrency group = `ci-<event>-<ref>` with cancel-in-progress, so a newer push cancels an older push run on the same branch, but manual runs and pushes don't cancel each other.
 
 | Job | Runs on | Does | Publishes |
 |---|---|---|---|
@@ -26,8 +26,8 @@ Triggers: `push`, `pull_request`, `workflow_dispatch`. Concurrency group = `ci-<
 | `play` | ubuntu, after `test`; dispatch or `[play]` in the commit message | Decodes the upload keystore from secrets, `UPLOAD_KEYSTORE=… flutter build appbundle --release --no-shrink --build-number=<run_number>` (`build.gradle.kts` signs with the upload key when that variable is set). Fails with a message if the secrets are missing | `play-latest` release |
 | `windows` | windows, after `test` | `flutter build windows --release` | artifact only |
 | `web-publish` | ubuntu, after `test`, push or dispatch | `wrangler pages project create` (first time) + `pages deploy --branch=main` | Cloudflare Pages; skipped with a notice if secrets are missing |
-| `macos` | macos-latest, after `test`; dispatch, `main`, or `[mac]` in the commit message | `flutter build macos --release` → `ditto` zip | `macos-latest` release |
-| `ios` | macos-latest, after `test`; dispatch, `main`, or `[ios]` in the commit message | Adds Google's reversed client id as a URL scheme. Without Apple secrets: `flutter build ios --no-codesign` (compile check). With them: `flutter build ios --config-only`, then `xcodebuild archive` and `-exportArchive` with `ios/ExportOptions.plist` (`destination: upload`), signing automatically through the API key (`-allowProvisioningUpdates`) | TestFlight |
+| `macos` | macos-latest, after `test`; dispatch or `[mac]` in the commit message | `flutter build macos --release` → `ditto` zip | `macos-latest` release |
+| `ios` | macos-latest, after `test`; dispatch or `[ios]` in the commit message | Adds Google's reversed client id as a URL scheme. Without Apple secrets: `flutter build ios --no-codesign` (compile check). With them: `flutter build ios --config-only`, then `xcodebuild archive` and `-exportArchive` with `ios/ExportOptions.plist` (`destination: upload`), signing automatically through the API key (`-allowProvisioningUpdates`) | TestFlight |
 
 Every build job first writes `app/google_oauth.json` from secrets and builds with `--dart-define-from-file=google_oauth.json`. Missing secrets produce empty values, which means sync is off.
 

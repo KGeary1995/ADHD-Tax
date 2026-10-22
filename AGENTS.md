@@ -91,14 +91,14 @@ app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks
 
 ## How a change ships
 
-1. Work on the session's feature branch; keep PR #1 (`claude/eloquent-feynman-mhvav7` → `main`) or its successor updated.
+1. `main` is the stable copy (PR #1 merged 2026-10-22). Work on a feature branch made from the latest `main` and open a new PR into `main` for each batch; the owner decides when to merge. A merged PR is finished: follow-up work goes on a fresh branch from `main`, never on top of the merged history.
 2. `./tool/check.sh` must pass.
 3. Push. CI runs once per commit (push only; docs-only commits, i.e. `*.md` and `docs/`, skip CI entirely): `test` (format, analyze, test, web build), then in parallel:
    - **Android**: builds the APK and replaces the `android-latest` release asset. The phone download link never changes.
    - **Windows**: only on `workflow_dispatch` or **commit messages containing `[windows]`**; builds an artifact (not published as a release).
    - **web-publish**: deploys to Cloudflare Pages if the Cloudflare secrets exist (otherwise it posts a notice).
-   - **macOS**: only on `workflow_dispatch`, pushes to `main`, or **commit messages containing `[mac]`** (macOS runners cost 10× minutes). Publishes to the `macos-latest` release.
-   - **iOS**: only on `workflow_dispatch`, pushes to `main`, or **commit messages containing `[ios]`**. Compiles without Apple secrets; with them, uploads to TestFlight.
+   - **macOS**: only on `workflow_dispatch` or **commit messages containing `[mac]`** (pushes to `main` don't build it) (macOS runners cost 10× minutes). Publishes to the `macos-latest` release.
+   - **iOS**: only on `workflow_dispatch` or **commit messages containing `[ios]`**. Compiles without Apple secrets; with them, uploads to TestFlight.
    - **Play bundle**: only on `workflow_dispatch` or **commit messages containing `[play]`**. Builds the signed `.aab` (needs the upload-key secrets) and publishes it to the `play-latest` release for the owner to upload to Play Console.
 4. Tell the owner: "reinstall from the same link". The build number is the CI run number.
 

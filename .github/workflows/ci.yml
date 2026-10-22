@@ -265,16 +265,15 @@ jobs:
 
   # macOS runners use 10x the Actions minutes on a private repo (about 100
   # of the 2,000 free monthly minutes per build), so the Mac app builds on
-  # request, not on every push: Run workflow, a push to main, or a push
-  # whose commit message contains [mac].
+  # request, not on every push: Run workflow, or a push whose commit
+  # message contains [mac]. Pushes to main don't build it either: a merge
+  # would otherwise cost ~100 minutes every time.
   macos:
     name: Build macOS app
     needs: test
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' &&
-        (github.ref == 'refs/heads/main' ||
-          contains(github.event.head_commit.message, '[mac]')))
+      contains(github.event.head_commit.message, '[mac]')
     runs-on: macos-latest
     permissions:
       contents: write # publish to the macos-latest release
@@ -320,7 +319,7 @@ jobs:
             --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. Download Gumption-macOS.zip, open it, and drag Gumption into Applications (delete the old Unstuck app if it's there)."
 
   # The native iPhone/iPad app. Like the Mac build it runs on request:
-  # Run workflow, a push to main, or a commit message containing [ios].
+  # Run workflow, or a commit message containing [ios].
   # Without the Apple secrets it only proves the app compiles; with them it
   # signs (Xcode automatic signing through the App Store Connect API key)
   # and uploads to TestFlight (README → Install on iPhone).
@@ -329,9 +328,7 @@ jobs:
     needs: test
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' &&
-        (github.ref == 'refs/heads/main' ||
-          contains(github.event.head_commit.message, '[ios]')))
+      contains(github.event.head_commit.message, '[ios]')
     runs-on: macos-latest
     env:
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
