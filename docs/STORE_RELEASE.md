@@ -35,7 +35,7 @@ USPTO search for marks containing "gumption": 38 results, 18 live. Not legal adv
    - Audience: confirm **In production**.
    - Branding (app name **Gumption** done 2026-10-22, without the "Task Starter" subtitle on purpose: Google checks the name matches the app and its pages):
      - App logo: `app/web/icons/Icon-192.png` scaled to 120×120 (Claude can export one).
-     - Application home page: `https://unstuck-4o8.pages.dev/`
+     - Application home page: `https://unstuck-4o8.pages.dev/about/`, a plain HTML page. Not the web app itself: it's drawn on a canvas, so Google's checker finds no app name or privacy link there. The first attempt (still named UNSTUCK, with the web app as home page) failed on both counts
      - Privacy policy: `https://unstuck-4o8.pages.dev/privacy/`
      - Terms of service: `https://unstuck-4o8.pages.dev/terms/` (live with the next build after 2026-10-22).
      - Authorized domain: `unstuck-4o8.pages.dev` (allowed because `pages.dev` is a public suffix). Google asks you to prove you own it in Search Console: add a **URL-prefix** property for `https://unstuck-4o8.pages.dev/`, choose **HTML file**, and send Claude the file's name and contents; Claude adds it to `app/web/` and it goes live with the next build.

@@ -10,6 +10,7 @@ void main() {
     (Links.privacy, 'web/privacy/index.html'),
     (Links.support, 'web/support/index.html'),
     (Links.terms, 'web/terms/index.html'),
+    (Links.home, 'web/about/index.html'),
   ]) {
     test('$link is a page in web/', () {
       expect(link, '${Links.site}/${file.split('/')[1]}/');

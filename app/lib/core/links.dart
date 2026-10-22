@@ -6,4 +6,8 @@ abstract final class Links {
   static const privacy = '$site/privacy/';
   static const support = '$site/support/';
   static const terms = '$site/terms/';
+
+  /// The home page Google's sign-in branding and the stores point to: plain
+  /// HTML, because the app itself is drawn on a canvas a crawler can't read.
+  static const home = '$site/about/';
 }
