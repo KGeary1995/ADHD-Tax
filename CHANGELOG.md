@@ -2,7 +2,7 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-22 (Mac)
+## Build 81 — 2026-10-22 (4be7c2c) (Mac)
 - **Fewer keychain password prompts on Mac:** the app was saving your Google sign-in to the Mac keychain every time its hourly access pass renewed, and each save could make macOS ask for your password again. It now only saves when something that matters changes. Choose **Always Allow** on the prompts you do get; see the note about updates below.
 
 ## Build 77 — 2026-10-21 (52025bd) (Android, web, Mac)
