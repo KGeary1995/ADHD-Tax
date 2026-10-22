@@ -17,7 +17,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 |---|---|---|
 | Phase 1: offline app (picker, focus, XP, themes, quotes) | Done | Android: yes (Build 9+) |
 | Redesign: one look, light + dark, bundled fonts, floating nav | Done | Not yet (web screenshots only) |
-| Phase 2: Google sign-in + Drive sync | Code done; Google Cloud keys (web, Android, desktop clients) added as secrets 2026-10-19; no iOS client yet | **Yes (Android, 2026-10-19):** Personal connected in the personal profile; Work connected from a second install in the Android **work profile** (the personal-profile app can't see work-profile accounts). Two-device sync not yet reported |
+| Phase 2: Google sign-in + Drive sync | Code done; Google Cloud keys (web, Android, desktop clients) added as secrets 2026-10-19; no iOS client yet | **Yes (Android, 2026-10-19):** Personal connected in the personal profile; Work connected from a second install in the Android **work profile** (the personal-profile app can't see work-profile accounts). **2026-10-22:** sync survives an app update since the silent sign-in retry (Build 77). Two-device sync not yet reported |
 | Phone layout fixes, full task form, back button | Done | Android: reported working |
 | Repeating tasks, Mark done + Undo, Android reminders | Done | Not yet reported |
 | Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | Not yet (web screenshots and tests) |
