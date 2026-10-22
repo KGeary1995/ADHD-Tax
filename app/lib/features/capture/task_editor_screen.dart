@@ -11,6 +11,7 @@ import '../../data/models/note.dart' show parseTags;
 import '../../data/models/task.dart';
 import '../../widgets/task_chips.dart';
 import '../../widgets/ui.dart';
+import 'first_steps.dart';
 import '../ai/ai_settings.dart';
 import '../ai/breakdown.dart';
 import '../notes/notes_controller.dart';
@@ -160,13 +161,43 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       );
       return;
     }
+    final task = _task.copyWith(title: _title.text.trim(), notes: _notes.text);
+    // Without a key (or when the AI is off for this task), suggest steps
+    // from the built-in ideas instead of failing.
+    if (aiBlockReason(
+          settings: ref.read(aiSettingsProvider),
+          workspace: task.workspace,
+          text: '${task.title}\n${task.notes}',
+        ) !=
+        null) {
+      final have = {for (final st in _task.steps) st.text.toLowerCase()};
+      final ideas = [
+        for (final st in stepIdeasFor(task.title).checklist)
+          if (!have.contains(st.toLowerCase())) st,
+      ];
+      setState(
+        () => _task = _task.copyWith(
+          checklist: encodeChecklist([
+            ..._task.steps,
+            for (final st in ideas) ChecklistItem(st),
+          ]),
+        ),
+      );
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            ideas.isEmpty
+                ? 'Those steps are already there.'
+                : 'Added ${ideas.length} suggested steps. Edit or remove '
+                      'any, then Save.',
+          ),
+        ),
+      );
+      return;
+    }
     setState(() => _breakingDown = true);
     try {
-      final steps = await ref
-          .read(aiSettingsProvider.notifier)
-          .breakDown(
-            _task.copyWith(title: _title.text.trim(), notes: _notes.text),
-          );
+      final steps = await ref.read(aiSettingsProvider.notifier).breakDown(task);
       if (!mounted) return;
       setState(
         () => _task = _task.copyWith(
@@ -327,12 +358,50 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           ),
           field(
             'First 2-minute step',
-            TextField(
-              controller: _firstStep,
-              autofocus: widget.focusFirstStep,
-              decoration: const InputDecoration(
-                hintText: 'e.g. "Open the portal and log in"',
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _firstStep,
+                  autofocus: widget.focusFirstStep,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. "Open the portal and log in"',
+                  ),
+                ),
+                // Stuck for a first step? A few ideas for this kind of
+                // task, built in (no AI, nothing leaves the device).
+                ListenableBuilder(
+                  listenable: Listenable.merge([_title, _firstStep]),
+                  builder: (context, _) {
+                    if (_firstStep.text.trim().isNotEmpty ||
+                        _title.text.trim().isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    final ideas = stepIdeasFor(_title.text).firstSteps;
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Ideas:',
+                            style: TextStyle(fontSize: 13, color: s.muted),
+                          ),
+                          for (final idea in ideas)
+                            Pill(
+                              label: idea,
+                              selected: false,
+                              icon: Icons.add_rounded,
+                              onTap: () => _firstStep.text = idea,
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
             help: _task.steps.isEmpty
                 ? 'Make it so small it feels silly. This is what the '
@@ -363,7 +432,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                     label: Text(
                       _breakingDown
                           ? 'Breaking it down…'
-                          : 'Break it down with AI',
+                          : ref.watch(aiSettingsProvider).hasKey
+                          ? 'Break it down with AI'
+                          : 'Suggest steps',
                     ),
                   ),
                 ),

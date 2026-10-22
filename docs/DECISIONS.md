@@ -106,3 +106,9 @@ The data set is small (hundreds of tasks). One JSON replica per workspace in a k
 
 ### Initial — Flutter, personal-first, optional AI
 One codebase for Android, desktop and web (clinic PCs are locked down, so the web build matters). Built for the owner and a few friends first; AI (Claude, user's own key) is optional and off by default for Work because of PHI. See docs/PLAN.md.
+
+## Built-in step ideas before (and instead of) server-side AI
+
+Competitors lead with AI task breakdown run on their own servers and paid for by subscription. Unstuck has no server, and its AI needs the user's own Anthropic key, which most people won't have. Rather than add a server (cost per use, a subscription, and holding users' task text), the app ships a small rule-based library of first steps and checklists for common task kinds. It covers the moment that matters (a blank "first step" field), works offline and sends nothing anywhere. The AI path stays for people with a key. Revisit only together with a paid tier, and treat any server that sees task text as needing a new privacy review.
+
+"Hold me to it" uses the phone's share sheet rather than an in-app buddy system for the same reason: no accounts, no server. A Work task's title is never put in the message, since titles can name people or cases.

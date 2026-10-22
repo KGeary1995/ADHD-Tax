@@ -202,8 +202,8 @@ void main() {
     expect(fake.calls.last, 'stop');
   });
 
-  testWidgets('break it down: steps land in the checklist; no key explains '
-      'where to add one', (tester) async {
+  testWidgets('break it down: without a key it suggests built-in steps; with '
+      'one, Claude\'s steps land in the checklist', (tester) async {
     final keys = MemoryKeyStore();
     late http.Request sent;
     final c = await pumpApp(
@@ -235,6 +235,19 @@ void main() {
     final t = c.read(tasksProvider.notifier).create(title: 'Do taxes');
     c.read(routerProvider).push('/task/${t.id}');
     await tester.pumpAndSettle();
+    final suggest = find.text('Suggest steps');
+    await tester.dragUntilVisible(
+      suggest,
+      find.byType(Scrollable).first,
+      const Offset(0, -200),
+    );
+    await tester.tap(suggest);
+    await tester.pumpAndSettle();
+    expect(find.text('Find the form or the website'), findsOneWidget);
+
+    await c.read(aiSettingsProvider.notifier).setKey('sk-test');
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
     final button = find.text('Break it down with AI');
     await tester.dragUntilVisible(
       button,
@@ -243,20 +256,12 @@ void main() {
     );
     await tester.tap(button);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Settings → AI helper'), findsOneWidget);
-
-    await c.read(aiSettingsProvider.notifier).setKey('sk-test');
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
-    await tester.tap(button);
-    await tester.pumpAndSettle();
     expect(sent.headers['x-api-key'], 'sk-test');
     expect(find.text('Open the folder'), findsOneWidget);
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
-    expect(
-      c.read(tasksProvider.notifier).byId(t.id)!.checklist,
-      "[ ] Open the folder\n[ ] Find last year's form",
-    );
+    final saved = c.read(tasksProvider.notifier).byId(t.id)!.checklist;
+    expect(saved, startsWith('[ ] Find the form or the website'));
+    expect(saved, endsWith("[ ] Open the folder\n[ ] Find last year's form"));
   });
 }

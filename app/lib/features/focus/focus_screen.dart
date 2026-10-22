@@ -18,6 +18,7 @@ import '../tasks/checklist_editor.dart';
 import '../tasks/tasks_controller.dart';
 import 'company.dart';
 import 'company_widgets.dart';
+import 'hold_me.dart';
 import 'visual_timer.dart';
 
 /// The Start screen: only the first step, a visual timer, and a quote.
@@ -359,6 +360,31 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
                                           13,
                                           weight: FontWeight.w500,
                                         ),
+                                      ),
+                                    ),
+                                    Builder(
+                                      builder: (context) => IconButton(
+                                        tooltip: 'Hold me to it',
+                                        icon: const Icon(
+                                          Icons.people_alt_outlined,
+                                        ),
+                                        onPressed: () {
+                                          final box =
+                                              context.findRenderObject()
+                                                  as RenderBox?;
+                                          ref.read(shareTextProvider)(
+                                            holdMeMessage(
+                                              task,
+                                              _target.inMinutes,
+                                            ),
+                                            box == null
+                                                ? null
+                                                : box.localToGlobal(
+                                                        Offset.zero,
+                                                      ) &
+                                                      box.size,
+                                          );
+                                        },
                                       ),
                                     ),
                                     IconButton(

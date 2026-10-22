@@ -294,6 +294,11 @@ void main() {
 
     expect(find.text('New task'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Renew license'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.widgetWithText(Pill, 'Critical'),
+      300,
+      scrollable: _editorScroll,
+    );
     expect(
       tester.widget<Pill>(find.widgetWithText(Pill, 'Critical')).selected,
       isTrue,
