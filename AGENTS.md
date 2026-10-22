@@ -75,6 +75,7 @@ docs/ARCHITECTURE.md    how the code works: data model, sync/CRDT, state, platfo
 docs/DEPLOYMENT.md      CI/CD, releases, secrets, Google/Cloudflare setup, signing keys
 docs/TROUBLESHOOTING.md symptom → cause → fix, from real incidents
 docs/DECISIONS.md       why things are the way they are (read before "simplifying")
+docs/STORE_RELEASE.md   plan for Google Play and App Store release: who does what, forms, gotchas
 docs/PLAN.md            original product plan and roadmap (partly superseded; see its banner)
 .github/workflows/ci.yml  test → Android / Windows / web publish / Mac
 app/lib/                the app (feature-first; pure-Dart logic has no Flutter imports)
