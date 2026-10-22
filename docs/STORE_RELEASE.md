@@ -30,17 +30,23 @@ USPTO search for marks containing "gumption": 38 results, 18 live. Not legal adv
 
 ## Phase 0: shared preparation (both stores)
 
-1. **[Claude] Privacy policy and support pages** at `/privacy` and `/support` on the web app's address. Honest and specific: no server and no analytics; data lives on the device and, if you turn on sync, in the user's own Google Drive app folder; the optional AI helper sends a task's title and notes to Anthropic using the user's own key; the mic is used only while the button is on. **[you]** supply the contact email and review the wording.
+1. **Done (2026-10-22). Privacy policy and support pages:** https://unstuck-4o8.pages.dev/privacy/ and https://unstuck-4o8.pages.dev/support/ (source `app/web/privacy/`, `app/web/support/`; the app links to them from Settings → Help through `core/links.dart`). Contact: info@ophthalmicacademy.com. **[you]** read them once.
 2. **[you] Publish and brand-verify the Google sign-in screen.** Google Cloud Console → Google Auth Platform:
    - Audience: confirm **In production**.
-   - Branding: app name, logo (Claude provides a 120×120), home page, privacy policy link, authorized domain, then **submit for verification**.
+   - Branding (app name **Gumption** done 2026-10-22, without the "Task Starter" subtitle on purpose: Google checks the name matches the app and its pages):
+     - App logo: `app/web/icons/Icon-192.png` scaled to 120×120 (Claude can export one).
+     - Application home page: `https://unstuck-4o8.pages.dev/`
+     - Privacy policy: `https://unstuck-4o8.pages.dev/privacy/`
+     - Terms of service: leave empty.
+     - Authorized domain: `unstuck-4o8.pages.dev` (allowed because `pages.dev` is a public suffix). Google asks you to prove you own it in Search Console: add a **URL-prefix** property for `https://unstuck-4o8.pages.dev/`, choose **HTML file**, and send Claude the file's name and contents; Claude adds it to `app/web/` and it goes live with the next build.
+     - Then **submit for verification**.
    - Takes a few days. Until then, store users see "Google hasn't verified this app" when connecting sync. The scopes are non-sensitive, so no security review is needed (*verify* when submitting).
 3. **[Claude] Store graphics:**
    - phone screenshots at each store's sizes, in light mode with the example tasks;
    - iPad screenshots;
    - the Play feature graphic (1024×500);
    - the 512×512 Play icon.
-4. **[Claude] Listing copy:** title, subtitle/short description, full description, keywords and release notes, for both stores. **[you]** edit to taste.
+4. **Drafted (2026-10-22). Listing copy and form answers:** docs/store/LISTING.md has the Play and App Store text, Data safety, App Privacy, content rating, the exact-alarm declaration and App Review notes. **[you]** edit to taste.
 
 ## Phase 1: Google Play (start first: it has a 14-day test clock)
 
@@ -48,8 +54,9 @@ USPTO search for marks containing "gumption": 38 results, 18 live. Not legal adv
    - Personal account, $25 one time.
    - Google verifies your identity (government ID) and phone number, and new accounts must also verify an Android device with the Play Console app. Allow a few days.
 2. **[Claude] Store build:**
-   - CI also builds an **Android App Bundle (.aab)**, signed with a new private **upload key** kept in GitHub secrets. The committed `sideload.jks` stays for the sideload APK; it isn't used for Play.
-   - **[you]** add the two secrets Claude gives you.
+   - **Done (2026-10-22).** The CI `play` job builds the **Android App Bundle (.aab)** on a `[play]` commit or Run workflow, signed with a private **upload key** from secrets, and publishes it as `Gumption-play.aab` on the `play-latest` release. The committed `sideload.jks` stays for the sideload APK; it isn't used for Play.
+   - **[you]** add the four secrets from the file Claude sent (`UPLOAD_KEYSTORE_BASE64`, `UPLOAD_STORE_PASSWORD`, `UPLOAD_KEY_ALIAS`, `UPLOAD_KEY_PASSWORD`) and keep that file in a password manager. Upload certificate SHA-1 `1D:05:72:5F:78:9E:F9:29:CA:9C:4A:08:B2:89:99:7F:01:04:37:4F`. If it's ever lost or leaked, Play Console can reset the upload key; the app signing key stays with Google.
+   - Then ask Claude for a `[play]` build.
 3. **[you] Create the app in Play Console:**
    - Name, default language, App (not game), Free.
    - Upload the first .aab to **Internal testing**.

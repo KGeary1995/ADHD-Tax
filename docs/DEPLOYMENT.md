@@ -10,6 +10,7 @@ Everything about getting builds onto devices: CI, release links, secrets, signin
 | Mac | CI `macos` job, on `[mac]` commits, pushes to `main`, or Run workflow | GitHub release **`macos-latest`** | `https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Gumption-macOS.zip` |
 | iPhone / iPad (native) | CI `ios` job, on `[ios]` commits, pushes to `main`, or Run workflow | App Store Connect → **TestFlight** (needs the Apple secrets; until then the job only compiles) | TestFlight app on the device |
 | Web (and iPhone without an Apple account) | CI `test` job builds; `web-publish` deploys | Cloudflare Pages project `unstuck` (or repo variable `CLOUDFLARE_PROJECT`) | **`https://unstuck-4o8.pages.dev`** (project created by Build 39; the suffix is Cloudflare's because `unstuck` was taken) |
+| Google Play bundle | CI `play` job, on Run workflow or a `[play]` commit | GitHub release **`play-latest`** (pre-release), then uploaded by hand in Play Console | `…/releases/download/play-latest/Gumption-play.aab` |
 | Windows | CI `windows` job, on Run workflow or a `[windows]` commit | Run artifact `unstuck-windows` only (no release yet) | Actions → run → Artifacts |
 
 The repo is **private**, so release downloads need a signed-in GitHub session.
@@ -22,6 +23,7 @@ Triggers: `push`, `pull_request`, `workflow_dispatch`. Concurrency group = `ci-<
 |---|---|---|---|
 | `test` | ubuntu | `pub get` → `dart format --set-exit-if-changed` → `flutter analyze` → `flutter test` → web build | artifact `unstuck-web` |
 | `android` | ubuntu, after `test` | `flutter build apk --release --no-shrink --build-number=<run_number>` | `android-latest` release, except on `pull_request` |
+| `play` | ubuntu, after `test`; dispatch or `[play]` in the commit message | Decodes the upload keystore from secrets, `UPLOAD_KEYSTORE=… flutter build appbundle --release --no-shrink --build-number=<run_number>` (`build.gradle.kts` signs with the upload key when that variable is set). Fails with a message if the secrets are missing | `play-latest` release |
 | `windows` | windows, after `test` | `flutter build windows --release` | artifact only |
 | `web-publish` | ubuntu, after `test`, push or dispatch | `wrangler pages project create` (first time) + `pages deploy --branch=main` | Cloudflare Pages; skipped with a notice if secrets are missing |
 | `macos` | macos-latest, after `test`; dispatch, `main`, or `[mac]` in the commit message | `flutter build macos --release` → `ditto` zip | `macos-latest` release |
@@ -46,6 +48,7 @@ Every build job first writes `app/google_oauth.json` from secrets and builds wit
 | `CLOUDFLARE_API_TOKEN` | secret | `web-publish` | Cloudflare → My Profile → API Tokens → custom token, permission *Account · Cloudflare Pages · Edit* |
 | `CLOUDFLARE_ACCOUNT_ID` | secret | `web-publish` | Cloudflare → Workers & Pages (right sidebar) |
 | `CLOUDFLARE_PROJECT` | variable (optional) | `web-publish` | Defaults to `unstuck` |
+| `UPLOAD_KEYSTORE_BASE64`, `UPLOAD_STORE_PASSWORD`, `UPLOAD_KEY_ALIAS`, `UPLOAD_KEY_PASSWORD` | secret | `play` | The Play upload key, generated 2026-10-22 and sent to the owner as a file (never committed). Alias `upload`, PKCS12, store and key password the same. SHA-1 `1D:05:72:5F:78:9E:F9:29:CA:9C:4A:08:B2:89:99:7F:01:04:37:4F` |
 
 The Google client ids and the desktop "secret" end up inside the shipped apps. That's normal for installed and browser apps (Google documents installed-app secrets as non-confidential). They're kept as secrets only to keep them out of the repo history.
 
@@ -56,7 +59,7 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 - Key: `app/android/app/sideload.jks`, **committed on purpose**. Every CI build must be signed with the same key, or Android refuses to install updates over the old app, and Google Sign-In's Android client is registered against this key's SHA-1.
 - Store/key password `adhdtax-sideload`, alias `sideload` (in `build.gradle.kts`).
 - SHA-1: `E9:F6:E9:C8:17:8A:B9:27:E7:9A:28:87:EC:67:D5:04:4F:F5:1F:BA`.
-- Before any public or Play Store release, move to a secret-backed key. Changing keys means users must uninstall (losing local-only data), and the Android OAuth client must be re-registered with the new SHA-1.
+- Google Play builds don't use it: the `play` job signs with the **upload key** from secrets, and Google re-signs with its own app signing key (Play App Signing). So the Play app and the sideloaded app can't update each other, and the Play app needs its own Android OAuth client registered with the **app signing** SHA-1 from Play Console → App integrity (docs/STORE_RELEASE.md).
 - Release flags that matter: `--no-shrink` (R8 broke plugins), Impeller disabled in the manifest, core-library desugaring enabled (flutter_local_notifications).
 
 ## iOS distribution (TestFlight)

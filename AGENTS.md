@@ -53,7 +53,7 @@ Last updated: 2026-10-22 (Build 91 passed the phone test in docs/PHONE_TEST.md).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 230 tests, ~60 s
+flutter test                         # 232 tests, ~60 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
@@ -78,6 +78,7 @@ docs/DEPLOYMENT.md      CI/CD, releases, secrets, Google/Cloudflare setup, signi
 docs/TROUBLESHOOTING.md symptom → cause → fix, from real incidents
 docs/DECISIONS.md       why things are the way they are (read before "simplifying")
 docs/PHONE_TEST.md      15-minute checklist the owner runs on an Android phone after a build
+docs/store/LISTING.md   store listing copy and draft answers to the Play/App Store forms
 docs/STORE_RELEASE.md   plan for Google Play and App Store release: who does what, forms, gotchas
 docs/PLAN.md            original product plan and roadmap (partly superseded; see its banner)
 .github/workflows/ci.yml  test → Android / Windows / web publish / Mac
@@ -98,6 +99,7 @@ app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks
    - **web-publish**: deploys to Cloudflare Pages if the Cloudflare secrets exist (otherwise it posts a notice).
    - **macOS**: only on `workflow_dispatch`, pushes to `main`, or **commit messages containing `[mac]`** (macOS runners cost 10× minutes). Publishes to the `macos-latest` release.
    - **iOS**: only on `workflow_dispatch`, pushes to `main`, or **commit messages containing `[ios]`**. Compiles without Apple secrets; with them, uploads to TestFlight.
+   - **Play bundle**: only on `workflow_dispatch` or **commit messages containing `[play]`**. Builds the signed `.aab` (needs the upload-key secrets) and publishes it to the `play-latest` release for the owner to upload to Play Console.
 4. Tell the owner: "reinstall from the same link". The build number is the CI run number.
 
 Details, secrets and failure modes: docs/DEPLOYMENT.md.
@@ -128,6 +130,7 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - There's no Android SDK or Xcode in cloud sessions: Kotlin, Swift, resource and Xcode-project changes are only compiled by CI (Android job; iOS job on `[ios]`). Read them twice before pushing. Change the iOS targets through `tool/ios/add_extensions.rb`, not by hand.
 - iOS: the widget and share extension share data with the app through the App Group `group.com.adhdtax.adhdTax`; all three entitlements files must list it.
 - `main.dart` wraps startup in `runZonedGuarded` and shows `StartupErrorApp` instead of a black screen. Keep it: it's how the owner reports crashes (screenshot + "Copy details").
+- `app/web/privacy/` and `app/web/support/` are plain HTML pages published with the web app; Google's sign-in screen, both store listings and Settings → Help (`core/links.dart`) link to them, and the stores' Data safety / App Privacy answers (docs/store/LISTING.md) must stay true to them. Change all of these together when what the app does with data changes.
 - The web build uses a **custom `web/flutter_bootstrap.js`** without Flutter's service worker, which would unregister `offline.js` and reload the page in a loop.
 - Flutter web ignores iPhone safe areas and rewrites the viewport tag. `core/safe_area/` fixes both; don't remove `WebSafeArea` from `app.dart`.
 - CI uses `cancel-in-progress`: a new push cancels the running build for the branch, including its Mac job. A `[mac]` push followed quickly by one without `[mac]` leaves the Mac app on the old build, so put `[mac]` on the **last** push of a series.
