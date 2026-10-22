@@ -388,8 +388,10 @@ jobs:
                 -authenticationKeyID "$ASC_KEY_ID"
                 -authenticationKeyIssuerID "$ASC_ISSUER_ID")
           # Flutter prepares the Xcode project; xcodebuild signs with the API
-          # key, creating certificates and profiles as needed.
-          flutter build ios --config-only --release --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
+          # key, creating certificates and profiles as needed. --no-codesign
+          # stops Flutter's own check for a signing certificate in the local
+          # keychain, which a CI runner never has (Build 98 failed on it).
+          flutter build ios --config-only --no-codesign --release --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
           xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner \
             -configuration Release -destination generic/platform=iOS \
             -archivePath build/Unstuck.xcarchive \
