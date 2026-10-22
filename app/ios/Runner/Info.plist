@@ -88,5 +88,12 @@
 	<string>Gumption listens only after you tap the mic, to type a task for you.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Gumption turns what you say into a task when you tap the mic.</string>
+	<!-- The file picker (Settings → Backup) links Photos and media-library
+	     code. Gumption never asks for either, but App Store Connect rejects
+	     uploads whose binary references them without a purpose string. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Gumption only opens a file you pick yourself, such as a backup file. It doesn't read your photos.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Gumption only opens a file you pick yourself, such as a backup file. It doesn't use your music library.</string>
 </dict>
 </plist>
