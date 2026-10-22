@@ -38,7 +38,7 @@ USPTO search for marks containing "gumption": 38 results, 18 live. Not legal adv
      - Application home page: `https://unstuck-4o8.pages.dev/about/`, a plain HTML page. Not the web app itself: it's drawn on a canvas, so Google's checker finds no app name or privacy link there. The first attempt (still named UNSTUCK, with the web app as home page) failed on both counts
      - Privacy policy: `https://unstuck-4o8.pages.dev/privacy/`
      - Terms of service: `https://unstuck-4o8.pages.dev/terms/` (live with the next build after 2026-10-22).
-     - Authorized domain: `unstuck-4o8.pages.dev` (allowed because `pages.dev` is a public suffix). Google asks you to prove you own it in Search Console: add a **URL-prefix** property for `https://unstuck-4o8.pages.dev/`, choose **HTML file**, and send Claude the file's name and contents; Claude adds it to `app/web/` and it goes live with the next build.
+     - Authorized domain: `unstuck-4o8.pages.dev` (allowed because `pages.dev` is a public suffix). Verified through the Search Console **HTML tag** in `app/web/index.html` (added 2026-10-22; keep it, Google re-checks). Google asks you to prove you own it in Search Console: add a **URL-prefix** property for `https://unstuck-4o8.pages.dev/`, choose **HTML file**, and send Claude the file's name and contents; Claude adds it to `app/web/` and it goes live with the next build.
      - Then **submit for verification**.
    - Takes a few days. Until then, store users see "Google hasn't verified this app" when connecting sync. The scopes are non-sensitive, so no security review is needed (*verify* when submitting).
 3. **[Claude] Store graphics:**
