@@ -10,10 +10,23 @@ The plan for moving from sideloaded/TestFlight builds to public store listings. 
 |---|---|---|
 | Seller: individual or company | **Individual** to start | Free and fast. Your legal name shows as the seller. You can migrate to a company later on Apple; on Google you'd need a new account (apps can be transferred). |
 | Price | **Free** to start | Paid apps add tax forms, banking, refunds and support load. In-app purchase or a paid tier can come later. |
-| Store name | **Decided: "Gumption: Task Starter"** (2026-10-22) | "Unstuck" was taken by several ADHD apps. No app called Gumption was found, but **[you]** still run the trademark search (tmsearch.uspto.gov, classes 9 and 42) before paying for anything. The home-screen name is "Gumption". Apple subtitle / Play short description idea: "Picks your task. Built for ADHD." |
+| Store name | **Decided: "Gumption: Task Starter"** (2026-10-22) | "Unstuck" was taken by several ADHD apps. USPTO search done 2026-10-22 (see "Trademark check" below): not ownable as a registered mark right now, usable with low-to-moderate risk. The home-screen name is "Gumption". Apple subtitle / Play short description idea: "Picks your task. Built for ADHD." |
 | Positioning | **Productivity app "built for ADHD brains"**, no medical claims | Words like *treats*, *therapy* or *symptoms* trigger health-app review on both stores. Describe what it does (picks a task, focus timer), not what it cures. |
 | Web address | Keep **unstuck-4o8.pages.dev** for now; optionally buy a domain (~$12/yr) | Both stores and Google's sign-in screen need a privacy policy and support URL. A real domain looks more trustworthy and makes Google's brand verification simpler. |
 | Support email | **A dedicated address** (e.g. a new Gmail) | It's shown publicly on both listings. |
+
+## Trademark check (2026-10-22)
+
+USPTO search for marks containing "gumption": 38 results, 18 live. Not legal advice; it covers federal filings only, not state marks or unregistered use.
+
+| Mark | Owner | Class / goods | Status | Risk to us |
+|---|---|---|---|---|
+| GUMPTION | Hrothgar Labs LLC (Utah) | 9: mobile app teaching entrepreneurship and financial literacy to children 6–17 | **Pending**, serial 50083463, filed 2026-09-01, intent to use (no app launched yet) | **Main one.** Same word, same class (downloadable apps). Different purpose and users. Their earlier filing date would block us registering GUMPTION for software, and they could object if their app launches |
+| GUMPTION / GUMPTION. | Stratice, LLC (Alabama) | 35, 42: staffing and recruiting, and online software for it | Registered 2023 (6993096, 6993097) | Low to moderate: software, but a different field |
+| GUMPTION | Allan Baker, Inc. | 9, 35: eyeglasses and eyewear retail | Registered (6142837) | Low: different goods |
+| Others (coffee, books, coaching, podcasts, film, clothing retail) | various | 30, 35, 41, 43 | various | None for an app |
+
+**Decision:** use "Gumption: Task Starter" while the app is free and small, and **don't file our own trademark** (it would most likely be refused or suspended behind 50083463). Re-check 50083463's status before any paid tier or real marketing spend; if it registers and its owner objects, rename. A rename is one build, because the internal ids never change (docs/DECISIONS.md). For a paid launch, get a trademark attorney's clearance opinion.
 
 ## Phase 0: shared preparation (both stores)
 
