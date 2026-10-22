@@ -391,11 +391,16 @@ jobs:
           # key, creating certificates and profiles as needed. --no-codesign
           # stops Flutter's own check for a signing certificate in the local
           # keychain, which a CI runner never has (Build 98 failed on it).
+          # The archive is signed for distribution, not development: automatic
+          # development signing needs a registered iPhone on the team ("no
+          # devices from which to generate a provisioning profile"), while an
+          # App Store profile needs none (Build 99).
           flutter build ios --config-only --no-codesign --release --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
           xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner \
             -configuration Release -destination generic/platform=iOS \
             -archivePath build/Unstuck.xcarchive \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             "${auth[@]}" archive
           sed "s/TEAM_ID/$APPLE_TEAM_ID/" ios/ExportOptions.plist > build/ExportOptions.plist
           xcodebuild -exportArchive -archivePath build/Unstuck.xcarchive \
