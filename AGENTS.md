@@ -109,6 +109,12 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - **Phone first.** Every screen must work at 360×800 with 1.3× text (`test/widget/narrow_layout_test.dart` enforces this for the capture screens). Prefer wrapping `ChoiceGroup` pills over `SegmentedButton`.
 - **One look.** Colors, fonts and type styles come from `core/theme/app_themes.dart` (`context.spec`: `display()`, `mono()`, `accent`, `primary`…) and shared pieces from `widgets/ui.dart` (`Panel`, `Group`/`GroupRow`/`SwitchRow`, `Pill`, `ChoiceGroup`, `Segmented`, `PageHeader`). Don't hard-code colors in screens, and check both light and dark. The approved design is the Claude Design canvas linked in docs/DECISIONS.md.
 - **No shame mechanics** (product principle): no red overdue walls, streaks never reset to zero, celebrations respect the Off/Subtle/Normal/Party setting, and starting earns XP.
+- **Spend Actions minutes like money (the owner pays for overage).** Every push to a code path builds test + Android + web; `[mac]` adds ~100 billed minutes, `[ios]` about the same, `[windows]` ~20.
+  - Run `./tool/check.sh` and look at screenshots locally *before* pushing, so CI is a confirmation, not a debugger.
+  - **Batch:** finish the owner's whole request, then push once. Several small code pushes in a row are several full builds (cancel-in-progress only saves part of each).
+  - **`[mac]` only when the owner wants a Mac build now**, once per batch, on the last push. Never for layout iterations; check those with web screenshots. `[ios]`/`[windows]` only when asked.
+  - Docs-only changes (`*.md`, `docs/`) don't build; keep them in their own commits when possible.
+  - Re-run a failed job at most once, and only for a runner/infra failure.
 - Commit messages explain *why*. Update `CHANGELOG.md` for anything the owner will notice.
 
 ## Gotchas that have already bitten (details in docs/TROUBLESHOOTING.md)
