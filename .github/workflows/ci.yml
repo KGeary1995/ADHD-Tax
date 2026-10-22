@@ -9,10 +9,17 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
-  # Actions → CI → Run workflow: also builds the Mac and Windows apps.
+  # Actions → CI → Run workflow: pick which extra app to build. Tests,
+  # Android and web always run.
   workflow_dispatch:
+    inputs:
+      build:
+        description: Extra app to build
+        type: choice
+        options: [ios, mac, play, windows, all]
+        default: ios
 
-# Per event, so a manual run (which builds the Mac app) and a push don't
+# Per event, so a manual run and a push don't
 # cancel each other.
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
@@ -123,7 +130,8 @@ jobs:
     name: Build Play bundle (AAB)
     needs: test
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (inputs.build == 'play' || inputs.build == 'all')) ||
       contains(github.event.head_commit.message, '[play]')
     runs-on: ubuntu-latest
     permissions:
@@ -190,7 +198,8 @@ jobs:
     name: Build Windows
     needs: test
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (inputs.build == 'windows' || inputs.build == 'all')) ||
       contains(github.event.head_commit.message, '[windows]')
     runs-on: windows-latest
     defaults:
@@ -272,7 +281,8 @@ jobs:
     name: Build macOS app
     needs: test
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (inputs.build == 'mac' || inputs.build == 'all')) ||
       contains(github.event.head_commit.message, '[mac]')
     runs-on: macos-latest
     permissions:
@@ -327,7 +337,8 @@ jobs:
     name: Build iOS app
     needs: test
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (inputs.build == 'ios' || inputs.build == 'all')) ||
       contains(github.event.head_commit.message, '[ios]')
     runs-on: macos-latest
     env:

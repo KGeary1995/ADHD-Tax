@@ -22,7 +22,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Repeating tasks, Mark done + Undo, Android reminders | Done | **Partly (Build 91):** Mark done + Undo and the focus timer's "Time's up" alert (screen off) pass; repeating tasks not yet tested |
 | Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | **Partly (Build 91):** wrap-up and voice capture pass; waiting-on and real task lengths not yet tested on a device |
 | Android home-screen widget, Share → Gumption | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (card widget Start and +, Share from Chrome opens one copy of the app) |
-| iPhone/iPad native app (notifications, widgets, Share, voice) | Code done; CI compiles it on `[ios]` pushes; TestFlight upload needs the Apple secrets | **No.** Compiles in CI (Build 35). On hold: the owner will join the Apple Developer Program once iPhone-using friends confirm they want it |
+| iPhone/iPad native app (notifications, widgets, Share, voice) | Code done; CI compiles it on `[ios]` pushes; TestFlight upload needs the Apple secrets | **No.** Compiles in CI again (2026-10-22, PR #2, after Build 35). The owner joined the Apple Developer Program on 2026-10-22 because iPhone users are the ones asking; the Apple and Google iOS secrets are in, so `[ios]` builds now sign and upload to TestFlight |
 | iPhone web app (home-screen) | Done; Cloudflare secrets added 2026-10-18, published by `web-publish` on every push to **https://unstuck-4o8.pages.dev** (Build 39+). Being trialled with iPhone-using friends to decide on the native app | No (Chromium emulation only) |
 | Backup file (Settings → Save / Restore) | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (save to Downloads, restore the same file) |
 | Mac app | Builds and publishes on `[mac]` pushes | **Yes**: opens and works after "Open Anyway" (Build 21, still named ADHD Tax) |
@@ -95,6 +95,7 @@ app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks
 2. `./tool/check.sh` must pass.
 3. Push. CI runs once per commit (push only; docs-only commits, i.e. `*.md` and `docs/`, skip CI entirely): `test` (format, analyze, test, web build), then in parallel:
    - **Android**: builds the APK and replaces the `android-latest` release asset. The phone download link never changes.
+   - **Run workflow** (`workflow_dispatch`) asks which extra app to build (`ios` by default, `mac`, `play`, `windows` or `all`); "on `workflow_dispatch`" below means "when chosen there".
    - **Windows**: only on `workflow_dispatch` or **commit messages containing `[windows]`**; builds an artifact (not published as a release).
    - **web-publish**: deploys to Cloudflare Pages if the Cloudflare secrets exist (otherwise it posts a notice).
    - **macOS**: only on `workflow_dispatch` or **commit messages containing `[mac]`** (pushes to `main` don't build it) (macOS runners cost 10× minutes). Publishes to the `macos-latest` release.
