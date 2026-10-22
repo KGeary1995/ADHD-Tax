@@ -10,7 +10,7 @@ Everything about getting builds onto devices: CI, release links, secrets, signin
 | Mac | CI `macos` job, on `[mac]` commits, pushes to `main`, or Run workflow | GitHub release **`macos-latest`** | `https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Unstuck-macOS.zip` |
 | iPhone / iPad (native) | CI `ios` job, on `[ios]` commits, pushes to `main`, or Run workflow | App Store Connect → **TestFlight** (needs the Apple secrets; until then the job only compiles) | TestFlight app on the device |
 | Web (and iPhone without an Apple account) | CI `test` job builds; `web-publish` deploys | Cloudflare Pages project `unstuck` (or repo variable `CLOUDFLARE_PROJECT`) | **`https://unstuck-4o8.pages.dev`** (project created by Build 39; the suffix is Cloudflare's because `unstuck` was taken) |
-| Windows | CI `windows` job, every push | Run artifact `unstuck-windows` only (no release yet) | Actions → run → Artifacts |
+| Windows | CI `windows` job, on Run workflow or a `[windows]` commit | Run artifact `unstuck-windows` only (no release yet) | Actions → run → Artifacts |
 
 The repo is **private**, so release downloads need a signed-in GitHub session.
 
@@ -31,7 +31,7 @@ Every build job first writes `app/google_oauth.json` from secrets and builds wit
 
 **Version numbers:** the CI run number is the build number. On Android it's the `versionCode`, so each APK installs over the previous one and keeps local data, as long as it's signed with the same key.
 
-**Actions minutes:** the repo is private, so GitHub's free plan gives 2,000 minutes a month. Linux runs count 1×, Windows 2× and macOS 10×. A normal push run uses roughly 25 billed minutes (Windows counts double); a Mac build about 100.
+**Actions minutes:** the repo is private, so GitHub's free plan gives 2,000 minutes a month. Linux runs count 1×, Windows 2× and macOS 10×. A normal push run now uses roughly 12 billed minutes (test + Android; docs-only commits run nothing); a Windows build adds about 20 and a Mac build about 100. They ran out on 2026-10-22 after 18 Mac builds plus every commit running twice (push and pull_request); both are fixed. When the minutes are gone, every job fails within seconds with no runner and no logs.
 
 ## Secrets and variables (repo → Settings → Secrets and variables → Actions)
 

@@ -90,9 +90,9 @@ app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks
 
 1. Work on the session's feature branch; keep PR #1 (`claude/eloquent-feynman-mhvav7` → `main`) or its successor updated.
 2. `./tool/check.sh` must pass.
-3. Push. CI runs `test` (format, analyze, test, web build), then in parallel:
+3. Push. CI runs once per commit (push only; docs-only commits, i.e. `*.md` and `docs/`, skip CI entirely): `test` (format, analyze, test, web build), then in parallel:
    - **Android**: builds the APK and replaces the `android-latest` release asset. The phone download link never changes.
-   - **Windows**: builds an artifact (not published as a release).
+   - **Windows**: only on `workflow_dispatch` or **commit messages containing `[windows]`**; builds an artifact (not published as a release).
    - **web-publish**: deploys to Cloudflare Pages if the Cloudflare secrets exist (otherwise it posts a notice).
    - **macOS**: only on `workflow_dispatch`, pushes to `main`, or **commit messages containing `[mac]`** (macOS runners cost 10× minutes). Publishes to the `macos-latest` release.
    - **iOS**: only on `workflow_dispatch`, pushes to `main`, or **commit messages containing `[ios]`**. Compiles without Apple secrets; with them, uploads to TestFlight.
@@ -123,6 +123,7 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - The web build uses a **custom `web/flutter_bootstrap.js`** without Flutter's service worker, which would unregister `offline.js` and reload the page in a loop.
 - Flutter web ignores iPhone safe areas and rewrites the viewport tag. `core/safe_area/` fixes both; don't remove `WebSafeArea` from `app.dart`.
 - CI uses `cancel-in-progress`: a new push cancels the running build for the branch, including its Mac job. A `[mac]` push followed quickly by one without `[mac]` leaves the Mac app on the old build, so put `[mac]` on the **last** push of a series.
+- **Actions minutes run out** (2026-10-22: every job, even Linux, "failed" in 2–3 s with no runner and no logs). The private repo gets 2,000 minutes a month; macOS counts 10×, Windows 2×. CI now runs once per commit, skips docs-only commits, and builds Windows/Mac/iOS only on request. Batch `[mac]` builds. If jobs fail instantly with no runner, check github.com/settings/billing before debugging.
 - Starting `workflow_dispatch` through the GitHub API gave HTTP 403 on release creation; push-triggered runs publish fine. Use a `[mac]` commit to get a Mac build.
 - Home changes after 5 pm (the "Wrap up" link). A layout that fits in the afternoon overflowed in the evening and only failed tests run after 5 pm; `narrow_layout_test` now pins the clock to 9 pm. Pin `clockProvider` in any test whose layout depends on the time.
 - **Menus and sheets on tab screens need `useRootNavigator: true`** (`PopupMenuButton`, `showModalBottomSheet`). The tabs live in go_router's nested shell navigator, so without it they open *under* the floating nav bar and bottom items (e.g. Delete) can't be tapped. `test/flutter_test_config.dart` makes tests fail on any tap that wouldn't hit its target.

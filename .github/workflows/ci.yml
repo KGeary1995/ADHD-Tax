@@ -1,9 +1,15 @@
 name: CI
 
+# Actions minutes are limited (private repo), so: one run per commit (the
+# push run's checks show on the PR too; a pull_request trigger ran every
+# commit twice), nothing for docs-only commits, and Windows/Mac/iOS only
+# when asked for.
 on:
   push:
-  pull_request:
-  # Actions → CI → Run workflow: also builds the Mac app (see `macos`).
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  # Actions → CI → Run workflow: also builds the Mac and Windows apps.
   workflow_dispatch:
 
 # Per event, so a manual run (which builds the Mac app) and a push don't
@@ -107,9 +113,14 @@ jobs:
             --title "Unstuck for Android (latest build)" \
             --notes "Build ${{ github.run_number }} from \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA::7}. On your phone, tap Unstuck.apk below to download and install."
 
+  # Not published anywhere, and Windows minutes count double: build it only
+  # on Run workflow or a commit message containing [windows].
   windows:
     name: Build Windows
     needs: test
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[windows]')
     runs-on: windows-latest
     defaults:
       run:
