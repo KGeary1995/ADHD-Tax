@@ -134,3 +134,7 @@ USPTO search for marks containing "gumption": 38 results, 18 live. Not legal adv
 - Watch the support email and store reviews. Ratings from the first users matter most.
 - Keep the sideload APK link for yourself, or retire it once you're on the Play version.
 - The Mac app stays a direct download. The Mac App Store would need the same Apple account plus app sandbox review; that's a separate decision.
+
+## Log
+
+- 2026-10-23: App Store 1.0.0 (Build 103) submitted for review from the fill sheet (answers as in docs/store/LISTING.md), set to manual release. iPhone Duo screenshots left empty. Not yet run on a real iPhone.
