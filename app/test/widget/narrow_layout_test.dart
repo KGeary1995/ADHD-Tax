@@ -4,6 +4,7 @@ import 'package:adhd_tax/data/models/task.dart';
 import 'package:adhd_tax/features/capture/quick_add_sheet.dart';
 import 'package:adhd_tax/data/models/template.dart';
 import 'package:adhd_tax/features/gamification/rewards_controller.dart';
+import 'package:adhd_tax/features/gamification/progress_controller.dart';
 import 'package:adhd_tax/features/notes/notes_controller.dart';
 import 'package:adhd_tax/features/picker/picker_controller.dart';
 import 'package:adhd_tax/features/templates/templates_controller.dart';
@@ -158,6 +159,41 @@ void main() {
         for (final tab in ['Today', 'Tasks', 'Notes', 'Progress', 'Settings']) {
           expect(find.byTooltip(tab), findsOneWidget, reason: tab);
         }
+      });
+
+      testWidgets('note links, Related and the sky: nothing overflows', (
+        tester,
+      ) async {
+        final c = await _pumpPhone(tester, scale);
+        final tasks = c.read(tasksProvider.notifier);
+        final t = tasks.create(
+          title: 'Write the phone triage cheat sheet for new hires',
+          tags: 'training,front-desk',
+        );
+        tasks.create(
+          title: 'Shadow a full Monday at the front desk',
+          tags: 'training',
+        );
+        final n = c
+            .read(notesProvider.notifier)
+            .create(
+              title: 'Onboarding ideas',
+              body:
+                  'See [[Write the phone triage cheat sheet for new hires]] '
+                  'and [[Something that does not exist yet]]',
+            );
+        c.read(progressProvider.notifier).recordStart(t);
+        for (final path in ['/note/${n.id}', '/task/${t.id}', '/progress']) {
+          c.read(routerProvider).go(path);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: path);
+        }
+        // The suggestion bar while typing a link.
+        c.read(routerProvider).go('/note/${n.id}');
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField).at(1), 'x [[sha');
+        await tester.pump();
+        expect(tester.takeException(), isNull, reason: 'link suggestions');
       });
 
       testWidgets('weekly reset, errand run, company sheet, AI settings: '

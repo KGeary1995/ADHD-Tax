@@ -1,3 +1,4 @@
+import 'links.dart' show withoutLinkBrackets;
 import 'task.dart' show Workspace;
 
 /// A note: free text kept next to the tasks, in one workspace.
@@ -38,18 +39,19 @@ class Note {
   final DateTime updatedAt;
 
   /// The title, or the first line of the body when there's no title.
+  /// `[[links]]` show as plain names.
   String get heading {
-    if (title.trim().isNotEmpty) return title.trim();
+    if (title.trim().isNotEmpty) return withoutLinkBrackets(title.trim());
     final first = body
         .split('\n')
         .map((l) => l.trim())
         .firstWhere((l) => l.isNotEmpty, orElse: () => '');
-    return first.isEmpty ? 'Untitled note' : first;
+    return first.isEmpty ? 'Untitled note' : withoutLinkBrackets(first);
   }
 
   /// The body without the line already used as the heading.
   String get preview {
-    final lines = body
+    final lines = withoutLinkBrackets(body)
         .split('\n')
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)

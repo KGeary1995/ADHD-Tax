@@ -57,6 +57,20 @@ void main() {
     expect(s.unlocked.containsKey('errand_runner'), isTrue);
   });
 
+  test(
+    'starts are counted per day for the constellation; carryover is not',
+    () {
+      final s = foldEvents([
+        ev('a', 0, ProgressKind.started, started: 1),
+        ev('b', 60, ProgressKind.started, started: 1),
+        ev('c', 24 * 60, ProgressKind.started, started: 1),
+        ev('old', 0, ProgressKind.carryover, started: 40),
+      ]);
+      expect(s.startsByDay, {'2026-10-17': 2, '2026-10-18': 1});
+      expect(s.started, 43);
+    },
+  );
+
   test('reset ignores earlier events', () {
     final s = foldEvents([
       ev('old', 0, ProgressKind.completed, xp: 500, completed: 1),

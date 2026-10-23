@@ -2,7 +2,10 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-22 (Android, web)
+## Next build — 2026-10-23 (Android, web)
+- **Link notes to tasks and to each other:** type `[[` in a note (or tap the new link button at the top) and pick a task or note from the bar above the keyboard. Links show in green, and a **Links** list under the note opens each one. A link to something that doesn't exist yet offers **Make task**. A note with a title also lists the notes that link to it.
+- **Related, on every task:** the notes that link to it, and unfinished tasks that share a #tag or its project. Tasks with no connections look the same as before.
+- **Your sky, on Progress:** every task you start becomes a star, and each week's days in a row join into a constellation. Missed days just leave a gap.
 - **Privacy policy and Support pages** are online at unstuck-4o8.pages.dev/privacy and /support, and linked from **Settings → Help**. The app stores and Google's sign-in screen need them. A short **Terms of use** page (/terms) and an **About** page (/about) sit beside them.
 
 ## Build 91 — 2026-10-22 (d3ddd5d) (Android, web)

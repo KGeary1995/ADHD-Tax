@@ -121,3 +121,9 @@ One codebase for Android, desktop and web (clinic PCs are locked down, so the we
 Competitors lead with AI task breakdown run on their own servers and paid for by subscription. The app has no server, and its AI needs the user's own Anthropic key, which most people won't have. Rather than add a server (cost per use, a subscription, and holding users' task text), the app ships a small rule-based library of first steps and checklists for common task kinds. It covers the moment that matters (a blank "first step" field), works offline and sends nothing anywhere. The AI path stays for people with a key. Revisit only together with a paid tier, and treat any server that sees task text as needing a new privacy review.
 
 "Hold me to it" uses the phone's share sheet rather than an in-app buddy system for the same reason: no accounts, no server. A Work task's title is never put in the message, since titles can name people or cases.
+
+## Links and Related instead of a graph view (2026-10-23)
+
+The owner asked about an Obsidian-style graph view. It works against the product: Gumption exists to show one task and hide the rest, and a graph shows everything at once, is mostly something to admire and fiddle with (productive procrastination), and is unusable on a phone. What makes Obsidian useful is the linking, so the app got that instead: `[[links]]` in notes, a Related section on each task (one hop, as a list), and the visual reward moved to where attention is wanted: **Your sky** on Progress, a star per start. A per-project graph on desktop stays possible later but isn't planned.
+
+Links are matched by name and stored as text, not ids, so no synced field changed and old builds degrade to visible brackets. They never cross workspaces, so a Personal note can't point into Work.

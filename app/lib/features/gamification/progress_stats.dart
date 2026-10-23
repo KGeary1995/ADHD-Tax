@@ -44,6 +44,7 @@ class ProgressStats {
     this.panicStarts = 0,
     this.errandsByDay = const {},
     this.completionsByDay = const {},
+    this.startsByDay = const {},
     this.recent = const [],
     this.activeDays = const {},
     this.unlocked = const {},
@@ -66,6 +67,9 @@ class ProgressStats {
 
   /// yyyy-mm-dd → tasks finished that day.
   final Map<String, int> completionsByDay;
+
+  /// yyyy-mm-dd → tasks started that day (drawn as the constellation).
+  final Map<String, int> startsByDay;
 
   /// Newest first, capped at [recentCap].
   final List<XpLogEntry> recent;
@@ -94,6 +98,7 @@ class ProgressStats {
     int? panicStarts,
     Map<String, int>? errandsByDay,
     Map<String, int>? completionsByDay,
+    Map<String, int>? startsByDay,
     List<XpLogEntry>? recent,
     Set<DateTime>? activeDays,
     Map<String, DateTime>? unlocked,
@@ -112,6 +117,7 @@ class ProgressStats {
       panicStarts: panicStarts ?? this.panicStarts,
       errandsByDay: errandsByDay ?? this.errandsByDay,
       completionsByDay: completionsByDay ?? this.completionsByDay,
+      startsByDay: startsByDay ?? this.startsByDay,
       recent: recent ?? this.recent,
       activeDays: activeDays ?? this.activeDays,
       unlocked: unlocked ?? this.unlocked,
@@ -132,6 +138,7 @@ class ProgressStats {
     'panicStarts': panicStarts,
     'errandsByDay': errandsByDay,
     'completionsByDay': completionsByDay,
+    'startsByDay': startsByDay,
     'recent': [for (final r in recent) r.toJson()],
     'activeDays': [for (final d in activeDays) d.toIso8601String()],
     'unlocked': {
@@ -155,6 +162,7 @@ class ProgressStats {
       panicStarts: i('panicStarts'),
       errandsByDay: _intMap(j['errandsByDay']),
       completionsByDay: _intMap(j['completionsByDay']),
+      startsByDay: _intMap(j['startsByDay']),
       recent: [
         for (final r in j['recent'] as List<Object?>? ?? const [])
           XpLogEntry.fromJson(r as Map<String, Object?>),
