@@ -1,6 +1,6 @@
 # Store listing copy and form answers (drafts)
 
-Drafts for Google Play Console and App Store Connect. Edit the wording to taste, but keep the facts: every claim here matches what the app does today (docs/ARCHITECTURE.md). Avoid medical words (*treat*, *therapy*, *symptoms*, *diagnosis*); they trigger health-app review on both stores.
+Drafts for Google Play Console and App Store Connect (the App Store answers were entered from a copy-paste sheet on 2026-10-23). Edit the wording to taste, but keep the facts: every claim here matches what the app does today (docs/ARCHITECTURE.md). Avoid medical words (*treat*, *therapy*, *symptoms*, *diagnosis*); they trigger health-app review on both stores.
 
 Shared facts:
 
@@ -104,10 +104,12 @@ Not collected: location, contacts, photos, audio (voice typing uses the phone's 
 | Subtitle | `Start tasks. Built for ADHD.` | 28/30 |
 | Keywords | `adhd,focus,timer,todo,planner,procrastination,productivity,routine,executive function,habit,start` | 97/100 |
 | Promotional text | `Stuck staring at your list? Gumption picks the one task that fits your time and energy, shrinks it to a two-minute first step, and gives you XP just for starting.` | 162/170 |
-| Description | Same as the Google Play full description |  |
+| Description | The Google Play full description with two changes: "stay on your device" (not "phone"), and the last line reads `Also on Mac and the web.` (Apple rejects metadata naming other platforms, guideline 2.3.10) |  |
 | Category | Productivity (secondary: Lifestyle) |  |
 | Age rating | Answer "None" throughout. Expect **4+** |  |
-| Copyright | `2026 <your legal name>` |  |
+| Copyright | `2026 Kyle Geary` (the name on the Developer ID certificate) |  |
+| Version | `1.0.0`, matching the build's `CFBundleShortVersionString` from `pubspec.yaml`; App Store Connect defaults to "1.0", which hides the build |  |
+| Screenshots | iPhone 6.9" 1290×2796 and iPad 13" 2048×2732 (the app runs on iPad, so both are required). Made with `tool/screenshots/shoot.mjs … 430 932 --scale 3 --iphone` and `… 1024 1366` |  |
 
 ### App Privacy (draft)
 
