@@ -375,7 +375,7 @@ jobs:
           printf '%s' "$ASC_KEY_P8" > "$key"
           ditto -c -k --keepParent "$app" "$RUNNER_TEMP/notarize.zip"
           result=$(xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" --key "$key" \
-            --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" --wait --timeout 30m --output-format json) || true
+            --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" --wait --timeout 60m --output-format json) || true
           echo "$result"
           id=$(printf '%s' "$result" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))' 2>/dev/null || true)
           status=$(printf '%s' "$result" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status",""))' 2>/dev/null || true)

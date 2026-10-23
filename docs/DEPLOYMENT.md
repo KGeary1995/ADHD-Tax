@@ -76,7 +76,7 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 - CI builds a universal app. With `MACOS_CERT_P12`/`MACOS_CERT_PASSWORD` it re-signs it inside out with the Developer ID certificate (hardened runtime, `Release.entitlements`), notarizes it with `xcrun notarytool` using the App Store Connect API key, and staples the ticket: no Gatekeeper warning, and keychain "Always Allow" survives updates because the signature stays the same. Without those secrets it's signed ad hoc (`CODE_SIGN_IDENTITY = "-"`), as before 2026-10-22. Gatekeeper blocks the first launch: **System Settings → Privacy & Security → Open Anyway**, or `xattr -dr com.apple.quarantine "/Applications/Gumption.app"`.
 - Sandbox entitlements (`macos/Runner/*.entitlements`) include `network.client` (Drive) and `network.server` (the loopback OAuth redirect).
 - Data lives in the app's sandbox container (bundle id `com.adhdtax.adhdTax`) and survives updates.
-- Proper signing and notarization would need the $99/year Apple Developer Program; that would also enable TestFlight for a native iPhone app.
+- Notarization waits up to 60 minutes. The first one (Build 103) took 27 minutes of billed macOS time; later ones are usually a few minutes. If it fails, the step prints Apple's `notarytool log`: read it before running another Mac build.
 
 ## iPhone / web hosting (Cloudflare Pages)
 
