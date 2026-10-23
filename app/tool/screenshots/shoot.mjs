@@ -17,6 +17,8 @@
 //       [--iphone]   (fakes a 34px home-indicator inset, like an iPhone)
 //       [--empty]    (no demo data)
 //       [--board]    (Tasks opens as a board)
+//       [--scale n]  (device pixel ratio, default 2; 3 at 430x932 gives the
+//                    App Store's 6.9" iPhone size, 1290x2796)
 // Writes <outDir>/<name>.png. Paths are app routes: / /tasks /progress
 // /settings /task/<id> (demo ids are '1'..'7').
 //
@@ -29,7 +31,7 @@ import { mkdirSync } from 'node:fs';
 const args = process.argv.slice(2);
 const flag = (f) => args.includes(f);
 const opt = (f, d) => (args.includes(f) ? args[args.indexOf(f) + 1] : d);
-const valued = ['--appearance', '--tap', '--type', '--scroll'];
+const valued = ['--appearance', '--tap', '--type', '--scroll', '--scale'];
 const pos = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && valued.includes(args[i - 1])));
 const [outDir, name, path = '/', width = '390', height = '844'] = pos;
 if (!outDir || !name) {
@@ -119,7 +121,7 @@ const settings = { appearance: opt('--appearance', 'dark'), celebration: 'normal
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;
 const browser = await chromium.launch({ args: proxy ? [`--proxy-server=${proxy}`] : [] });
 const ctx = await browser.newContext({
-  viewport: { width: +width, height: +height }, deviceScaleFactor: 2, locale: 'en-US',
+  viewport: { width: +width, height: +height }, deviceScaleFactor: +opt('--scale', '2'), locale: 'en-US',
   isMobile: +width < 600, hasTouch: +width < 600, colorScheme: 'dark',
 });
 await ctx.addInitScript(([t, p, s, r, empty, board]) => {

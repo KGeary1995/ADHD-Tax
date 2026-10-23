@@ -17,15 +17,15 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 |---|---|---|
 | Phase 1: offline app (picker, focus, XP, themes, quotes) | Done | Android: yes (Build 9+) |
 | Redesign: one look, light + dark, bundled fonts, floating nav | Done | Not yet (web screenshots only) |
-| Phase 2: Google sign-in + Drive sync | Code done; Google Cloud keys (web, Android, desktop clients) added as secrets 2026-10-19; no iOS client yet | **Yes (Android, 2026-10-19):** Personal connected in the personal profile; Work connected from a second install in the Android **work profile** (the personal-profile app can't see work-profile accounts). **2026-10-22:** sync survives an app update since the silent sign-in retry (Build 77). Two-device sync not yet reported |
+| Phase 2: Google sign-in + Drive sync | Code done; Google Cloud keys (web, Android, desktop clients) added as secrets 2026-10-19; iOS client added 2026-10-22 | **Yes (Android, 2026-10-19):** Personal connected in the personal profile; Work connected from a second install in the Android **work profile** (the personal-profile app can't see work-profile accounts). **2026-10-22:** sync survives an app update since the silent sign-in retry (Build 77). **2026-10-23:** Google sign-in works in the iPhone build (TestFlight Build 103, run on the owner's Mac). **Two-device sync passes (2026-10-23):** a task added on the Mac (TestFlight iPhone build) appeared on Android, and marking it done on Android showed on the Mac |
 | Phone layout fixes, full task form, back button | Done | Android: reported working |
 | Repeating tasks, Mark done + Undo, Android reminders | Done | **Partly (Build 91):** Mark done + Undo and the focus timer's "Time's up" alert (screen off) pass; repeating tasks not yet tested |
 | Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | **Partly (Build 91):** wrap-up and voice capture pass; waiting-on and real task lengths not yet tested on a device |
 | Android home-screen widget, Share → Gumption | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (card widget Start and +, Share from Chrome opens one copy of the app) |
-| iPhone/iPad native app (notifications, widgets, Share, voice) | Code done; CI compiles it on `[ios]` pushes; TestFlight upload needs the Apple secrets | **No.** Compiles in CI (Build 35). On hold: the owner will join the Apple Developer Program once iPhone-using friends confirm they want it |
+| iPhone/iPad native app (notifications, widgets, Share, voice) | Done; `[ios]` pushes (or Run workflow → `ios`) sign it and upload to TestFlight. **1.0.0 (103) submitted for App Store review 2026-10-23** (manual release after approval) | **Partly (Build 103, 2026-10-23):** uploaded to TestFlight and the owner ran it on an Apple-silicon Mac ("Designed for iPad"); it opens and works. Not yet on a real iPhone (the owner has none; a friend's test is recommended before App Store review). Widgets, Share and notifications are untested |
 | iPhone web app (home-screen) | Done; Cloudflare secrets added 2026-10-18, published by `web-publish` on every push to **https://unstuck-4o8.pages.dev** (Build 39+). Being trialled with iPhone-using friends to decide on the native app | No (Chromium emulation only) |
 | Backup file (Settings → Save / Restore) | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (save to Downloads, restore the same file) |
-| Mac app | Builds and publishes on `[mac]` pushes | **Yes**: opens and works after "Open Anyway" (Build 21, still named ADHD Tax) |
+| Mac app | Builds on `[mac]` pushes (or Run workflow → `mac`), signed with Developer ID and notarized by Apple, published to `macos-latest` | **Yes**: opens and works after "Open Anyway" (Build 21, ad-hoc signed). Build 103 (2026-10-23), the first notarized build, opens with no Gatekeeper warning on the owner's Mac |
 | Notes (tags, #hashtags, Make tasks, task-linked notes), projects, Tasks board view, "Show on this device" (Personal / Work / Both) | Done | Not yet (tests and web screenshots) |
 | Checklists in tasks, reward shop, typed extras in Quick add ("tomorrow 2pm 15 min #tag"), templates, task tags | Done | Not yet (tests and web screenshots) |
 | Weekly reset, errand runs, focus company (sounds + buddy), Mac/Windows Quick add hotkey, AI "Break it down" (own Anthropic key) | Done | **Partly (Build 91):** errand run passes on Android. Weekly reset, focus company, the desktop hotkey and AI breakdown not yet tested on a device |
@@ -35,7 +35,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Built-in first-step ideas and Suggest steps (no AI key), "Hold me to it" share from the focus screen | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (idea chips, Suggest steps, Hold me to it share sheet) |
 | Phase 3+ (Calendar, table/timeline views) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-22 (Build 91 passed the phone test in docs/PHONE_TEST.md).
+Last updated: 2026-10-23 (Build 103: iPhone app on TestFlight, run on the owner's Mac).
 
 ## Toolchain
 
@@ -95,6 +95,7 @@ app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks
 2. `./tool/check.sh` must pass.
 3. Push. CI runs once per commit (push only; docs-only commits, i.e. `*.md` and `docs/`, skip CI entirely): `test` (format, analyze, test, web build), then in parallel:
    - **Android**: builds the APK and replaces the `android-latest` release asset. The phone download link never changes.
+   - **Run workflow** (`workflow_dispatch`) asks which extra app to build (`ios` by default, `mac`, `ios+mac`, `play`, `windows` or `all`); "on `workflow_dispatch`" below means "when chosen there".
    - **Windows**: only on `workflow_dispatch` or **commit messages containing `[windows]`**; builds an artifact (not published as a release).
    - **web-publish**: deploys to Cloudflare Pages if the Cloudflare secrets exist (otherwise it posts a notice).
    - **macOS**: only on `workflow_dispatch` or **commit messages containing `[mac]`** (pushes to `main` don't build it) (macOS runners cost 10× minutes). Publishes to the `macos-latest` release.
@@ -135,7 +136,7 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - Flutter web ignores iPhone safe areas and rewrites the viewport tag. `core/safe_area/` fixes both; don't remove `WebSafeArea` from `app.dart`.
 - CI uses `cancel-in-progress`: a new push cancels the running build for the branch, including its Mac job. A `[mac]` push followed quickly by one without `[mac]` leaves the Mac app on the old build, so put `[mac]` on the **last** push of a series.
 - **Actions minutes run out** (2026-10-22: every job, even Linux, "failed" in 2–3 s with no runner and no logs). The private repo gets 2,000 minutes a month; macOS counts 10×, Windows 2×. CI now runs once per commit, skips docs-only commits, and builds Windows/Mac/iOS only on request. Batch `[mac]` builds. If jobs fail instantly with no runner, check github.com/settings/billing before debugging.
-- Starting `workflow_dispatch` through the GitHub API gave HTTP 403 on release creation; push-triggered runs publish fine. Use a `[mac]` commit to get a Mac build.
+- **Never delete and recreate the rolling releases** (`android-latest`, `macos-latest`, `play-latest`). Build 100 deleted `android-latest` and then got HTTP 403 creating it again, leaving the owner with no download. The likely cause: GitHub refuses the build token creating a tag at a commit whose `.github/workflows` file differs from the default branch's. The publish steps now `gh release upload --clobber` into the existing release and only create one (anchored on the default branch) if it's missing. The same cause probably explains an earlier 403 on a `workflow_dispatch` run.
 - Home changes after 5 pm (the "Wrap up" link). A layout that fits in the afternoon overflowed in the evening and only failed tests run after 5 pm; `narrow_layout_test` now pins the clock to 9 pm. Pin `clockProvider` in any test whose layout depends on the time.
 - **Menus and sheets on tab screens need `useRootNavigator: true`** (`PopupMenuButton`, `showModalBottomSheet`). The tabs live in go_router's nested shell navigator, so without it they open *under* the floating nav bar and bottom items (e.g. Delete) can't be tapped. `test/flutter_test_config.dart` makes tests fail on any tap that wouldn't hit its target.
 - The focus screen ticks every second and the buddy dot animates forever, so `pumpAndSettle()` there can hang: pump fixed durations instead (`frames()` in `reset_errands_company_ai_test.dart`). Override `ambientPlayerProvider`, `aiKeyStoreProvider` and `httpClientProvider` in tests; the real ones need native plugins or the network.
