@@ -138,3 +138,43 @@ The microphone is used only while the mic button in Quick add is on, to type a t
 
 To see the app with sample data: Settings → Help → Try with example tasks.
 ```
+
+### Answer to Apple's "Information Needed" (Guideline 2.1, 2026-10-23)
+
+Apple asked a new developer account for a screen recording on a physical device plus six written answers, and wants the same text in App Review Information → Notes for future submissions. This replaced the shorter review notes above.
+
+```
+Hello, and thank you for reviewing Gumption.
+
+1. Screen recording
+The attached recording was made on an iPhone running the latest iOS and starts by launching the app. It shows the typical flow: Today picks one task, the user starts it, the focus timer runs, and finishing it awards XP; adding a task with Quick add; the Tasks list; Progress and the reward shop; and the optional Google sign-in in Settings → Sync, followed by disconnecting.
+
+Gumption has no account registration. The only sign-in is the optional "Connect" in Settings → Sync, which lets the app keep the user's tasks in a hidden app-data folder in their own Google Drive. It creates no account with us, and we run no server, so there is no account to delete. Disconnecting is shown in the recording, and the privacy policy explains how to remove the synced copy from Google Drive: https://unstuck-4o8.pages.dev/privacy/#deleting
+
+Nothing is shared between users: tasks and notes are private to the person who wrote them, so there is no user-generated content to report or block. There is no paid content and no in-app purchase.
+
+2. Purpose and audience
+Gumption is a task starter for adults who find it hard to begin tasks, including people with ADHD. Instead of another long to-do list, it picks the one task that fits the time and energy the user has right now, shrinks it to a two-minute first step, and runs a visual focus timer. Starting earns XP, so the reward comes at the hardest moment: getting going. It is a general consumer productivity app, not built for a specific business or organization, and it makes no medical claims.
+
+3. How to use it
+No login, credentials or sample files are needed. Everything works offline on the device.
+- Sample data: Settings → Help → Try with example tasks.
+- Today shows one task. Tap Start (or 5 min) to run the focus timer, then Done to finish and earn XP. "Not this one" picks another task.
+- The + button adds a task. Typing "call the bank tomorrow 2pm 15 min urgent" fills in the date, length and priority.
+- Tasks, Notes, Progress and Settings are in the bottom bar.
+- Optional: Settings → Sync → Connect, with any Google account, syncs tasks between the user's devices.
+- Optional: Settings → AI helper needs the user's own Anthropic API key and can be skipped. "Suggest steps" in a task works without it.
+- Home Screen widget: touch and hold the Home Screen → Edit → Add Widget → Gumption.
+
+4. External services
+- Google Sign-In and the Google Drive API (the drive.appdata scope only): optional sync of the user's own tasks to a hidden app folder in their own Google Drive.
+- Anthropic API: the optional "Break it down" helper, only when the user enters their own API key. The text of one task is sent when the user taps the button.
+- Apple's Speech framework for voice entry in Quick add, and local notifications for the focus timer and reminders.
+There are no analytics, advertising or payment services, and no servers of our own.
+
+5. Regions
+The app works the same in all regions. It is in English.
+
+6. Regulated industries and third-party material
+Not applicable. Gumption is a general productivity app. It is not in a regulated industry, gives no medical or financial advice, and contains no protected third-party material; the motivational quotes were written for the app.
+```
