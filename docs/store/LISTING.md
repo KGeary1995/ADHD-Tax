@@ -109,7 +109,7 @@ Not collected: location, contacts, photos, audio (voice typing uses the phone's 
 | Age rating | Answer "None" throughout. Expect **4+** |  |
 | Copyright | `2026 Kyle Geary` (the name on the Developer ID certificate) |  |
 | Version | `1.0.0`, matching the build's `CFBundleShortVersionString` from `pubspec.yaml`; App Store Connect defaults to "1.0", which hides the build |  |
-| Screenshots | iPhone 6.9" 1290×2796 and iPad 13" 2048×2732 (the app runs on iPad, so both are required). Made with `tool/screenshots/shoot.mjs … 430 932 --scale 3 --iphone` and `… 1024 1366` |  |
+| Screenshots | App Store Connect (Oct 2026) requires the **6.3" iPhone** set, 1206×2622 (`shoot.mjs … 402 874 --scale 3 --iphone`); 1290×2796 was rejected there as "File dimensions are invalid". 6.9" (1320×2868: `440 956 --scale 3`) is optional. iPad 13" 2048×2732 (`… 1024 1366`) is required because the app runs on iPad |  |
 
 ### App Privacy (draft)
 
