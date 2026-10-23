@@ -110,6 +110,7 @@ Not collected: location, contacts, photos, audio (voice typing uses the phone's 
 | Copyright | `2026 Kyle Geary` (the name on the Developer ID certificate) |  |
 | Version | `1.0.0`, matching the build's `CFBundleShortVersionString` from `pubspec.yaml`; App Store Connect defaults to "1.0", which hides the build |  |
 | Screenshots | App Store Connect (Oct 2026) requires the **6.3" iPhone** set, 1206×2622 (`shoot.mjs … 402 874 --scale 3 --iphone`); 1290×2796 was rejected there as "File dimensions are invalid". 6.9" (1320×2868: `440 956 --scale 3`) is optional. iPad 13" 2048×2732 (`… 1024 1366`) is required because the app runs on iPad |  |
+| iPhone Duo | Left empty for 1.0.0 (optional until April 2027, for apps built with the iOS 27.1 SDK or later). Sizes: outer 1398×2034, inner 2007×2853. Add them once the layout has been seen on a real Duo, before that deadline |  |
 
 ### App Privacy (draft)
 
