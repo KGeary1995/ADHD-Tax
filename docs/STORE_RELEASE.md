@@ -57,7 +57,7 @@ USPTO search for marks containing "gumption": 38 results, 18 live. Not legal adv
 2. **[Claude] Store build:**
    - **Done (2026-10-22).** The CI `play` job builds the **Android App Bundle (.aab)** on a `[play]` commit or Run workflow, signed with a private **upload key** from secrets, and publishes it as `Gumption-play.aab` on the `play-latest` release. The committed `sideload.jks` stays for the sideload APK; it isn't used for Play.
    - **[you]** add the four secrets from the file Claude sent (`UPLOAD_KEYSTORE_BASE64`, `UPLOAD_STORE_PASSWORD`, `UPLOAD_KEY_ALIAS`, `UPLOAD_KEY_PASSWORD`) and keep that file in a password manager. Upload certificate SHA-1 `1D:05:72:5F:78:9E:F9:29:CA:9C:4A:08:B2:89:99:7F:01:04:37:4F`. If it's ever lost or leaked, Play Console can reset the upload key; the app signing key stays with Google.
-   - Then ask Claude for a `[play]` build.
+   - Then ask Claude for a `[play]` build. **Done 2026-10-23:** Build 105 (Run workflow → `play` on `main`), signed with the upload key, on the `play-latest` release.
 3. **[you] Create the app in Play Console:**
    - Name, default language, App (not game), Free.
    - Upload the first .aab to **Internal testing**.
@@ -138,3 +138,4 @@ USPTO search for marks containing "gumption": 38 results, 18 live. Not legal adv
 ## Log
 
 - 2026-10-23: App Store 1.0.0 (Build 103) submitted for review from the fill sheet (answers as in docs/store/LISTING.md), set to manual release. iPhone Duo screenshots left empty. Not yet run on a real iPhone.
+- 2026-10-23: Play Console identity verified. First Play bundle, Build 105, published to `play-latest`. Play graphics made (see docs/store/LISTING.md). Next: the owner creates the app and uploads to Internal testing from the Play fill sheet, then sends the app-signing SHA-1 for a Play-specific Android OAuth client.
