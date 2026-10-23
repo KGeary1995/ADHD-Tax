@@ -22,7 +22,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Repeating tasks, Mark done + Undo, Android reminders | Done | **Partly (Build 91):** Mark done + Undo and the focus timer's "Time's up" alert (screen off) pass; repeating tasks not yet tested |
 | Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | **Partly (Build 91):** wrap-up and voice capture pass; waiting-on and real task lengths not yet tested on a device |
 | Android home-screen widget, Share → Gumption | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (card widget Start and +, Share from Chrome opens one copy of the app) |
-| iPhone/iPad native app (notifications, widgets, Share, voice) | Code done; CI compiles it on `[ios]` pushes; TestFlight upload needs the Apple secrets | **No.** Compiles in CI again (2026-10-22, PR #2, after Build 35). The owner joined the Apple Developer Program on 2026-10-22 because iPhone users are the ones asking; the Apple and Google iOS secrets are in, so `[ios]` builds now sign and upload to TestFlight |
+| iPhone/iPad native app (notifications, widgets, Share, voice) | Done; `[ios]` pushes (or Run workflow → `ios`) sign it and upload to TestFlight | **Partly (Build 103, 2026-10-23):** uploaded to TestFlight and the owner ran it on an Apple-silicon Mac ("Designed for iPad"); it opens and works. Not yet on a real iPhone (the owner has none; a friend's test is recommended before App Store review). Widgets, Share and notifications are untested |
 | iPhone web app (home-screen) | Done; Cloudflare secrets added 2026-10-18, published by `web-publish` on every push to **https://unstuck-4o8.pages.dev** (Build 39+). Being trialled with iPhone-using friends to decide on the native app | No (Chromium emulation only) |
 | Backup file (Settings → Save / Restore) | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (save to Downloads, restore the same file) |
 | Mac app | Builds and publishes on `[mac]` pushes | **Yes**: opens and works after "Open Anyway" (Build 21, still named ADHD Tax) |
@@ -35,7 +35,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Built-in first-step ideas and Suggest steps (no AI key), "Hold me to it" share from the focus screen | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (idea chips, Suggest steps, Hold me to it share sheet) |
 | Phase 3+ (Calendar, table/timeline views) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-22 (Build 91 passed the phone test in docs/PHONE_TEST.md).
+Last updated: 2026-10-23 (Build 103: iPhone app on TestFlight, run on the owner's Mac).
 
 ## Toolchain
 
