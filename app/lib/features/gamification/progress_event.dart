@@ -155,6 +155,11 @@ class ProgressEvent {
             ...s.completionsByDay,
             day: (s.completionsByDay[day] ?? 0) + e.completed,
           },
+    // A carryover holds totals from before events existed, not starts made
+    // on its day, so it isn't drawn as stars.
+    startsByDay: e.started == 0 || e.kind == ProgressKind.carryover
+        ? s.startsByDay
+        : {...s.startsByDay, day: (s.startsByDay[day] ?? 0) + e.started},
     errandsByDay: e.errands == 0
         ? s.errandsByDay
         : {...s.errandsByDay, day: (s.errandsByDay[day] ?? 0) + e.errands},

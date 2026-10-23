@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
+import '../../data/models/links.dart';
 import '../../data/models/note.dart';
 import '../../data/models/task.dart';
 import '../../widgets/ui.dart';
@@ -15,6 +16,7 @@ import '../capture/voice_input.dart';
 import '../safety/phi_warning.dart';
 import '../tasks/tasks_controller.dart';
 import '../templates/templates_controller.dart';
+import 'note_links.dart';
 import 'notes_controller.dart';
 import 'project_widgets.dart';
 
@@ -46,7 +48,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late Note _note;
   late bool _stored;
   late final TextEditingController _title;
-  late final TextEditingController _body;
+  late final LinkTextController _body;
+  final _bodyFocus = FocusNode();
   Timer? _debounce;
   var _deleted = false;
 
@@ -71,7 +74,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           updatedAt: now,
         );
     _title = TextEditingController(text: _note.title)..addListener(_changed);
-    _body = TextEditingController(text: _note.body)..addListener(_changed);
+    _body = LinkTextController(text: _note.body)..addListener(_changed);
+    // The link bar shows only while the body has focus.
+    _bodyFocus.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -80,6 +87,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _save();
     _title.dispose();
     _body.dispose();
+    _bodyFocus.dispose();
     super.dispose();
   }
 
@@ -122,6 +130,35 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         current.tags.join(',') != next.tags.join(',');
     if (changed) notes.save(next);
     _note = next;
+  }
+
+  /// The `[[link` being typed at the cursor, if any.
+  ({String query, int start})? get _openLink {
+    final sel = _body.selection;
+    if (!_bodyFocus.hasFocus || !sel.isValid || !sel.isCollapsed) return null;
+    return openLinkAt(_body.text, sel.baseOffset);
+  }
+
+  /// Starts a link at the cursor, or wraps the selected words in one.
+  void _startLink() {
+    final v = _body.value;
+    final start = v.selection.isValid ? v.selection.start : v.text.length;
+    final end = v.selection.isValid ? v.selection.end : start;
+    final words = v.text.substring(start, end).trim();
+    final insert = words.isEmpty ? '[[' : '[[$words]]';
+    _body.value = TextEditingValue(
+      text: v.text.replaceRange(start, end, insert),
+      selection: TextSelection.collapsed(offset: start + insert.length),
+    );
+    _bodyFocus.requestFocus();
+  }
+
+  void _pickLink(String name) {
+    final r = completeLink(_body.text, _body.selection.baseOffset, name);
+    _body.value = TextEditingValue(
+      text: r.text,
+      selection: TextSelection.collapsed(offset: r.cursor),
+    );
   }
 
   void _update(Note Function(Note) f) {
@@ -226,6 +263,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         actions: [
           VoiceButton(controller: _body, newLine: true),
           IconButton(
+            tooltip: 'Link a task or note',
+            icon: const Icon(Icons.add_link_rounded),
+            onPressed: _startLink,
+          ),
+          IconButton(
             tooltip: _note.pinned ? 'Unpin' : 'Pin',
             isSelected: _note.pinned,
             selectedIcon: Icon(Icons.push_pin_rounded, color: s.primary),
@@ -253,127 +295,158 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           ),
         ],
       ),
-      body: ContentWidth(
-        maxWidth: 720,
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(
-            22,
-            0,
-            22,
-            MediaQuery.paddingOf(context).bottom + 32,
-          ),
-          children: [
-            TextField(
-              controller: _title,
-              autofocus: !_stored && widget.taskId.isEmpty,
-              textCapitalization: TextCapitalization.sentences,
-              style: s.display(26),
-              decoration: const InputDecoration(
-                hintText: 'Title',
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: false,
-                contentPadding: EdgeInsets.symmetric(vertical: 8),
-              ),
-            ),
-            // Where it lives, at a glance; tap to change.
-            InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: _organize,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      _note.workspace.label,
-                      style: s.mono(12, color: s.muted),
-                    ),
-                    if (project != null)
-                      ProjectLabel(project)
-                    else
-                      Text(
-                        'No project',
-                        style: TextStyle(fontSize: 13, color: s.faint),
-                      ),
-                    for (final t in tags)
-                      Text(
-                        '#$t',
-                        style: TextStyle(fontSize: 13, color: s.primary),
-                      ),
-                    Text(
-                      tags.isEmpty ? '+ Tags' : 'Edit',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: s.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+      body: Column(
+        children: [
+          Expanded(
+            child: ContentWidth(
+              maxWidth: 720,
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(
+                  22,
+                  0,
+                  22,
+                  MediaQuery.paddingOf(context).bottom + 32,
                 ),
-              ),
-            ),
-            if (task != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Panel(
-                  radius: 14,
-                  padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
-                  onTap: () => context.push('/task/${task.id}'),
-                  child: Row(
-                    children: [
-                      Icon(Icons.task_alt_rounded, size: 18, color: s.primary),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'For: ${task.title}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: s.text2),
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Unlink from task',
-                        icon: Icon(
-                          Icons.close_rounded,
-                          size: 18,
-                          color: s.muted,
-                        ),
-                        onPressed: () => _update((n) => n.copyWith(taskId: '')),
-                      ),
-                    ],
+                children: [
+                  TextField(
+                    controller: _title,
+                    autofocus: !_stored && widget.taskId.isEmpty,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: s.display(26),
+                    decoration: const InputDecoration(
+                      hintText: 'Title',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    ),
                   ),
-                ),
-              ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _body,
-              autofocus: !_stored && widget.taskId.isNotEmpty,
-              minLines: 10,
-              maxLines: null,
-              keyboardType: TextInputType.multiline,
-              textCapitalization: TextCapitalization.sentences,
-              style: TextStyle(fontSize: 16, height: 1.5, color: s.onSurface),
-              decoration: InputDecoration(
-                hintText:
-                    'Write anything. One idea per line makes "Make tasks" '
-                    'easy. Add #tags as you go.',
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: false,
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  // Where it lives, at a glance; tap to change.
+                  InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: _organize,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            _note.workspace.label,
+                            style: s.mono(12, color: s.muted),
+                          ),
+                          if (project != null)
+                            ProjectLabel(project)
+                          else
+                            Text(
+                              'No project',
+                              style: TextStyle(fontSize: 13, color: s.faint),
+                            ),
+                          for (final t in tags)
+                            Text(
+                              '#$t',
+                              style: TextStyle(fontSize: 13, color: s.primary),
+                            ),
+                          Text(
+                            tags.isEmpty ? '+ Tags' : 'Edit',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: s.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (task != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Panel(
+                        radius: 14,
+                        padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+                        onTap: () => context.push('/task/${task.id}'),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.task_alt_rounded,
+                              size: 18,
+                              color: s.primary,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'For: ${task.title}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: s.text2),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Unlink from task',
+                              icon: Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: s.muted,
+                              ),
+                              onPressed: () =>
+                                  _update((n) => n.copyWith(taskId: '')),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _body,
+                    focusNode: _bodyFocus,
+                    autofocus: !_stored && widget.taskId.isNotEmpty,
+                    minLines: 10,
+                    maxLines: null,
+                    keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: TextStyle(
+                      fontSize: 16,
+                      height: 1.5,
+                      color: s.onSurface,
+                    ),
+                    decoration: InputDecoration(
+                      hintText:
+                          'Write anything. One idea per line makes "Make tasks" '
+                          'easy. Add #tags as you go, and type [[ to link a task '
+                          'or note.',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                  PhiWarning(
+                    text: '${_title.text}\n${_body.text}',
+                    workspace: _note.workspace,
+                  ),
+                  NoteLinksPanel(
+                    text: '${_title.text}\n${_body.text}',
+                    title: _title.text,
+                    noteId: _note.id,
+                    workspace: _note.workspace,
+                    projectId: _note.projectId,
+                  ),
+                ],
               ),
             ),
-            PhiWarning(
-              text: '${_title.text}\n${_body.text}',
+          ),
+          if (_openLink case final open?)
+            LinkSuggestionBar(
+              query: open.query,
               workspace: _note.workspace,
+              excludeNoteId: _note.id,
+              onPick: _pickLink,
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

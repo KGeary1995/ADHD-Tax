@@ -62,7 +62,7 @@ const tasks = [
   T('4', 'Renew car registration', { projectId: 'pp1', requiresLeavingHouse: true, location: 'DMV', estimateMin: 30, priority: 'p2', ugh: 2, dueAt: iso(now + 3 * day) }),
   T('5', 'Laundry', { estimateMin: 30, energy: 'low', repeat: 'weekly' }),
   T('6', 'Pick up prescription', { requiresLeavingHouse: true, location: 'Pharmacy' }),
-  T('7', 'Weekly huddle notes', { workspace: 'work', repeat: 'weekly', dueAt: iso(now + 6 * day), scheduledStart: iso(now + 4 * day) }),
+  T('7', 'Weekly huddle notes', { workspace: 'work', tags: 'training', repeat: 'weekly', dueAt: iso(now + 6 * day), scheduledStart: iso(now + 4 * day) }),
   T('8', 'Prior auth for Thursday clinic', { workspace: 'work', status: 'waiting', waitingOn: 'Insurance callback', followUpAt: iso(now - 36e5) }),
   T('9', 'Order new label printer', { workspace: 'work', status: 'waiting', waitingOn: 'IT ticket', followUpAt: iso(now + 3 * day) }),
   // Finished with the timer, so "How long things really take" has data.
@@ -83,6 +83,18 @@ const N = (id, ws, title, body, o = {}) => [id, rec({
   createdAt: iso(now - 2 * day), updatedAt: iso(now - (o.ago ?? 0.1) * day), ...o, ago: undefined,
 })];
 const replica = (c) => JSON.stringify({ v: 1, node: 'demo', clock, local: null, c });
+// Started tasks over the last eight weeks, so Progress has stars to draw:
+// runs of days in a row with a few gaps, busier on some days.
+const startEvents = {};
+for (let d = 0; d < 56; d++) {
+  if ([3, 4, 9, 15, 16, 17, 24, 30, 31, 38, 45, 46].includes(d)) continue;
+  const n = 1 + ((d * 7) % 4 === 0 ? 2 : (d % 3 === 0 ? 1 : 0));
+  for (let i = 0; i < n; i++) {
+    startEvents[`s${d}-${i}`] = rec({ at: iso(now - d * day - i * 36e5), kind: 'started', label: 'Started a task',
+      xp: 10, coins: 1, started: 1, completed: 0, ughCompleted: 0, accurate: 0, oldCleared: 0, focusMinutes: 0,
+      keptGoing: 0, panic: 0, errands: 0 });
+  }
+}
 const replicas = {
   work: replica({
     projects: { pw1: rec({ name: 'Front desk training', workspace: 'work', color: 0, createdAt: iso(now - 9 * day) }),
@@ -95,12 +107,13 @@ const replicas = {
         body: 'Schedule today:\n\nStaffing:\n\nWatch out for:\n\nTo do:\n- ', createdAt: iso(now - 5 * day) }),
     },
     notes: Object.fromEntries([
-      N('n1', 'work', 'Insurance callback script', 'Confirm the plan name first\nRead back the reference number #phones #billing', { pinned: true, projectId: 'pw2', ago: 3 }),
-      N('n2', 'work', 'Huddle: new-hire onboarding', '- Shadow a full Monday\n- Cheat sheet by Friday\n- Pair with a senior for callbacks #training', { projectId: 'pw1', taskId: '1' }),
+      N('n1', 'work', 'Insurance callback script', 'Confirm the plan name first\nRead back the reference number #phones #billing\nUsed for [[Prior auth for Thursday clinic]]', { pinned: true, projectId: 'pw2', ago: 3 }),
+      N('n2', 'work', 'Huddle: new-hire onboarding', '- Shadow a full Monday\n- Cheat sheet by Friday: [[Draft front-desk triage cheat sheet]]\n- Pair with a senior for callbacks #training\n- Book the [[Training room]]', { projectId: 'pw1', taskId: '1' }),
       N('n3', 'work', '', 'Label printer keeps jamming on the thick stock. IT ticket opened. #equipment', { ago: 1 }),
     ]),
   }),
   personal: replica({
+    events: startEvents,
     projects: { pp1: rec({ name: 'Car', workspace: 'personal', color: 3, createdAt: iso(now - 20 * day) }) },
     rewards: {
       r1: rec({ name: 'Fancy coffee out', cost: 25, workspace: 'personal', createdAt: iso(now - 3 * day) }),

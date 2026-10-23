@@ -9,6 +9,7 @@ import '../../data/models/task.dart';
 import '../insights/estimate_calibration.dart';
 import '../picker/picker_controller.dart';
 import 'achievements.dart';
+import 'constellation.dart';
 import 'progress_controller.dart';
 import 'reward_shop.dart';
 import 'xp_rules.dart';
@@ -227,6 +228,7 @@ class ProgressScreen extends ConsumerWidget {
         ],
       ),
     );
+    final sky = Constellation(startsByDay: p.startsByDay, now: now);
     const header = Padding(
       padding: EdgeInsets.symmetric(horizontal: 8),
       child: PageHeader('Progress'),
@@ -250,6 +252,8 @@ class ProgressScreen extends ConsumerWidget {
                     levelPanel,
                     statBlock,
                     streakNote,
+                    const SizedBox(height: 22),
+                    sky,
                     const SizedBox(height: 26),
                     achievementList,
                   ],
@@ -277,6 +281,8 @@ class ProgressScreen extends ConsumerWidget {
               statBlock,
               streakNote,
               const SizedBox(height: 22),
+              sky,
+              const SizedBox(height: 16),
               const RewardShop(),
               const SizedBox(height: 16),
               const _EstimatesCard(),

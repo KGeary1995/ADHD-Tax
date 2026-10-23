@@ -14,6 +14,8 @@ import '../../widgets/ui.dart';
 import 'first_steps.dart';
 import '../ai/ai_settings.dart';
 import '../ai/breakdown.dart';
+import '../../data/models/links.dart';
+import '../notes/note_links.dart';
 import '../notes/notes_controller.dart';
 import '../notes/notes_screen.dart';
 import '../notes/project_widgets.dart';
@@ -777,6 +779,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   if (!_isNew) ...[
                     const SizedBox(height: 16),
                     _TaskNotes(task: _task),
+                    _Related(task: _task),
                   ],
                 ],
                 side: [howPanel, const SizedBox(height: 16), whenPanel],
@@ -790,6 +793,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
               if (!_isNew) ...[
                 const SizedBox(height: 16),
                 _TaskNotes(task: _task),
+                _Related(task: _task),
               ],
             ],
           ],
@@ -842,6 +846,64 @@ class _TaskNotes extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Notes that `[[link]]` to this task, and unfinished tasks that share a
+/// tag or its project. Nothing at all when there's neither, so a task with
+/// no connections stays as short as before.
+class _Related extends ConsumerWidget {
+  const _Related({required this.task});
+  final Task task;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mentions = notesLinkingTo(
+      task.title,
+      workspace: task.workspace,
+      notes: ref.watch(notesProvider),
+    ).where((n) => n.taskId != task.id).toList();
+    final tasks = relatedTasks(task, ref.watch(tasksProvider));
+    if (mentions.isEmpty && tasks.isEmpty) return const SizedBox.shrink();
+    final project = ref
+        .watch(projectsProvider)
+        .where((p) => p.id == task.projectId)
+        .firstOrNull;
+    final mine = {for (final t in task.tagList) t.toLowerCase()};
+    String why(Task t) {
+      final shared = [
+        for (final tag in t.tagList)
+          if (mine.contains(tag.toLowerCase())) '#$tag',
+      ];
+      if (shared.isNotEmpty) return shared.join(' ');
+      return project == null ? 'Same project' : project.name;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const FieldLabel('Related'),
+            for (final n in mentions)
+              LinkRow(
+                icon: Icons.sticky_note_2_outlined,
+                title: n.heading,
+                subtitle: 'Note that links here',
+                onTap: () => context.push('/note/${n.id}'),
+              ),
+            for (final t in tasks)
+              LinkRow(
+                icon: Icons.task_alt_rounded,
+                title: t.title,
+                subtitle: why(t),
+                onTap: () => context.push('/task/${t.id}'),
+              ),
+          ],
+        ),
       ),
     );
   }

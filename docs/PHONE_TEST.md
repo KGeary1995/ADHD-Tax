@@ -64,5 +64,11 @@ If it's late or missing: Android Settings → Apps → Gumption → Battery → 
 11.2 **Restore from a backup file** → pick that file → it says how many tasks it has → **Restore** (leave "Also restore its settings" off). Nothing changes: a restore only adds back what's missing, and it's the same data.
 11.3 Settings → Help → **How Gumption works**: it opens, and a **Go to…** button jumps to that screen.
 
+## 12. Links, Related and your sky (2 min)
+12.1 Notes → + → in the note, type `Call about [[` and a few letters of a test task's name. A bar above the keyboard offers it. Tap it: the link turns green.
+12.2 Under the note, **Links** shows the task. Tap it: the task opens, and its **Related** section lists your note.
+12.3 Type `[[Buy stamps]]` (no such task). Its row says "Not a task or note yet"; tap **Make task**. It now appears in Tasks.
+12.4 Progress → **Your sky**: a star for each task you've started. Start a test task and come back: a new star.
+
 ## Clean up
 Delete the test tasks (swipe left) and remove the widget if you don't want it.
