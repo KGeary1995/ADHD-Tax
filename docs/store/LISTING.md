@@ -56,7 +56,9 @@ Also on iPhone, iPad, Mac, Windows and the web.
 
 **App category:** Productivity. **Tags:** to-do list, productivity, time management.
 
-**Graphics:** 512×512 icon (`app/web/icons/Icon-512.png`), 1024×500 feature graphic, 2–8 phone screenshots. To do once the Play Console account exists.
+**Graphics (made 2026-10-23):** 512×512 icon (`app/web/icons/Icon-512.png`); 1024×500 feature graphic (headline "Don't decide. Just start." beside a phone showing Today, drawn with the app's bundled fonts); five phone screenshots at 1242×2208 (`shoot.mjs … 414 736 --scale 3`). Play rejects screenshots whose long side is more than twice the short side, so the App Store's 6.3" set (1206×2622) can't be reused. No tablet screenshots yet.
+
+**Full description on Play:** the last line reads `Also on iPhone, iPad, Mac and the web.` (Windows dropped: it's an unpublished artifact).
 
 ### App content answers (Policy → App content)
 
