@@ -12,6 +12,13 @@ class NeedsReconnect implements Exception {
   String toString() => reason;
 }
 
+/// Google handed back a different account than this workspace syncs with.
+/// Never retried quietly: syncing would put one workspace's tasks in the
+/// other account's Drive.
+class WrongAccount extends NeedsReconnect {
+  const WrongAccount(super.reason);
+}
+
 /// Signs a workspace into a Google account and hands back an HTTP client
 /// that authenticates Drive calls. Each workspace has its own account.
 abstract class GoogleAuth {

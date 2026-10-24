@@ -129,12 +129,26 @@ class SyncController extends Notifier<WorkspaceSync> {
     );
   }
 
+  /// Bumped by [cancelConnect], so a sign-in that finishes after the user
+  /// gave up is ignored.
+  int _attempt = 0;
+
+  /// How long a sign-in may take before the spinner gives up.
+  static const connectTimeout = Duration(minutes: 5);
+
   /// Interactive sign-in, then a first sync. Also used for "Reconnect".
   Future<void> connect() async {
+    final attempt = ++_attempt;
     state = WorkspaceSync(SyncPhase.connecting, email: _sync.email);
     try {
-      final client = await _auth.connect(workspace, email: _sync.email);
+      final client = await _auth
+          .connect(workspace, email: _sync.email)
+          .timeout(connectTimeout);
       if (!ref.mounted) return;
+      if (attempt != _attempt) {
+        client.close();
+        return;
+      }
       final remote = ref.read(remoteFactoryProvider)(client);
       final email = await remote.accountEmail();
       if (!ref.mounted) return;
@@ -150,14 +164,28 @@ class SyncController extends Notifier<WorkspaceSync> {
       _startTimer();
       await syncNow();
     } on Object catch (e) {
-      if (!ref.mounted) return;
+      if (!ref.mounted || attempt != _attempt) return;
       state = WorkspaceSync(
         _sync.email == null ? SyncPhase.disconnected : SyncPhase.needsReconnect,
         email: _sync.email,
         lastSyncedAt: _sync.lastSyncedAt,
-        message: 'Couldn\'t connect: ${_describe(e)}',
+        message: e is TimeoutException
+            ? 'Sign-in didn\'t finish. Try again.'
+            : 'Couldn\'t connect: ${_describe(e)}',
       );
     }
+  }
+
+  /// Gives up on a sign-in that's still open (the user closed the Google
+  /// page, or it's stuck), so the row isn't left spinning.
+  void cancelConnect() {
+    if (state.phase != SyncPhase.connecting) return;
+    _attempt++;
+    state = WorkspaceSync(
+      _sync.email == null ? SyncPhase.disconnected : SyncPhase.needsReconnect,
+      email: _sync.email,
+      lastSyncedAt: _sync.lastSyncedAt,
+    );
   }
 
   /// Stops syncing this workspace. Local data stays on this device, and the
@@ -199,8 +227,8 @@ class SyncController extends Notifier<WorkspaceSync> {
         final AccountRemoteStore? remote;
         try {
           remote = await _ensureRemote();
-        } on Object {
-          if (ref.mounted && _retryRestore()) return;
+        } on Object catch (e) {
+          if (e is! WrongAccount && ref.mounted && _retryRestore()) return;
           rethrow;
         }
         if (!ref.mounted) return;
@@ -305,8 +333,20 @@ class SyncController extends Notifier<WorkspaceSync> {
     if (_remote != null) return _remote;
     final client = await _auth.restore(workspace, email: _sync.email);
     if (client == null) return null;
+    final remote = ref.read(remoteFactoryProvider)(client);
+    // Check whose Drive this is before writing anything: a sign-in shared
+    // between workspaces (iPhone's Google Sign-In did this) could otherwise put
+    // Work tasks in the Personal account, or the other way round.
+    final who = await remote.accountEmail();
+    final want = _sync.email;
+    if (who != null &&
+        want != null &&
+        who.toLowerCase() != want.toLowerCase()) {
+      client.close();
+      throw WrongAccount('Signed in to Google as $who. Reconnect with $want.');
+    }
     _client = client;
-    return _remote = ref.read(remoteFactoryProvider)(client);
+    return _remote = remote;
   }
 
   /// The silent sign-in didn't work: try again shortly, quietly, before

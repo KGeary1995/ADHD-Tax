@@ -6,6 +6,7 @@ Symptom → cause → fix. Every entry here happened on this project; add new on
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| iPhone: Work stuck on **"Waiting for Google sign-in…"** after signing in; Personal may switch to the Work account (TestFlight builds ≤ 108) | `google_sign_in` on iOS keeps one account at a time, so the second workspace's sign-in replaced the first and the app waited on a token for the wrong user | Fixed in the next build: iPhone signs in per workspace in a Safari sheet, sync refuses a mismatched account, and the row has **Cancel**. After updating, reconnect Personal once. Until then: Disconnect Work on the iPhone and keep Personal only. |
 | APK download reaches 100% then "download failed" (Android) | Opened in an in-app browser (e.g. the GitHub or Claude app's web view), which can't hand the file to the installer | Open the link in **Chrome**, or long-press → Open in browser. |
 | "App not installed" when updating on Android | APK signed with a different key than the installed one | Only CI builds (signed with `sideload.jks`) install over each other. A locally built debug APK needs an uninstall first, which loses local-only data. |
 | **Black screen** on Android launch (Builds ≤ 6) | An exception before the first frame (release builds show nothing) | Fixed in Build 8: `runZonedGuarded` + `StartupErrorApp` show the error instead. If you ever see black again, it's below Dart (engine/GPU); Impeller is already disabled. |

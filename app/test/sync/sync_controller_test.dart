@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:adhd_tax/core/providers.dart';
@@ -95,6 +96,34 @@ class FlakyRestoreAuth extends FakeAuth {
     }
     return super.restore(ws, email: email);
   }
+}
+
+/// Like Google Sign-In on iPhone: one signed-in account at a time, handed
+/// back to whichever workspace asks.
+class OneAccountAuth extends FakeAuth {
+  OneAccountAuth(super.accounts);
+  FakeAccount? current;
+
+  @override
+  Future<http.Client> connect(Workspace ws, {String? email}) async {
+    current = accounts[ws];
+    return super.connect(ws, email: email);
+  }
+
+  @override
+  Future<http.Client?> restore(Workspace ws, {String? email}) async =>
+      connected.contains(ws) && current != null
+      ? _TaggedClient(current!)
+      : null;
+}
+
+/// A sign-in page the user never finishes.
+class StuckAuth extends FakeAuth {
+  StuckAuth(super.accounts);
+  final pending = Completer<http.Client>();
+
+  @override
+  Future<http.Client> connect(Workspace ws, {String? email}) => pending.future;
 }
 
 class _TaggedClient extends http.BaseClient {
@@ -425,6 +454,56 @@ void main() {
     );
     expect(pc.read(tasksProvider), hasLength(1));
   });
+
+  test('a sign-in shared between workspaces never syncs into the wrong '
+      'account', () async {
+    final auth = OneAccountAuth(accounts());
+    final store = MemoryStore();
+    final phone = device(auth, store: store);
+    await phone.read(syncProvider(Workspace.personal).notifier).connect();
+    phone.read(tasksProvider.notifier).create(title: 'Laundry');
+    await phone.read(syncProvider(Workspace.work).notifier).connect();
+
+    // Signing in to Work replaced the shared sign-in. A fresh start of the
+    // app (no client held yet) must not let Personal sync through it.
+    final fresh = device(auth, store: MemoryStore({...store.data}));
+    await fresh.read(syncProvider(Workspace.personal).notifier).syncNow();
+    final s = fresh.read(syncProvider(Workspace.personal));
+    expect(s.phase, SyncPhase.needsReconnect);
+    expect(s.message, contains('kyle@clinic.org'));
+    expect(
+      work.drive.files.values
+          .map((f) => f.$1)
+          .where((name) => name.startsWith('state.personal.')),
+      isEmpty,
+    );
+  });
+
+  test(
+    'a sign-in left open can be cancelled; a late answer is ignored',
+    () async {
+      final auth = StuckAuth(accounts());
+      final phone = device(auth);
+      final ctl = phone.read(syncProvider(Workspace.work).notifier);
+      final connecting = ctl.connect();
+      expect(
+        phone.read(syncProvider(Workspace.work)).phase,
+        SyncPhase.connecting,
+      );
+      ctl.cancelConnect();
+      expect(
+        phone.read(syncProvider(Workspace.work)).phase,
+        SyncPhase.disconnected,
+      );
+      auth.pending.complete(_TaggedClient(work));
+      await connecting;
+      expect(
+        phone.read(syncProvider(Workspace.work)).phase,
+        SyncPhase.disconnected,
+      );
+      expect(work.drive.files, isEmpty);
+    },
+  );
 
   test('Phase 1 data migrates into the replicas once', () async {
     final now = DateTime.now();

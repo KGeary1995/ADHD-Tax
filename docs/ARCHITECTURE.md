@@ -88,10 +88,14 @@ On the web these live in `localStorage` with a `flutter.` prefix. The web Google
 | Platform | How | Session length |
 |---|---|---|
 | Android | `google_sign_in` v7 (Credential Manager) to pick the account, then `clientAuthorizationTokensForScopes` with that email. Needs the **web** client id as `serverClientId`, and an **Android** OAuth client registered for package `com.adhdtax.adhd_tax` with the sideload key's SHA-1. | Silent refresh |
-| Mac / Windows / Linux | `googleapis_auth` loopback + PKCE in the system browser; refresh token in the OS keychain (`flutter_secure_storage`; macOS uses the login keychain because ad-hoc signed builds can't use the data-protection keychain). Uses the **Desktop** client id + secret. | Long-lived |
-| Web / iPhone | Google Identity Services token client (popup), **web** client id; the origin must be listed in the client's JavaScript origins. Token kept in localStorage until expiry. | ~1 hour, then "Reconnect" |
+| Mac / Windows / Linux, and **iPhone/iPad** (native app) | `googleapis_auth` loopback + PKCE. Computers open the system browser; iPhone opens an in-app Safari sheet (`LaunchMode.inAppBrowserView`) and closes it after the redirect. One refresh token per workspace refresh token in the OS keychain (`flutter_secure_storage`; macOS uses the login keychain because ad-hoc signed builds can't use the data-protection keychain). Uses the **Desktop** client id + secret. | Long-lived |
+| Web (incl. the iPhone home-screen web app) | Google Identity Services token client (popup), **web** client id; the origin must be listed in the client's JavaScript origins. Token kept in localStorage until expiry. | ~1 hour, then "Reconnect" |
 
 Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_DESKTOP_CLIENT_ID`, `GOOGLE_DESKTOP_CLIENT_SECRET`. Empty means "not configured": the Accounts panel says so and the app works offline. **Personal and Work can be different Google accounts**: sign-in is per workspace, with the email remembered as a hint. A Work workspace on an @gmail.com account shows a warning.
+
+- **Why iPhone doesn't use `google_sign_in`:** on iOS it keeps one signed-in account and ignores the email asked for (`google_sign_in_ios` authorizes the current user). Signing in to Work made Personal sync through the Work account. iOS has used the Desktop client's browser flow since 2026-10-24; the iOS OAuth client is no longer used for sync.
+- **Wrong-account guard** (all platforms): the first sync with a restored client checks `accountEmail()` against the workspace's stored email and stops with `WrongAccount` ("Signed in to Google as X. Reconnect with Y.") instead of writing anything. Not retried quietly.
+- **Stuck sign-in:** `connect()` times out after 5 minutes, and the row shows **Cancel** while waiting; a sign-in that finishes after Cancel is ignored.
 
 ## Progress / XP (`features/gamification/`)
 

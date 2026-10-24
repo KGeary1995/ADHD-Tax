@@ -12,12 +12,16 @@ import '../data/models/task.dart';
 import 'google_auth.dart';
 import 'google_config.dart';
 
-GoogleAuth createGoogleAuth() => Platform.isAndroid || Platform.isIOS
+GoogleAuth createGoogleAuth() => Platform.isAndroid
     ? MobileGoogleAuth()
-    : DesktopGoogleAuth();
+    // iPhone uses the same browser sign-in as computers, in an in-app
+    // Safari sheet: Google Sign-In on iOS keeps one account at a time and
+    // ignores which email is asked for, so Personal and Work could end up
+    // syncing through the same account.
+    : DesktopGoogleAuth(inApp: Platform.isIOS);
 
-/// Android (and iOS): Google Sign-In. Tokens are requested per account
-/// email, so Personal and Work can be different Google accounts at once.
+/// Android: Google Sign-In. Tokens are requested per account email, so
+/// Personal and Work can be different Google accounts at once.
 class MobileGoogleAuth implements GoogleAuth {
   Future<void>? _init;
 
@@ -86,8 +90,12 @@ class MobileGoogleAuth implements GoogleAuth {
 /// Windows, macOS, Linux: OAuth in the system browser with a loopback
 /// redirect (PKCE). The refresh token goes to the OS keychain, one per
 /// workspace.
+///
+/// Also iPhone and iPad ([inApp]): the sign-in page opens in an in-app
+/// Safari sheet, which closes itself once Google redirects back. Each
+/// workspace keeps its own refresh token, so two accounts work side by side.
 class DesktopGoogleAuth implements GoogleAuth {
-  DesktopGoogleAuth({FlutterSecureStorage? storage})
+  DesktopGoogleAuth({FlutterSecureStorage? storage, this.inApp = false})
     : _storage =
           storage ??
           const FlutterSecureStorage(
@@ -97,6 +105,7 @@ class DesktopGoogleAuth implements GoogleAuth {
           );
 
   final FlutterSecureStorage _storage;
+  final bool inApp;
 
   static final _clientId = ClientId(
     GoogleConfig.desktopClientId,
@@ -155,7 +164,9 @@ class DesktopGoogleAuth implements GoogleAuth {
               : '&login_hint=${Uri.encodeQueryComponent(email)}';
           launchUrl(
             Uri.parse('$url&prompt=select_account%20consent$hint'),
-            mode: LaunchMode.externalApplication,
+            mode: inApp
+                ? LaunchMode.inAppBrowserView
+                : LaunchMode.externalApplication,
           );
         },
         customPostAuthPage: _doneHtml,
@@ -164,6 +175,13 @@ class DesktopGoogleAuth implements GoogleAuth {
       return _client(ws, creds);
     } finally {
       base.close();
+      if (inApp) {
+        try {
+          await closeInAppWebView();
+        } on Object {
+          // Already closed by the user.
+        }
+      }
     }
   }
 

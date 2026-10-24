@@ -2,7 +2,12 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-23 (Android, web)
+## Next build — 2026-10-24 (Android, web, iPhone)
+- **iPhone: Personal and Work can both sync now.** Signing in to Work used to hang on "Waiting for Google sign-in…", and could make Personal sync through the Work account. iPhone now signs in to each one separately in a Safari sheet, like the Mac app does. **After updating, tap Reconnect on Personal once.**
+- **Sync never writes into the wrong Google account:** if a device finds a different account signed in than the one a workspace syncs with, it stops and asks you to reconnect instead of syncing.
+- **Cancel** next to "Waiting for Google sign-in…", and a sign-in that's left open gives up after 5 minutes instead of spinning forever.
+
+## Build 107 — 2026-10-23 (dd313b1) (Android, web; iPhone Build 108)
 - **Link notes to tasks and to each other:** type `[[` in a note (or tap the new link button at the top) and pick a task or note from the bar above the keyboard. Links show in green, and a **Links** list under the note opens each one. A link to something that doesn't exist yet offers **Make task**. A note with a title also lists the notes that link to it.
 - **Related, on every task:** the notes that link to it, and unfinished tasks that share a #tag or its project. Tasks with no connections look the same as before.
 - **Your sky, on Progress:** every task you start becomes a star, and each week's days in a row join into a constellation. Missed days just leave a gap.

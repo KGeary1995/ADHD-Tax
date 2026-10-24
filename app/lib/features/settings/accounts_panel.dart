@@ -87,7 +87,20 @@ class _WorkspaceRow extends ConsumerWidget {
         sync.looksLikePersonalAccount;
 
     final Widget trailing;
-    if (busy) {
+    if (sync.phase == SyncPhase.connecting) {
+      // The Google page can be closed without finishing; never leave the
+      // row spinning with no way out.
+      trailing = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox.square(
+            dimension: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          TextButton(onPressed: ctl.cancelConnect, child: const Text('Cancel')),
+        ],
+      );
+    } else if (busy) {
       trailing = const SizedBox.square(
         dimension: 20,
         child: CircularProgressIndicator(strokeWidth: 2),

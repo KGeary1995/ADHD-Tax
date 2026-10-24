@@ -17,7 +17,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 |---|---|---|
 | Phase 1: offline app (picker, focus, XP, themes, quotes) | Done | Android: yes (Build 9+) |
 | Redesign: one look, light + dark, bundled fonts, floating nav | Done | Not yet (web screenshots only) |
-| Phase 2: Google sign-in + Drive sync | Code done; Google Cloud keys (web, Android, desktop clients) added as secrets 2026-10-19; iOS client added 2026-10-22 | **Yes (Android, 2026-10-19):** Personal connected in the personal profile; Work connected from a second install in the Android **work profile** (the personal-profile app can't see work-profile accounts). **2026-10-22:** sync survives an app update since the silent sign-in retry (Build 77). **2026-10-23:** Google sign-in works in the iPhone build (TestFlight Build 103, run on the owner's Mac). **Two-device sync passes (2026-10-23):** a task added on the Mac (TestFlight iPhone build) appeared on Android, and marking it done on Android showed on the Mac |
+| Phase 2: Google sign-in + Drive sync | Code done; Google Cloud keys (web, Android, desktop clients) added as secrets 2026-10-19; iOS client added 2026-10-22 | **Yes (Android, 2026-10-19):** Personal connected in the personal profile; Work connected from a second install in the Android **work profile** (the personal-profile app can't see work-profile accounts). **2026-10-22:** sync survives an app update since the silent sign-in retry (Build 77). **2026-10-23:** Google sign-in works in the iPhone build (TestFlight Build 103, run on the owner's Mac). **Two-device sync passes (2026-10-23):** a task added on the Mac (TestFlight iPhone build) appeared on Android, and marking it done on Android showed on the Mac. **2026-10-24, real iPhone (Build 108):** Personal syncs; Work hung on "Waiting for Google sign-in…" because `google_sign_in` on iOS holds one account. The iPhone now uses the browser sign-in per workspace (next iOS build), not yet tested on the device |
 | Phone layout fixes, full task form, back button | Done | Android: reported working |
 | Repeating tasks, Mark done + Undo, Android reminders | Done | **Partly (Build 91):** Mark done + Undo and the focus timer's "Time's up" alert (screen off) pass; repeating tasks not yet tested |
 | Waiting-on follow-ups, real task lengths, evening wrap-up, voice capture | Done | **Partly (Build 91):** wrap-up and voice capture pass; waiting-on and real task lengths not yet tested on a device |
@@ -54,7 +54,7 @@ Last updated: 2026-10-23 (Build 103: iPhone app on TestFlight, run on the owner'
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 249 tests, ~60 s
+flutter test                         # 251 tests, ~60 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
