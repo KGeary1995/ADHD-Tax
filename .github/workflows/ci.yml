@@ -443,9 +443,16 @@ jobs:
         shell: bash
         env:
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          # The iPhone signs in with the Desktop client's browser flow (one
+          # sign-in per workspace); without these, sync says "not set up".
+          GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
         run: |
-          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_IOS_CLIENT_ID":"%s"}\n' \
-            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_IOS_CLIENT_ID" > google_oauth.json
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" > google_oauth.json
+          if [ -z "$GOOGLE_DESKTOP_CLIENT_ID" ] || [ -z "$GOOGLE_DESKTOP_CLIENT_SECRET" ]; then
+            echo "::warning::GOOGLE_DESKTOP_CLIENT_ID/SECRET are empty: Google sync will be off in this iPhone build."
+          fi
           # Google Sign-In returns to the app through the reversed client id.
           if [ -n "$GOOGLE_IOS_CLIENT_ID" ]; then
             reversed=$(echo "$GOOGLE_IOS_CLIENT_ID" | awk -F. '{for (i=NF; i>0; i--) printf "%s%s", $i, (i>1 ? "." : "")}')

@@ -6,6 +6,7 @@ Symptom → cause → fix. Every entry here happened on this project; add new on
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| iPhone: Settings → Sync says **"Google sync isn't set up in this build"** (Build 109) | The iOS CI job wrote only the web and iOS client ids into `google_oauth.json`; the iPhone now signs in with the **Desktop** client | The iOS job now writes the Desktop id and secret too, and warns in the CI log if they're empty. |
 | iPhone: Work stuck on **"Waiting for Google sign-in…"** after signing in; Personal may switch to the Work account (TestFlight builds ≤ 108) | `google_sign_in` on iOS keeps one account at a time, so the second workspace's sign-in replaced the first and the app waited on a token for the wrong user | Fixed in the next build: iPhone signs in per workspace in a Safari sheet, sync refuses a mismatched account, and the row has **Cancel**. After updating, reconnect Personal once. Until then: Disconnect Work on the iPhone and keep Personal only. |
 | APK download reaches 100% then "download failed" (Android) | Opened in an in-app browser (e.g. the GitHub or Claude app's web view), which can't hand the file to the installer | Open the link in **Chrome**, or long-press → Open in browser. |
 | "App not installed" when updating on Android | APK signed with a different key than the installed one | Only CI builds (signed with `sideload.jks`) install over each other. A locally built debug APK needs an uninstall first, which loses local-only data. |
