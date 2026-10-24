@@ -11,15 +11,20 @@ Decisions the owner made for this brief:
 
 ## How to use it
 
-Everything comes as one zip, **Gumption-redesign-kit.zip** (see `00-START-HERE.md` inside):
+Everything comes in two zips, each under 20 MB (see `00-START-HERE.md` inside). Both unpack into the same `Gumption-redesign-kit/` folder:
+
+- **Part 1** (for Claude Design): this prompt, `1-attach-first/` and the phone contact sheets (sections 01–10).
+- **Part 2** (reference): the Mac contact sheets (section 11) and `3-every-screen/`.
+
+What the folders hold:
 
 - `1-attach-first/`: six overview images (core loop light and dark, progress/notes/settings, secondary flows, Mac Today, the icon). The same files are in the repo at `docs/design/current/`.
-- `2-contact-sheets-by-section/`: 22 labelled sheets covering **every screen, sheet, dialog and state** (131 screenshots), one or more per section.
+- `2-contact-sheets-by-section/`: 22 labelled sheets (18 phone in Part 1, 4 Mac in Part 2) covering **every screen, sheet, dialog and state** (131 screenshots), one or more per section.
 - `3-every-screen/`: the 131 individual screenshots, in a folder per section, for close-ups.
 
 1. Open Claude Design (claude.ai) and start a new design. The previous exploration is at https://claude.ai/artifact/558G1Ms1eMZAsD1UHHwFfB if you want it side by side, but start fresh so it isn't anchored on the current look.
 2. Attach the six images in `1-attach-first/` and paste everything in **Round 1 prompt** below as one message.
-3. After you pick a direction, attach the contact sheets in `2-contact-sheets-by-section/` with the **Round 2 prompt**. If Claude Design won't take 22 images in one message, send them over two or three messages first ("More screenshots of the current app for the next step; no reply needed"), then the prompt.
+3. After you pick a direction, attach the contact sheets in `2-contact-sheets-by-section/` with the **Round 2 prompt** (from Part 1; add the 4 Mac sheets from Part 2 when it designs the Mac/iPad layout). If Claude Design won't take that many images in one message, send them over two or three messages first ("More screenshots of the current app for the next step; no reply needed"), then the prompt.
 4. When a screen needs a closer look, attach the single image from `3-every-screen/`.
 5. When the screens are final, send the **Handoff prompt**, and give the resulting canvas link to a Claude Code session to build it.
 
