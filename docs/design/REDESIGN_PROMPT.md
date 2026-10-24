@@ -11,18 +11,19 @@ Decisions the owner made for this brief:
 
 ## How to use it
 
-1. Open Claude Design (claude.ai) and start a new design. The previous exploration is at https://claude.ai/artifact/558G1Ms1eMZAsD1UHHwFfB if you want it side by side, but start fresh so it isn't anchored on the current look.
-2. Attach the six images in `docs/design/current/`:
-   - `1-core-loop-light.png`: Today, Quick add, Focus, Tasks (light)
-   - `2-core-loop-dark.png`: the same four in dark
-   - `3-progress-notes-settings.png`: Progress (top and Your sky), Notes, task editor, Settings
-   - `4-secondary-flows.png`: first run, evening wrap-up, weekly reset, guide, board view
-   - `5-mac-today.png`: Today on a Mac at 1440×900
-   - `6-app-icon.png`: current 1024 px icon
-3. Paste everything in **Round 1 prompt** below as one message.
-4. After you pick a direction, send **Round 2 prompt**. When the screens are final, send **Handoff prompt**, and give the resulting canvas link to a Claude Code session to build it.
+Everything comes as one zip, **Gumption-redesign-kit.zip** (see `00-START-HERE.md` inside):
 
-Screenshots come from the web build with demo data (`app/tool/screenshots/shoot.mjs`, 390×844, iPhone inset); they match what the phone shows. To refresh them after a change, see "Refreshing the screenshots" at the end.
+- `1-attach-first/`: six overview images (core loop light and dark, progress/notes/settings, secondary flows, Mac Today, the icon). The same files are in the repo at `docs/design/current/`.
+- `2-contact-sheets-by-section/`: 22 labelled sheets covering **every screen, sheet, dialog and state** (131 screenshots), one or more per section.
+- `3-every-screen/`: the 131 individual screenshots, in a folder per section, for close-ups.
+
+1. Open Claude Design (claude.ai) and start a new design. The previous exploration is at https://claude.ai/artifact/558G1Ms1eMZAsD1UHHwFfB if you want it side by side, but start fresh so it isn't anchored on the current look.
+2. Attach the six images in `1-attach-first/` and paste everything in **Round 1 prompt** below as one message.
+3. After you pick a direction, attach the contact sheets in `2-contact-sheets-by-section/` with the **Round 2 prompt**. If Claude Design won't take 22 images in one message, send them over two or three messages first ("More screenshots of the current app for the next step; no reply needed"), then the prompt.
+4. When a screen needs a closer look, attach the single image from `3-every-screen/`.
+5. When the screens are final, send the **Handoff prompt**, and give the resulting canvas link to a Claude Code session to build it.
+
+Screenshots come from the web build with demo data at iPhone size (390×844 with the home-indicator inset, @2x) and the Mac at 1440×900. They match what the phone shows. To refresh them after a change, see "Refreshing the screenshots" at the end.
 
 ---
 
@@ -103,7 +104,7 @@ Screenshots come from the web build with demo data (`app/tool/screenshots/shoot.
 
 ## Round 2 prompt (after picking a direction)
 
-> Let's go with **[direction, plus anything to borrow from the others]**. Now design the full set in that direction, light and dark, at iPhone size (390×844), using the "Screens in the app" list from my first message: every screen and state, including empty states, the Quick add sheet with More options open, the focus Time's up state, all five celebrations, the widgets, and the Mac/iPad Today and Tasks layouts. Then the final app icon (light, dark and tinted) and the five App Store screenshot frames with captions. Check each phone screen at 360×800 with 130% text and show one example of that.
+> Let's go with **[direction, plus anything to borrow from the others]**. Attached are contact sheets of every screen, sheet, dialog and state in the app as it is today. Everything they can do must still be possible in the new design (it may move, merge or go one tap deeper). Now design the full set in that direction, light and dark, at iPhone size (390×844), using the "Screens in the app" list from my first message: every screen and state, including empty states, the Quick add sheet with More options open, the focus Time's up state, all five celebrations, the widgets, and the Mac/iPad Today and Tasks layouts. Then the final app icon (light, dark and tinted) and the five App Store screenshot frames with captions. Check each phone screen at 360×800 with 130% text and show one example of that.
 
 ## Handoff prompt (when the screens are final)
 
@@ -119,12 +120,16 @@ Screenshots come from the web build with demo data (`app/tool/screenshots/shoot.
 
 ## Refreshing the screenshots
 
-From `app/` (cloud sessions: Flutter at `/opt/flutter/bin`; if `shoot.mjs` can't find Chromium, launch with `executablePath: '/opt/pw-browsers/chromium'`):
+`docs/design/capture/` regenerates the whole set: `capture.mjs` (runs each scene in `scenes.mjs` against the web build, tapping buttons by their accessible label) and `sheets.py` (contact sheets per section). From the repo root:
 
 ```bash
-flutter build web --release --no-web-resources-cdn
-(cd build/web && python3 -m http.server 8765 --bind 127.0.0.1) &
-node tool/screenshots/shoot.mjs out/ light-01-today / 390 844 --iphone --appearance light
+(cd app && flutter build web --release --no-web-resources-cdn)
+(cd app/build/web && python3 -m http.server 8765 --bind 127.0.0.1) &
+(cd app/tool/screenshots && npm install)    # once
+for i in 0 1 2 3 4; do SHARD=$i/5 node docs/design/capture/capture.mjs ./scenes.mjs out/ & done; wait
+python3 docs/design/capture/sheets.py out/ sheets/
 ```
 
-The contact sheets were made by tiling 390×844 (@2x) shots of `/`, `/add`, `/focus/1`, `/tasks`, `/progress` (and `--scroll 700`), `/notes`, `/task/1`, `/settings`, `/` with `--empty`, `/wrapup`, `/reset`, `/guide` and `/tasks --board`, with labels, using Pillow.
+Cloud sessions: Flutter is at `/opt/flutter/bin` (or see docs/TROUBLESHOOTING.md if it's missing) and Chromium needs `CHROMIUM_PATH=/opt/pw-browsers/chromium`. All 131 scenes take about 4 minutes in five parallel runs. A scene that prints `FAIL` couldn't find its button: check the label in the app (a renamed button breaks only that scene). Scenes have to wait for the state they show: the finish celebration only appears ~2.5 s after Done, and the "Started" toast covers it before that. Share sheets ("Hold me to it") don't open on web, so they can't be captured.
+
+The six overview images in `docs/design/current/` are tiles of a few of those screens, made with Pillow.
