@@ -233,7 +233,7 @@ class SyncController extends Notifier<WorkspaceSync> {
         }
         if (!ref.mounted) return;
         if (remote == null) {
-          if (_retryRestore()) return;
+          if (_auth.restoreMayRecover && _retryRestore()) return;
           state = WorkspaceSync(
             SyncPhase.needsReconnect,
             email: _sync.email,

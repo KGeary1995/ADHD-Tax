@@ -26,6 +26,9 @@ class MobileGoogleAuth implements GoogleAuth {
   Future<void>? _init;
 
   @override
+  bool get restoreMayRecover => true;
+
+  @override
   bool get isConfigured =>
       GoogleConfig.webClientId.isNotEmpty &&
       (!Platform.isIOS || GoogleConfig.iosClientId.isNotEmpty);
@@ -111,6 +114,9 @@ class DesktopGoogleAuth implements GoogleAuth {
     GoogleConfig.desktopClientId,
     GoogleConfig.desktopClientSecret,
   );
+
+  @override
+  bool get restoreMayRecover => false;
 
   @override
   bool get isConfigured =>

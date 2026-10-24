@@ -28,6 +28,12 @@ abstract class GoogleAuth {
   /// Reconnects without any UI. Null means the user has to click Connect.
   Future<http.Client?> restore(Workspace ws, {String? email});
 
+  /// Whether an empty [restore] can come right by itself a little later
+  /// (Android's sign-in sometimes isn't ready just after an app update).
+  /// When false, an empty restore means no saved sign-in, so the row shows
+  /// Reconnect at once instead of retrying quietly for a minute and a half.
+  bool get restoreMayRecover;
+
   /// Interactive sign-in. [email] pre-selects an account on reconnect.
   Future<http.Client> connect(Workspace ws, {String? email});
 

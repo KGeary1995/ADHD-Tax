@@ -65,6 +65,9 @@ class WebGoogleAuth implements GoogleAuth {
   @override
   bool get isConfigured => GoogleConfig.webClientId.isNotEmpty;
 
+  @override
+  bool get restoreMayRecover => false;
+
   String _currentToken(Workspace ws) {
     final t = _tokens[ws];
     if (t == null || DateTime.now().isAfter(t.$2)) {

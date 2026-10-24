@@ -68,6 +68,9 @@ class FakeAuth implements GoogleAuth {
   bool get isConfigured => true;
 
   @override
+  bool restoreMayRecover = true;
+
+  @override
   Future<http.Client> connect(Workspace ws, {String? email}) async {
     connected.add(ws);
     return _TaggedClient(accounts[ws]!);
@@ -476,6 +479,21 @@ void main() {
           .map((f) => f.$1)
           .where((name) => name.startsWith('state.personal.')),
       isEmpty,
+    );
+  });
+
+  test('with no saved sign-in to wait for, Reconnect shows at once', () async {
+    final store = MemoryStore();
+    final first = device(FakeAuth(accounts()), store: store);
+    await first.read(syncProvider(Workspace.personal).notifier).connect();
+    // The saved sign-in is gone (an iPhone after the switch to browser
+    // sign-in): nothing comes back, and retrying won't change that.
+    final after = FakeAuth(accounts())..restoreMayRecover = false;
+    final phone = device(after, store: MemoryStore({...store.data}));
+    await phone.read(syncProvider(Workspace.personal).notifier).syncNow();
+    expect(
+      phone.read(syncProvider(Workspace.personal)).phase,
+      SyncPhase.needsReconnect,
     );
   });
 

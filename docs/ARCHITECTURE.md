@@ -95,6 +95,7 @@ Client ids come from `--dart-define`s (`google/google_config.dart`): `GOOGLE_WEB
 
 - **Why iPhone doesn't use `google_sign_in`:** on iOS it keeps one signed-in account and ignores the email asked for (`google_sign_in_ios` authorizes the current user). Signing in to Work made Personal sync through the Work account. iOS has used the Desktop client's browser flow since 2026-10-24; the iOS OAuth client is no longer used for sync.
 - **Wrong-account guard** (all platforms): the first sync with a restored client checks `accountEmail()` against the workspace's stored email and stops with `WrongAccount` ("Signed in to Google as X. Reconnect with Y.") instead of writing anything. Not retried quietly.
+- **Quiet retries only where they help:** `GoogleAuth.restoreMayRecover` is true only on Android, whose silent sign-in can come back empty just after an update. Elsewhere an empty restore means no saved sign-in, so the row shows Reconnect at once.
 - **Stuck sign-in:** `connect()` times out after 5 minutes, and the row shows **Cancel** while waiting; a sign-in that finishes after Cancel is ignored.
 
 ## Progress / XP (`features/gamification/`)
