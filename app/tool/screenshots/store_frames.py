@@ -6,7 +6,10 @@ Shoot the raw screens first (from app/, web build served on 8765), at the
 6.3-inch iPhone size with a fake status bar and home indicator:
 
   node tool/screenshots/shoot.mjs raw/ raw-today / 402 874 --scale 3 --iphone --top 62
-  ... started (tap Start), smaller (light, tap Smaller), focus, progress
+  ... started (tap Start), smaller (light, tap Smaller), focus, progress,
+  sync (/settings, Connect's chooser; build the web app with
+  --dart-define=SCREENSHOT_IPHONE=true plus any GOOGLE_WEB_CLIENT_ID and
+  MICROSOFT_CLIENT_ID so it lists iCloud, Google and Microsoft)
 
 then:  python3 tool/screenshots/store_frames.py raw/ out/   (needs Pillow)
 
@@ -36,6 +39,7 @@ FRAMES = [
     ("smaller", "Shrink it until\nit’s easy.", NIGHT, "dark"),
     ("focus", "A timer that\nkeeps you company.", DAWN, "light"),
     ("progress", "Every start,\nwritten in your sky.", NIGHT, "light"),
+    ("sync", "Syncs to your cloud.\nNot ours.", DAWN, "light"),
 ]
 
 IPAD_W, IPAD_H = 2732, 2048
