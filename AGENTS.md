@@ -89,6 +89,7 @@ docs/PHONE_TEST.md      15-minute checklist the owner runs on an Android phone a
 docs/store/LISTING.md   store listing copy and draft answers to the Play/App Store forms
 docs/STORE_RELEASE.md   plan for Google Play and App Store release: who does what, forms, gotchas
 docs/PLAN.md            original product plan and roadmap (partly superseded; see its banner)
+docs/design/            REDESIGN_PROMPT.md (Claude Design brief for the 1.1 redesign), current/ (overview screenshots of today's look), capture/ (screenshots every screen, sheet and dialog: capture.mjs + scenes.mjs + sheets.py)
 .github/workflows/ci.yml  test → Android / Windows / web publish / Mac
 app/lib/                the app (feature-first; pure-Dart logic has no Flutter imports)
 app/test/               unit, widget, phone-layout and multi-device sync tests
