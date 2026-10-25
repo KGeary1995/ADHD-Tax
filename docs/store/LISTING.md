@@ -49,7 +49,7 @@ CAPTURE IN FIVE SECONDS
 Type "call the bank tomorrow 2pm 15 min urgent" and it fills itself in. Brain dump a whole list at once, speak it, or share text from another app. Home-screen widgets show your next task with a Start button.
 
 PRIVATE BY DESIGN
-No account, no ads, no tracking, and no server. Your tasks stay on your phone. Turn on sync and they go to your own Google Drive, in a hidden folder only Gumption can see.
+No account, no ads, no tracking, and no server. Your tasks stay on your phone. Turn on sync and they go to your own iCloud, Google Drive or OneDrive, in a folder only Gumption uses.
 
 Also on iPhone, iPad, Mac, Windows and the web.
 ```
@@ -89,8 +89,8 @@ Data types:
 
 | Type | Collected | Shared | Optional? | Purpose | Why |
 |---|---|---|---|---|---|
-| Personal info → Email address | Yes | No | Optional | App functionality | Shown so you know which Google account sync uses; stored in your own Drive sync file |
-| App activity → Other user-generated content | Yes | No | Optional | App functionality | Tasks and notes, sent only to your own Google Drive when sync is on, and one task's text to Anthropic when you use the AI helper with your own key (a user-initiated request, so not "sharing") |
+| Personal info → Email address | Yes | No | Optional | App functionality | Shown so you know which Google or Microsoft account sync uses; stored in your own Drive or OneDrive sync file |
+| App activity → Other user-generated content | Yes | No | Optional | App functionality | Tasks and notes, sent only to your own Google Drive, OneDrive or iCloud when sync is on, and one task's text to Anthropic when you use the AI helper with your own key (a user-initiated request, so not "sharing") |
 
 Not collected: location, contacts, photos, audio (voice typing uses the phone's speech service; the app never receives audio), app interactions, diagnostics, identifiers.
 
@@ -132,7 +132,7 @@ Everything else: not collected.
 ```
 Gumption needs no account. Everything works on the device straight away.
 
-Google sign-in (Settings → Sync) is optional and only stores the user's own tasks in a hidden app folder in their own Google Drive. There is no Gumption account and no server, so Sign in with Apple isn't applicable: the sign-in grants Drive access, it doesn't create an account.
+Sync (Settings → Sync) is optional and only stores the user's own tasks in their own iCloud (no sign-in), Google Drive (a hidden app folder) or OneDrive (the app's own Apps/Gumption folder). There is no Gumption account and no server, so Sign in with Apple isn't applicable: the Google or Microsoft sign-in grants access to that storage, it doesn't create an account.
 
 The AI helper (Settings → AI helper) needs the user's own Anthropic API key and can be skipped. Without a key, "Suggest steps" uses suggestions built into the app.
 
@@ -170,6 +170,7 @@ No login, credentials or sample files are needed. Everything works offline on th
 
 4. External services
 - Google Sign-In and the Google Drive API (the drive.appdata scope only): optional sync of the user's own tasks to a hidden app folder in their own Google Drive.
+- (From 1.2) iCloud Drive: optional sync to a hidden folder of the user's own iCloud, with no sign-in. Microsoft sign-in and Microsoft Graph (Files.ReadWrite.AppFolder, User.Read): optional sync to the app's own Apps/Gumption folder in the user's OneDrive.
 - Anthropic API: the optional "Break it down" helper, only when the user enters their own API key. The text of one task is sent when the user taps the button.
 - Apple's Speech framework for voice entry in Quick add, and local notifications for the focus timer and reminders.
 There are no analytics, advertising or payment services, and no servers of our own.

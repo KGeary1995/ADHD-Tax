@@ -2,6 +2,12 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
+## 1.2 (not built yet): Microsoft OneDrive sync
+- **Sync with a Microsoft account:** Settings → Sync → Connect now also offers **Microsoft account (OneDrive)**, for a personal account (Outlook.com, Hotmail) or one from work or school. Works on Android, iPhone, iPad, Mac and Windows; not in the web app yet. Mix as you like: Personal on iCloud, Work on Microsoft 365, and so on.
+- The files go in **Apps/Gumption** in that OneDrive (visible there; please leave them be). "Back up to OneDrive" saves a readable copy in Apps/Gumption/Backups.
+- A Work workspace on an Outlook.com or Hotmail address gets the same "looks like a personal account" note as Gmail.
+- Needs a one-time Microsoft app registration first (README → Set up OneDrive sync); until then the option doesn't appear.
+
 ## Next build — 2026-10-25 (Android, web): Settings from any tab
 - **Settings is one tap from every tab:** a gear at the top right of Today, Tasks, Notes and Progress (before, only Progress had it). The tab bar stays on Settings, and its back arrow (or Android's back) returns to the tab you opened it from.
 - On phones narrower than a large iPhone, Today's level pill shows just the level so the gear fits; your streak is on Progress.
