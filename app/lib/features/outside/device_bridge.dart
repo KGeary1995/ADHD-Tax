@@ -7,7 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../reminders/platform_stub.dart'
     if (dart.library.io) '../reminders/platform_io.dart';
 
-/// Something from outside the app: text shared to it, or a widget tap.
+/// Something from outside the app: text shared to it, a widget tap, or the
+/// browser coming back from a Microsoft sign-in (Android).
 sealed class OutsideRequest {
   const OutsideRequest();
 
@@ -19,6 +20,10 @@ sealed class OutsideRequest {
         subject: '${raw['subject'] ?? ''}',
       ),
       'route' => OpenRoute('${raw['route'] ?? '/'}'),
+      'auth' => switch (Uri.tryParse('${raw['url']}')) {
+        final url? => AuthRedirect(url),
+        null => null,
+      },
       _ => null,
     };
   }
@@ -33,6 +38,12 @@ class SharedText extends OutsideRequest {
 class OpenRoute extends OutsideRequest {
   const OpenRoute(this.route);
   final String route;
+}
+
+/// `gumption://auth?code=…`: hand it to the sign-in that's waiting.
+class AuthRedirect extends OutsideRequest {
+  const AuthRedirect(this.url);
+  final Uri url;
 }
 
 /// The native side of the phone apps: MainActivity / PickWidget on

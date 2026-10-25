@@ -11,12 +11,15 @@ import '../google/auth_factory.dart';
 import '../google/drive_remote_store.dart';
 import '../google/google_auth.dart';
 import '../icloud/icloud_store.dart';
+import '../microsoft/auth_factory.dart';
+import '../microsoft/onedrive_store.dart';
 import 'remote_store.dart';
 import 'replicas_controller.dart';
 import 'sync_engine.dart';
 
 enum SyncPhase {
-  /// This build has no Google client id for the platform.
+  /// No sync service is available in this build (no client ids, not an
+  /// iPhone), or the one this workspace used isn't.
   notConfigured,
   disconnected,
   connecting,
@@ -51,10 +54,18 @@ class WorkspaceSync {
   /// What to show for the account: the Google email, or "iCloud".
   String? get accountLabel => isICloud ? 'iCloud' : email;
 
-  /// A Work workspace on a consumer Gmail account is probably a mistake.
+  /// A Work workspace on a consumer Gmail or Outlook.com account is
+  /// probably a mistake.
   bool get looksLikePersonalAccount {
     final e = email?.toLowerCase() ?? '';
-    return e.endsWith('@gmail.com') || e.endsWith('@googlemail.com');
+    return const [
+      '@gmail.com',
+      '@googlemail.com',
+      '@outlook.com',
+      '@hotmail.com',
+      '@live.com',
+      '@msn.com',
+    ].any(e.endsWith);
   }
 }
 
@@ -65,9 +76,43 @@ final remoteFactoryProvider =
       (ref) => DriveRemoteStore.new,
     );
 
+final microsoftAuthProvider = Provider<AccountAuth>(
+  (ref) => createMicrosoftAuth(),
+);
+
+final oneDriveFactoryProvider =
+    Provider<AccountRemoteStore Function(http.Client)>(
+      (ref) => OneDriveStore.new,
+    );
+
 /// Where a workspace syncs. Google works everywhere; iCloud only in the
-/// iPhone/iPad app.
-enum SyncService { google, icloud }
+/// iPhone/iPad app; OneDrive everywhere but the web.
+enum SyncService {
+  google('Google'),
+  icloud('iCloud'),
+  onedrive('Microsoft');
+
+  const SyncService(this.signInName);
+
+  /// Whose sign-in this is ("Waiting for Microsoft sign-in…").
+  final String signInName;
+
+  /// Where the files live, for messages ("the copy in OneDrive").
+  String get storeName => switch (this) {
+    google => 'Google Drive',
+    icloud => 'iCloud',
+    onedrive => 'OneDrive',
+  };
+}
+
+/// The services this build can offer, in the order the chooser lists them.
+final availableSyncServicesProvider = Provider<List<SyncService>>(
+  (ref) => [
+    if (ref.watch(iCloudSupportedProvider)) SyncService.icloud,
+    if (ref.watch(googleAuthProvider).isConfigured) SyncService.google,
+    if (ref.watch(microsoftAuthProvider).isConfigured) SyncService.onedrive,
+  ],
+);
 
 /// Whether this device can offer iCloud (tests override it).
 final iCloudSupportedProvider = Provider<bool>((ref) => iCloudSupportedHere);
@@ -81,8 +126,8 @@ final syncProvider =
       SyncController.new,
     );
 
-/// Keeps one workspace's replica in sync with its Google account: on
-/// start, a few seconds after local edits, every few minutes, on resume,
+/// Keeps one workspace's replica in sync with its account (Google,
+/// iCloud or OneDrive): on start, a few seconds after local edits, every few minutes, on resume,
 /// and on demand.
 class SyncController extends Notifier<WorkspaceSync> {
   SyncController(this.workspace);
@@ -112,21 +157,29 @@ class SyncController extends Notifier<WorkspaceSync> {
   bool _running = false;
   bool _again = false;
 
-  GoogleAuth get _auth => ref.read(googleAuthProvider);
+  /// The sign-in for this workspace's service (not used for iCloud).
+  AccountAuth get _auth => service == SyncService.onedrive
+      ? ref.read(microsoftAuthProvider)
+      : ref.read(googleAuthProvider);
   String get _key => 'sync.v1.${workspace.name}';
   String get _serviceKey => 'sync.service.v1.${workspace.name}';
 
-  /// The service this workspace syncs through on this device. Saved before
-  /// 1.2 means Google.
-  SyncService get service =>
-      ref.read(keyValueStoreProvider).read(_serviceKey) == 'icloud'
-      ? SyncService.icloud
-      : SyncService.google;
+  /// The service this workspace syncs through on this device. Nothing
+  /// saved (before 1.2) means Google.
+  SyncService get service => SyncService.values.firstWhere(
+    (s) => s.name == ref.read(keyValueStoreProvider).read(_serviceKey),
+    orElse: () => SyncService.google,
+  );
 
   bool get _iCloud => service == SyncService.icloud;
 
   bool get _configured =>
       _iCloud ? ref.read(iCloudSupportedProvider) : _auth.isConfigured;
+
+  AccountRemoteStore _remoteFor(http.Client client) =>
+      service == SyncService.onedrive
+      ? ref.read(oneDriveFactoryProvider)(client)
+      : ref.read(remoteFactoryProvider)(client);
   DateTime _now() => ref.read(clockProvider)();
 
   @override
@@ -142,7 +195,11 @@ class SyncController extends Notifier<WorkspaceSync> {
       _client?.close();
     });
 
-    if (!_configured) {
+    // Not connected: usable if any service is. Connected: only if its own.
+    final usable = _sync.email == null
+        ? ref.read(availableSyncServicesProvider).isNotEmpty
+        : _configured;
+    if (!usable) {
       return WorkspaceSync(SyncPhase.notConfigured, email: _sync.email);
     }
     ref.listen(
@@ -171,11 +228,9 @@ class SyncController extends Notifier<WorkspaceSync> {
   /// [via] picks the service (and remembers it); left out, it's the one
   /// this workspace already uses.
   Future<void> connect({SyncService? via}) async {
-    if (via != null && via != service) {
-      ref
-          .read(keyValueStoreProvider)
-          .write(_serviceKey, via == SyncService.icloud ? 'icloud' : 'google');
-    }
+    // A different service is a different place, even for the same email.
+    final switched = via != null && via != service;
+    if (switched) ref.read(keyValueStoreProvider).write(_serviceKey, via.name);
     final attempt = ++_attempt;
     state = WorkspaceSync(SyncPhase.connecting, email: _sync.email);
     try {
@@ -194,7 +249,7 @@ class SyncController extends Notifier<WorkspaceSync> {
           client.close();
           return;
         }
-        remote = ref.read(remoteFactoryProvider)(client);
+        remote = _remoteFor(client);
       }
       final email = await remote.accountEmail();
       if (!ref.mounted || attempt != _attempt) return;
@@ -203,7 +258,7 @@ class SyncController extends Notifier<WorkspaceSync> {
       _remote = remote;
       // A different account is a different Drive: start its sync state
       // fresh so everything local gets uploaded there.
-      if (email != _sync.email) _sync = SyncState(email: email);
+      if (email != _sync.email || switched) _sync = SyncState(email: email);
       _restoreFailures = 0;
       _retry?.cancel();
       _save();
@@ -248,15 +303,16 @@ class SyncController extends Notifier<WorkspaceSync> {
     _client = null;
     _remote = null;
     _sync = const SyncState();
-    final wasICloud = _iCloud;
+    // iCloud has no sign-in of ours to revoke. Read before the service
+    // is forgotten.
+    final auth = _iCloud ? null : _auth;
     ref.read(keyValueStoreProvider)
       ..remove(_key)
       ..remove(_serviceKey);
     state = const WorkspaceSync(SyncPhase.disconnected);
-    // iCloud has no sign-in of ours to revoke.
-    if (wasICloud) return;
+    if (auth == null) return;
     try {
-      await _auth.disconnect(workspace, email: email);
+      await auth.disconnect(workspace, email: email);
     } on Object {
       // Revoking is best effort; local credentials are already gone.
     }
@@ -356,8 +412,8 @@ class SyncController extends Notifier<WorkspaceSync> {
     }
   }
 
-  /// Saves a readable JSON copy of this workspace to the user's Drive.
-  /// Returns a link to the file when Drive provides one.
+  /// Saves a readable JSON copy of this workspace to the user's Drive or
+  /// OneDrive. Returns a link to the file when there is one.
   Future<String?> exportBackup() async {
     final remote = await _ensureRemote();
     if (remote == null) throw const NeedsReconnect();
@@ -403,7 +459,7 @@ class SyncController extends Notifier<WorkspaceSync> {
     if (_remote != null) return _remote;
     final client = await _auth.restore(workspace, email: _sync.email);
     if (client == null) return null;
-    final remote = ref.read(remoteFactoryProvider)(client);
+    final remote = _remoteFor(client);
     // Check whose Drive this is before writing anything: a sign-in shared
     // between workspaces (iPhone's Google Sign-In did this) could otherwise put
     // Work tasks in the Personal account, or the other way round.
@@ -413,7 +469,9 @@ class SyncController extends Notifier<WorkspaceSync> {
         want != null &&
         who.toLowerCase() != want.toLowerCase()) {
       client.close();
-      throw WrongAccount('Signed in to Google as $who. Reconnect with $want.');
+      throw WrongAccount(
+        'Signed in to ${service.signInName} as $who. Reconnect with $want.',
+      );
     }
     _client = client;
     return _remote = remote;

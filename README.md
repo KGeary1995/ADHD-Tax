@@ -53,7 +53,8 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **Private Drive folder** | Sync uses Drive's hidden app-data folder, which only this app can read. The app asks only for Google's non-sensitive Drive permissions, so it can't see anything else in your Drive. |
 | **Works offline** | Everything saves on the device first. It syncs on start, a few seconds after you edit something, every 3 minutes while the app is open, and when you come back to the app. |
 | **No conflicts** | Edits made offline on two devices merge field by field, so editing the title on your phone and the priority on your PC keeps both changes. XP is recorded as events, so points earned on each device add up instead of overwriting each other. |
-| **Backups** | "Back up to Drive" saves a readable JSON copy of a workspace to your Drive. |
+| **Or iCloud, or OneDrive** | Each workspace can sync through iCloud instead (iPhone, iPad and Mac; no sign-in), or a Microsoft account's OneDrive (personal, or work or school; Android, iPhone, iPad, Mac and Windows). Settings → Sync → Connect asks which. OneDrive keeps the files in a visible **Apps/Gumption** folder that the app can't see past. |
+| **Backups** | "Back up to Drive" (or "to OneDrive") saves a readable JSON copy of a workspace to your Drive (or Apps/Gumption/Backups). |
 | **Guard rails** | The app warns you if the Work workspace is connected to a personal Gmail account. A sync badge shows status, and "Reconnect" appears if Google signs a device out. |
 
 Without Google setup, the app works exactly as before, storing everything on the device.
@@ -199,6 +200,26 @@ For a build on your own computer, put the same three values in `app/google_oauth
 
 **iPhone and web:** browsers only get one-hour Google sign-ins, so after an hour the sync badge shows **Reconnect** (one tap). The app remembers a sign-in until it expires, so reopening it within the hour doesn't ask again. Android and Mac stay signed in.
 
+### Set up OneDrive sync (one time, about 10 minutes)
+
+OneDrive sync needs one free app registration with Microsoft. Do this on a computer.
+
+1. A personal Microsoft account (Outlook.com, Hotmail, Live) can't register apps on its own: entra.microsoft.com refuses it with **AADSTS50020 … does not exist in tenant 'Microsoft Services'**. Give it a directory first: go to **azure.microsoft.com/free → Start free** and sign up with the same account. It asks for a phone number and a card to verify you; nothing is charged unless you later choose to upgrade, and app registrations are free. When it finishes, go to **portal.azure.com**; if it still shows the error, use your account menu (top right) → **Switch directory** → **Default Directory**. Then open **Microsoft Entra ID** from the search bar.
+2. **Identity → Applications → App registrations → New registration**:
+   - **Name:** `Gumption`, exactly. OneDrive names the app's folder after it (**Apps/Gumption**).
+   - **Supported account types:** *Accounts in any organizational directory and personal Microsoft accounts*.
+   - **Redirect URI:** platform **Public client/native (mobile & desktop)**, value `http://localhost`.
+   - **Register.**
+3. **Authentication → Add URI** under *Mobile and desktop applications*: add `gumption://auth` (Android comes back through it). **Save.**
+4. **API permissions → Add a permission → Microsoft Graph → Delegated permissions:** tick **Files.ReadWrite.AppFolder** and **offline_access**. **User.Read** is already there; keep it. **Add permissions.** Don't click "Grant admin consent" (it's for your own directory only and isn't needed).
+5. **Overview:** copy the **Application (client) ID**.
+6. In GitHub, add a repository secret `MICROSOFT_CLIENT_ID` with that ID (same place as the Google ones, above). It isn't a password: the app is a public client and has no secret.
+7. Tell Claude it's done. The next build of each app offers **Microsoft account (OneDrive)** under Settings → Sync → Connect.
+
+**Work or school Microsoft accounts:** many organizations only let staff approve apps from verified publishers, so connecting may say it needs an admin's approval. The admin can approve Gumption in their Entra admin center (Enterprise applications → Admin consent requests, or by its client ID). Personal accounts work either way. Verifying the publisher (a free Microsoft partner ID linked to the registration) removes the "unverified" label; worth doing before the App Store release.
+
+**Not on the web yet:** the web app offers Google only for now.
+
 ### Keyboard shortcuts (desktop / web)
 
 | Keys | Action |
@@ -247,7 +268,7 @@ The decision logic (`picker_engine.dart`, `xp_rules.dart`, `achievements.dart`, 
 ## Roadmap
 
 1. ~~**Phase 1: offline MVP**~~ ✅
-2. ~~**Phase 2: Google sign-in + Drive sync**~~ ✅ (needs your OAuth setup, above)
+2. ~~**Phase 2: Google sign-in + Drive sync**~~ ✅ (needs your OAuth setup, above). ~~iCloud~~ ✅ and Microsoft OneDrive (built; needs the setup above) as alternatives.
 3. **Phase 3: Google Calendar.** Free time detected automatically ("47 min until Staff Huddle"). Plan My Day drops suggested tasks into a dedicated "Gumption" calendar, with two-way updates and "leave in 15 min" alerts.
 4. **Phase 4: Monday.com-style views.** Board, table, timeline, calendar, projects, command palette. (Repeating tasks are already done.)
 5. ~~**Phase 5: ADHD extras.**~~ Learned estimate correction, errand runs, home-screen widget, desktop hotkey, reward shop, body doubling, daily wrap-up and weekly reset are all in.

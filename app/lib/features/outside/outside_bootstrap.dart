@@ -7,6 +7,7 @@ import '../../app.dart' show routerProvider;
 import '../../data/models/task.dart';
 import '../../widgets/task_chips.dart';
 import '../../core/providers.dart';
+import '../../microsoft/microsoft_auth.dart' show authRedirects;
 import '../capture/quick_add_sheet.dart';
 import '../gamification/progress_controller.dart';
 import '../gamification/xp_rules.dart';
@@ -81,6 +82,9 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
         router.push(route);
       case OpenRoute(:final route):
         router.go(route);
+      case AuthRedirect(:final url):
+        // Nobody waiting (the app restarted mid sign-in): nothing to do.
+        authRedirects.add(url);
     }
   }
 
