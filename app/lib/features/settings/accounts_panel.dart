@@ -46,14 +46,24 @@ class AccountsPanel extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
           child: Text(
-            services.length == 1
-                ? 'Each workspace syncs to its own Google account, in a '
-                      'hidden app folder in that account\'s Drive. Gumption '
-                      'can\'t see anything else in your Drive.'
-                : 'Each workspace syncs to the place you choose. Gumption '
+            services.length > 1
+                ? 'Each workspace syncs to the place you choose. Gumption '
                       'only uses its own folder there: hidden in Google '
                       'Drive and iCloud, and Apps/Gumption in OneDrive. It '
-                      'can\'t see anything else.',
+                      'can\'t see anything else.'
+                : switch (services.single) {
+                    SyncService.google =>
+                      'Each workspace syncs to its own Google account, in a '
+                          'hidden app folder in that account\'s Drive. '
+                          'Gumption can\'t see anything else in your Drive.',
+                    SyncService.onedrive =>
+                      'Each workspace syncs to its own Microsoft account, in '
+                          'the Apps/Gumption folder of its OneDrive. Gumption '
+                          'can\'t see anything else in your OneDrive.',
+                    SyncService.icloud =>
+                      'Each workspace syncs through iCloud, in a hidden '
+                          'folder only Gumption uses.',
+                  },
             style: TextStyle(color: s.muted, fontSize: 12, height: 1.4),
           ),
         ),
@@ -261,9 +271,8 @@ class _WorkspaceRow extends ConsumerWidget {
                   SyncService.onedrive => SheetChoice(
                     title: 'Microsoft account (OneDrive)',
                     subtitle:
-                        'Android, iPhone, iPad, Mac and Windows. A personal '
-                        'account or one from work or school. Signs in to '
-                        'Microsoft.',
+                        'Any device, including the web. A personal account '
+                        'or one from work or school. Signs in to Microsoft.',
                     onTap: () => Navigator.pop(ctx, SyncService.onedrive),
                   ),
                 },
