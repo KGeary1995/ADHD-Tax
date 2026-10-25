@@ -95,6 +95,16 @@ The native app has everything the Android app has: timer alerts, check-ins, foll
 
 **Widgets:** long-press the home screen → **+** → Gumption. **Share:** in any app's share sheet, choose Gumption (you may need **More** the first time), edit the text, tap **Add**; the next time you open Gumption, Quick add opens with it.
 
+### iCloud sync setup (one time, about 5 minutes)
+
+iCloud sync (1.2) needs the app's iCloud folder registered with Apple once. Until this is done, iPhone builds that include it fail at signing.
+
+1. Go to **developer.apple.com/account** → **Certificates, IDs & Profiles** → **Identifiers**.
+2. Top right, switch the list from **App IDs** to **iCloud Containers**, then **+** → **iCloud Containers** → Continue. Description: `Gumption sync`. Identifier: `iCloud.com.adhdtax.adhdTax`. **Continue → Register**.
+3. Switch the list back to **App IDs** and open **com.adhdtax.adhdTax** (the app itself, not `.Widget` or `.Share`).
+4. Tick **iCloud**, choose **Include CloudKit support**, then click **Configure** (or Edit) next to it, tick `iCloud.com.adhdtax.adhdTax`, **Continue → Save**. Confirm the warning about profiles: the next build makes new ones automatically.
+5. Tell Claude it's done; the next iPhone build includes iCloud sync.
+
 ### iPhone web app (no Apple account)
 
 The web app still works on any phone: added to the home screen it opens full screen with its own icon and works offline. It has no reminders, widgets or Share, because iPhone web apps can't do those.

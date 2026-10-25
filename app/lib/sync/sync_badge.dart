@@ -32,7 +32,7 @@ class SyncBadge extends ConsumerWidget {
     );
     final tip = [
       for (final (i, ws) in Workspace.values.indexed)
-        '${ws.label}: ${all[i].isConnected ? '${all[i].email} (${all[i].phase.name})' : 'not syncing'}',
+        '${ws.label}: ${all[i].isConnected ? '${all[i].accountLabel} (${all[i].phase.name})' : 'not syncing'}',
     ].join('\n');
     return IconButton(
       tooltip: tip,

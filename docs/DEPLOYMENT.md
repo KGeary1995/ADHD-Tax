@@ -70,6 +70,7 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 - Build numbers are the CI run number, so every upload is newer than the last, which TestFlight requires.
 - Internal testers (the owner) get builds without Apple review. External testers or the App Store would need review, a privacy policy and screenshots.
 - `ITSAppUsesNonExemptEncryption = false` in Info.plist skips the export-compliance question on every upload.
+- **iCloud sync (from 1.2)** needs the iCloud container `iCloud.com.adhdtax.adhdTax` registered and assigned to the App ID `com.adhdtax.adhdTax` with **iCloud → iCloud Documents** (README → iCloud sync setup). `ios/Runner/Runner.entitlements` lists it; until the App ID has it, automatic signing fails for the app target. The Mac app doesn't use iCloud yet (the iPad app on Apple-silicon Macs does).
 
 ## Mac distribution
 

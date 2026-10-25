@@ -18,8 +18,9 @@ class AccountsPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.spec;
-    final configured = ref.watch(googleAuthProvider).isConfigured;
-    if (!configured) {
+    final google = ref.watch(googleAuthProvider).isConfigured;
+    final iCloud = ref.watch(iCloudSupportedProvider);
+    if (!google && !iCloud) {
       return const Group(
         label: 'Sync',
         children: [
@@ -46,9 +47,14 @@ class AccountsPanel extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
           child: Text(
-            'Each workspace syncs to its own Google account, in a hidden '
-            'app folder in that account\'s Drive. Gumption can\'t see '
-            'anything else in your Drive.',
+            iCloud
+                ? 'Each workspace syncs to the place you choose: iCloud (for '
+                      'iPhone, iPad and Mac only) or a Google account (for '
+                      'any device). Either way it\'s a hidden folder only '
+                      'Gumption uses, and it can\'t see anything else.'
+                : 'Each workspace syncs to its own Google account, in a '
+                      'hidden app folder in that account\'s Drive. Gumption '
+                      'can\'t see anything else in your Drive.',
             style: TextStyle(color: s.muted, fontSize: 12, height: 1.4),
           ),
         ),
@@ -71,21 +77,27 @@ class _WorkspaceRow extends ConsumerWidget {
 
     final subtitle = switch (sync.phase) {
       SyncPhase.notConfigured || SyncPhase.disconnected =>
-        workspace == Workspace.work
+        ref.watch(iCloudSupportedProvider)
+            ? 'Not connected. Sync with iCloud or a Google account.'
+            : workspace == Workspace.work
             ? 'Not connected. Use the Google account you use for work. A '
                   'company account may need its admin to allow the app.'
             : 'Not connected. Use your personal Google account.',
       SyncPhase.connecting => 'Waiting for Google sign-in…',
-      SyncPhase.syncing => '${sync.email} · syncing…',
-      SyncPhase.synced => '${sync.email} · ${_lastSynced(sync.lastSyncedAt)}',
-      SyncPhase.error => '${sync.email} · ${sync.message ?? 'sync failed'}',
+      SyncPhase.syncing => '${sync.accountLabel} · syncing…',
+      SyncPhase.synced =>
+        '${sync.accountLabel} · ${_lastSynced(sync.lastSyncedAt)}',
+      SyncPhase.error =>
+        '${sync.accountLabel} · ${sync.message ?? 'sync failed'}',
       SyncPhase.needsReconnect =>
-        '${sync.email} · ${sync.message ?? 'sign in again'}',
+        '${sync.accountLabel} · ${sync.message ?? 'sign in again'}',
     };
     final personalOnWork =
         workspace == Workspace.work &&
         sync.isConnected &&
         sync.looksLikePersonalAccount;
+    final workOnICloud =
+        workspace == Workspace.work && sync.isConnected && sync.isICloud;
 
     final Widget trailing;
     if (sync.phase == SyncPhase.connecting) {
@@ -108,7 +120,8 @@ class _WorkspaceRow extends ConsumerWidget {
       );
     } else if (!sync.isConnected || sync.phase == SyncPhase.needsReconnect) {
       trailing = FilledButton(
-        onPressed: ctl.connect,
+        onPressed: () =>
+            sync.isConnected ? ctl.connect() : _chooseAndConnect(context, ref),
         style: FilledButton.styleFrom(
           backgroundColor: s.onSurface,
           foregroundColor: s.background,
@@ -136,10 +149,17 @@ class _WorkspaceRow extends ConsumerWidget {
               'backup' => _export(context, ref),
               _ => _disconnect(context, ref),
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'sync', child: Text('Sync now')),
-              PopupMenuItem(value: 'backup', child: Text('Back up to Drive')),
-              PopupMenuItem(value: 'disconnect', child: Text('Disconnect')),
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'sync', child: Text('Sync now')),
+              if (!sync.isICloud)
+                const PopupMenuItem(
+                  value: 'backup',
+                  child: Text('Back up to Drive'),
+                ),
+              const PopupMenuItem(
+                value: 'disconnect',
+                child: Text('Disconnect'),
+              ),
             ],
           ),
         ],
@@ -164,8 +184,63 @@ class _WorkspaceRow extends ConsumerWidget {
               style: TextStyle(color: s.warning, fontSize: 13, height: 1.35),
             ),
           ),
+        if (workOnICloud)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: Text(
+              'Work tasks sync to your personal iCloud. If your workplace has '
+              'rules about where work data goes, use its Google account.',
+              style: TextStyle(color: s.ink2, fontSize: 13, height: 1.35),
+            ),
+          ),
       ],
     );
+  }
+
+  /// First connection: where should this workspace sync? On iPhone and
+  /// iPad that's iCloud or Google; elsewhere only Google is offered.
+  Future<void> _chooseAndConnect(BuildContext context, WidgetRef ref) async {
+    final ctl = ref.read(syncProvider(workspace).notifier);
+    final google = ref.read(googleAuthProvider).isConfigured;
+    final iCloud = ref.read(iCloudSupportedProvider);
+    if (!iCloud) return ctl.connect(via: SyncService.google);
+    if (!google) return ctl.connect(via: SyncService.icloud);
+    final pick = await showAppSheet<SyncService>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: sheetPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SheetTitle(
+                'Sync ${workspace.label} with…',
+                subtitle:
+                    'Use the same choice on every device you want this '
+                    'workspace on.',
+              ),
+              const SizedBox(height: Gap.s7),
+              SheetChoice(
+                title: 'iCloud',
+                subtitle:
+                    'iPhone, iPad and Mac only. Uses the Apple ID this '
+                    'device is signed in to; nothing to sign in to.',
+                onTap: () => Navigator.pop(ctx, SyncService.icloud),
+              ),
+              const SizedBox(height: Gap.s4),
+              SheetChoice(
+                title: 'Google account',
+                subtitle:
+                    'Any device, including Android, Windows and the web. '
+                    'Signs in to Google.',
+                onTap: () => Navigator.pop(ctx, SyncService.google),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (pick != null) await ctl.connect(via: pick);
   }
 
   Future<void> _export(BuildContext context, WidgetRef ref) async {
@@ -195,9 +270,10 @@ class _WorkspaceRow extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Disconnect ${workspace.label}?'),
-        content: const Text(
+        content: Text(
           'Syncing stops on this device. Your tasks stay here, and the copy '
-          'in Google Drive stays for your other devices.',
+          'in ${ref.read(syncProvider(workspace)).isICloud ? 'iCloud' : 'Google Drive'} '
+          'stays for your other devices.',
         ),
         actions: [
           TextButton(

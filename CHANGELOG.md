@@ -2,6 +2,11 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
+## 1.2 (not built yet): iCloud sync (iPhone and iPad)
+- **Sync with iCloud:** on iPhone and iPad, Settings → Sync → Connect now asks where each workspace should sync: **iCloud** (no sign-in, uses the Apple ID the device is signed in to; iPhone, iPad and Mac only) or a **Google account** (any device). You can mix: Personal on iCloud, Work on Google. Existing Google connections carry on unchanged.
+- If the device switches to a different Apple ID, sync stops and asks you to reconnect rather than mixing the two.
+- Needs a one-time switch in the Apple Developer account before the next iPhone build (see README → iCloud sync setup).
+
 ## Next build — 2026-10-25 (Android, web)
 - **For everyone, not just clinics:** the app no longer talks about patients, clinics or insurance. Sync asks for "the Google account you use for work", typing hints say things like "Call the bank tomorrow 2pm", and the example templates are **Start the workday**, **Meeting notes** and **Weekly reset**. The privacy policy and terms say "sensitive personal information" instead of "patient information".
 - **Sensitive info check** (was "Patient-info guard"): same warning, neutral wording, and **off for new installs**. Your devices keep it on if it was on; check Settings → Look and feel on each one you use for clinic work. The AI helper still never sends a Work task that looks like it holds someone's personal details.

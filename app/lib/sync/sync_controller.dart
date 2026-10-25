@@ -10,6 +10,7 @@ import '../data/models/task.dart';
 import '../google/auth_factory.dart';
 import '../google/drive_remote_store.dart';
 import '../google/google_auth.dart';
+import '../icloud/icloud_store.dart';
 import 'remote_store.dart';
 import 'replicas_controller.dart';
 import 'sync_engine.dart';
@@ -44,6 +45,12 @@ class WorkspaceSync {
 
   bool get isConnected => email != null && phase != SyncPhase.disconnected;
 
+  /// Synced through iCloud rather than Google.
+  bool get isICloud => email?.startsWith(iCloudAccountPrefix) ?? false;
+
+  /// What to show for the account: the Google email, or "iCloud".
+  String? get accountLabel => isICloud ? 'iCloud' : email;
+
   /// A Work workspace on a consumer Gmail account is probably a mistake.
   bool get looksLikePersonalAccount {
     final e = email?.toLowerCase() ?? '';
@@ -57,6 +64,17 @@ final remoteFactoryProvider =
     Provider<AccountRemoteStore Function(http.Client)>(
       (ref) => DriveRemoteStore.new,
     );
+
+/// Where a workspace syncs. Google works everywhere; iCloud only in the
+/// iPhone/iPad app.
+enum SyncService { google, icloud }
+
+/// Whether this device can offer iCloud (tests override it).
+final iCloudSupportedProvider = Provider<bool>((ref) => iCloudSupportedHere);
+
+final iCloudStoreProvider = Provider<AccountRemoteStore Function(Workspace)>(
+  (ref) => ICloudStore.new,
+);
 
 final syncProvider =
     NotifierProvider.family<SyncController, WorkspaceSync, Workspace>(
@@ -96,6 +114,19 @@ class SyncController extends Notifier<WorkspaceSync> {
 
   GoogleAuth get _auth => ref.read(googleAuthProvider);
   String get _key => 'sync.v1.${workspace.name}';
+  String get _serviceKey => 'sync.service.v1.${workspace.name}';
+
+  /// The service this workspace syncs through on this device. Saved before
+  /// 1.2 means Google.
+  SyncService get service =>
+      ref.read(keyValueStoreProvider).read(_serviceKey) == 'icloud'
+      ? SyncService.icloud
+      : SyncService.google;
+
+  bool get _iCloud => service == SyncService.icloud;
+
+  bool get _configured =>
+      _iCloud ? ref.read(iCloudSupportedProvider) : _auth.isConfigured;
   DateTime _now() => ref.read(clockProvider)();
 
   @override
@@ -111,7 +142,7 @@ class SyncController extends Notifier<WorkspaceSync> {
       _client?.close();
     });
 
-    if (!_auth.isConfigured) {
+    if (!_configured) {
       return WorkspaceSync(SyncPhase.notConfigured, email: _sync.email);
     }
     ref.listen(
@@ -137,21 +168,36 @@ class SyncController extends Notifier<WorkspaceSync> {
   static const connectTimeout = Duration(minutes: 5);
 
   /// Interactive sign-in, then a first sync. Also used for "Reconnect".
-  Future<void> connect() async {
+  /// [via] picks the service (and remembers it); left out, it's the one
+  /// this workspace already uses.
+  Future<void> connect({SyncService? via}) async {
+    if (via != null && via != service) {
+      ref
+          .read(keyValueStoreProvider)
+          .write(_serviceKey, via == SyncService.icloud ? 'icloud' : 'google');
+    }
     final attempt = ++_attempt;
     state = WorkspaceSync(SyncPhase.connecting, email: _sync.email);
     try {
-      final client = await _auth
-          .connect(workspace, email: _sync.email)
-          .timeout(connectTimeout);
-      if (!ref.mounted) return;
-      if (attempt != _attempt) {
-        client.close();
-        return;
+      final http.Client? client;
+      final AccountRemoteStore remote;
+      if (_iCloud) {
+        // Nothing to sign in to: the device's own iCloud account is used.
+        client = null;
+        remote = ref.read(iCloudStoreProvider)(workspace);
+      } else {
+        client = await _auth
+            .connect(workspace, email: _sync.email)
+            .timeout(connectTimeout);
+        if (!ref.mounted) return;
+        if (attempt != _attempt) {
+          client.close();
+          return;
+        }
+        remote = ref.read(remoteFactoryProvider)(client);
       }
-      final remote = ref.read(remoteFactoryProvider)(client);
       final email = await remote.accountEmail();
-      if (!ref.mounted) return;
+      if (!ref.mounted || attempt != _attempt) return;
       _client?.close();
       _client = client;
       _remote = remote;
@@ -171,6 +217,8 @@ class SyncController extends Notifier<WorkspaceSync> {
         lastSyncedAt: _sync.lastSyncedAt,
         message: e is TimeoutException
             ? 'Sign-in didn\'t finish. Try again.'
+            : e is NeedsReconnect
+            ? e.reason
             : 'Couldn\'t connect: ${_describe(e)}',
       );
     }
@@ -200,8 +248,13 @@ class SyncController extends Notifier<WorkspaceSync> {
     _client = null;
     _remote = null;
     _sync = const SyncState();
-    ref.read(keyValueStoreProvider).remove(_key);
+    final wasICloud = _iCloud;
+    ref.read(keyValueStoreProvider)
+      ..remove(_key)
+      ..remove(_serviceKey);
     state = const WorkspaceSync(SyncPhase.disconnected);
+    // iCloud has no sign-in of ours to revoke.
+    if (wasICloud) return;
     try {
       await _auth.disconnect(workspace, email: email);
     } on Object {
@@ -210,7 +263,7 @@ class SyncController extends Notifier<WorkspaceSync> {
   }
 
   Future<void> syncNow() async {
-    if (!_auth.isConfigured || _sync.email == null) return;
+    if (!_configured || _sync.email == null) return;
     if (_running) {
       _again = true;
       return;
@@ -228,12 +281,14 @@ class SyncController extends Notifier<WorkspaceSync> {
         try {
           remote = await _ensureRemote();
         } on Object catch (e) {
-          if (e is! WrongAccount && ref.mounted && _retryRestore()) return;
+          // iCloud being off isn't a hiccup to wait out: say so at once.
+          final retry = e is! WrongAccount && !(_iCloud && e is NeedsReconnect);
+          if (retry && ref.mounted && _retryRestore()) return;
           rethrow;
         }
         if (!ref.mounted) return;
         if (remote == null) {
-          if (_auth.restoreMayRecover && _retryRestore()) return;
+          if (!_iCloud && _auth.restoreMayRecover && _retryRestore()) return;
           state = WorkspaceSync(
             SyncPhase.needsReconnect,
             email: _sync.email,
@@ -330,6 +385,21 @@ class SyncController extends Notifier<WorkspaceSync> {
   }
 
   Future<AccountRemoteStore?> _ensureRemote() async {
+    if (_iCloud) {
+      // Checked every round, not once: the device's Apple ID can change
+      // (Settings → sign out) while Gumption keeps running.
+      final remote = _remote ?? ref.read(iCloudStoreProvider)(workspace);
+      // Signed in to a different Apple ID now: its iCloud is a different
+      // place, so ask before syncing everything into it.
+      final who = await remote.accountEmail();
+      if (who != _sync.email) {
+        throw const WrongAccount(
+          'This device is signed in to a different iCloud account. '
+          'Reconnect to sync with it.',
+        );
+      }
+      return _remote = remote;
+    }
     if (_remote != null) return _remote;
     final client = await _auth.restore(workspace, email: _sync.email);
     if (client == null) return null;
@@ -360,7 +430,7 @@ class SyncController extends Notifier<WorkspaceSync> {
       SyncPhase.syncing,
       email: _sync.email,
       lastSyncedAt: _sync.lastSyncedAt,
-      message: 'Reconnecting to Google…',
+      message: 'Reconnecting…',
     );
     return true;
   }
