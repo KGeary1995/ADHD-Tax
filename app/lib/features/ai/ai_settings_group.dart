@@ -109,10 +109,10 @@ class AiSettingsGroup extends ConsumerWidget {
         builder: (ctx) => AlertDialog(
           title: const Text('Use the AI helper on Work tasks?'),
           content: const Text(
-            'The task\'s title and notes go to Anthropic. Keep patient '
-            'names, dates of birth and record numbers out of them. Tasks '
-            'that look like they contain patient details are never sent. '
-            'Check that your clinic allows this first.',
+            'The task\'s title and notes go to Anthropic. Keep other '
+            'people\'s names, birth dates and account numbers out of them; '
+            'tasks that look like they contain personal details are never '
+            'sent. Check that your workplace allows this first.',
           ),
           actions: [
             TextButton(

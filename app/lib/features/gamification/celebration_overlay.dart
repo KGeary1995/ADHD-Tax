@@ -333,6 +333,15 @@ class _FullScreen extends StatelessWidget {
   );
 }
 
+/// The Finished card's dry aside: the app's voice from before 1.1.
+const _finishLines = [
+  'Another one bites the dust.',
+  'Future you says thanks.',
+  'You did the thing.',
+  "One less thing living rent-free in your head.",
+  'Look at that. It was doable after all.',
+];
+
 /// "Finished.": five stars light up one after another into this week's
 /// shape, then what you earned.
 class _Finished extends StatefulWidget {
@@ -429,6 +438,12 @@ class _FinishedState extends State<_Finished>
                     ),
                   ),
                   const SizedBox(height: Gap.s6),
+                  Text(
+                    _finishLines[e.taskTitle.length % _finishLines.length],
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 15, height: 1.4, color: s.ink2),
+                  ),
+                  const SizedBox(height: Gap.s2),
                   Text(
                     "This week's constellation just got a new star.",
                     textAlign: TextAlign.center,

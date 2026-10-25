@@ -72,8 +72,8 @@ class _WorkspaceRow extends ConsumerWidget {
     final subtitle = switch (sync.phase) {
       SyncPhase.notConfigured || SyncPhase.disconnected =>
         workspace == Workspace.work
-            ? 'Not connected. Use your clinic\'s Google Workspace account; '
-                  'your admin may need to approve the app.'
+            ? 'Not connected. Use the Google account you use for work. A '
+                  'company account may need its admin to allow the app.'
             : 'Not connected. Use your personal Google account.',
       SyncPhase.connecting => 'Waiting for Google sign-in…',
       SyncPhase.syncing => '${sync.email} · syncing…',
@@ -158,8 +158,9 @@ class _WorkspaceRow extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
             child: Text(
-              'This looks like a personal Gmail account. Work tasks should '
-              'sync to your clinic account so they stay under its policies.',
+              'This looks like a personal Gmail account. If your workplace '
+              'has its own Google account, Work tasks belong there, under '
+              'its policies.',
               style: TextStyle(color: s.warning, fontSize: 13, height: 1.35),
             ),
           ),

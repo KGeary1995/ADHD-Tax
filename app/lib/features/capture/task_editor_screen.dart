@@ -860,7 +860,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                     controller: _waitingOn,
                     onChanged: (_) => set(_task),
                     decoration: const InputDecoration(
-                      hintText: 'e.g. Insurance callback, IT ticket',
+                      hintText: 'e.g. Reply from Sam, IT ticket',
                     ),
                   ),
                   const SizedBox(height: Gap.s5),

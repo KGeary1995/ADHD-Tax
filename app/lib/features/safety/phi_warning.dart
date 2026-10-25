@@ -7,7 +7,8 @@ import '../settings/settings_controller.dart';
 import 'phi_guard.dart';
 import '../../core/theme/ph.dart';
 
-/// Inline warning shown under Work task fields that look like patient info.
+/// Inline warning shown under Work task fields that look like someone's
+/// personal details, when Settings → Sensitive info check is on.
 class PhiWarning extends ConsumerWidget {
   const PhiWarning({super.key, required this.text, required this.workspace});
 

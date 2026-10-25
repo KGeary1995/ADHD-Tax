@@ -864,7 +864,9 @@ Future<void> showCommit(BuildContext context, WidgetRef ref) {
             children: [
               const SheetTitle(
                 'Pick one of these three',
-                subtitle: "Any of them is a good start. Then it's decided.",
+                subtitle:
+                    "Rerolling feels productive, but it's the dread talking. "
+                    "Any of these is a good start.",
               ),
               const SizedBox(height: Gap.s6),
               for (final c in choices) ...[

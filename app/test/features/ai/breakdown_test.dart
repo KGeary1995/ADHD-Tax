@@ -135,7 +135,7 @@ void main() {
         workspace: Workspace.work,
         text: 'Call pt John Smith re: refill',
       ),
-      contains('patient'),
+      contains('personal details'),
     );
   });
 }

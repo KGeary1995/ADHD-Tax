@@ -96,7 +96,7 @@ class GuideScreen extends StatelessWidget {
         'Only a title is needed. Type extra details right into it and they '
             'fill themselves in.',
         [
-          '"Call insurance **tomorrow 2pm 15 min #billing**" sets the due '
+          '"Call the bank **tomorrow 2pm 15 min #money**" sets the due '
               'time, length and tag.',
           'It understands friday, tonight, in 3 days, 4/15, at 5, 1h 30m, '
               'urgent and !!.',
@@ -193,8 +193,8 @@ class GuideScreen extends StatelessWidget {
           if (android)
             '**Reminders**: a countdown while you focus, a "time\'s up" '
                 'alert, and gentle check-ins.',
-          '**Patient-info guard** warns when a Work task looks like it holds '
-              'personal details.',
+          '**Sensitive info check** (off unless you turn it on) warns when '
+              "a Work task looks like it holds someone's personal details.",
         ],
         'Go to Settings',
         () => go('/settings'),

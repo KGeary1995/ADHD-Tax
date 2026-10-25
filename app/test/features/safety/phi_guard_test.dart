@@ -5,18 +5,15 @@ void main() {
   List<String> kinds(String s) => scanForPhi(s).map((h) => h.kind).toList();
 
   test('flags common PHI slips', () {
-    expect(kinds('Call pt John Smith re: refill'), contains('Patient name'));
+    expect(kinds('Call pt John Smith re: refill'), contains("Someone's name"));
     expect(
       kinds('Patient Maria Lopez needs callback'),
-      contains('Patient name'),
+      contains("Someone's name"),
     );
     expect(kinds('Verify DOB for insurance'), contains('Date of birth'));
-    expect(
-      kinds('Born 04/12/1961, check coverage'),
-      contains('Birth-year date'),
-    );
+    expect(kinds('Born 04/12/1961, check coverage'), contains('Birth date'));
     expect(kinds('MRN 4481920 chart review'), isNotEmpty);
-    expect(kinds('SSN 123-45-6789'), contains('SSN'));
+    expect(kinds('SSN 123-45-6789'), contains('Social security number'));
   });
 
   test('leaves ordinary work tasks alone', () {

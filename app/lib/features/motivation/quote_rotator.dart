@@ -89,7 +89,8 @@ class _QuoteRotatorState extends ConsumerState<QuoteRotator> {
                     : '${_quote.text} — ${_quote.author}',
                 key: ValueKey(_quote.text),
                 textAlign: widget.align,
-                style: s.caption(),
+                // ink2, not the usual caption grey: the jokes should land.
+                style: s.caption(color: s.ink2),
               )
             : Column(
                 key: ValueKey(_quote.text),

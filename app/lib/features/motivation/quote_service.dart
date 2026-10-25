@@ -26,7 +26,7 @@ enum QuoteContext { dashboard, dreadTask, afterSkip, focus, celebration }
 const _mix = <QuoteContext, Map<QuoteCategory, int>>{
   QuoteContext.dashboard: {
     QuoteCategory.starting: 4,
-    QuoteCategory.humor: 2,
+    QuoteCategory.humor: 4,
     QuoteCategory.compassion: 2,
     QuoteCategory.dread: 1,
   },
@@ -40,7 +40,7 @@ const _mix = <QuoteContext, Map<QuoteCategory, int>>{
     QuoteCategory.starting: 2,
     QuoteCategory.humor: 1,
   },
-  QuoteContext.focus: {QuoteCategory.momentum: 6, QuoteCategory.humor: 1},
+  QuoteContext.focus: {QuoteCategory.momentum: 4, QuoteCategory.humor: 2},
   QuoteContext.celebration: {
     QuoteCategory.momentum: 3,
     QuoteCategory.humor: 2,

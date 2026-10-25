@@ -9,8 +9,8 @@ enum TemplateKind {
   final String label;
 }
 
-/// A reusable task (with its checklist) or note, like an opening checklist
-/// or a huddle note layout. Stored like notes: one replica record each,
+/// A reusable task (with its checklist) or note, like a start-of-day
+/// checklist or a meeting-notes layout. Stored like notes: one replica record each,
 /// every field a JSON scalar. Pure Dart.
 class Template {
   const Template({
@@ -132,33 +132,31 @@ String fillTemplate(String text, DateTime now) {
 }
 
 /// Starters offered while there are no templates yet. Generic on purpose:
-/// no patient details, ever.
+/// they should fit anyone's life or job.
 List<Template> exampleTemplates(DateTime now) => [
   Template(
     id: '',
     kind: TemplateKind.task,
-    name: 'Opening checklist',
+    name: 'Start the workday',
     workspace: Workspace.work,
-    title: 'Open up',
+    title: 'Start the day',
     estimateMin: 15,
     checklist: encodeChecklist(const [
-      ChecklistItem('Lights, computers and equipment on'),
-      ChecklistItem('Check voicemail and the message inbox'),
-      ChecklistItem("Look over today's schedule for gaps and double-books"),
-      ChecklistItem('Restock the front desk'),
-      ChecklistItem('Unlock the doors'),
+      ChecklistItem('Check email and messages'),
+      ChecklistItem("Look over today's calendar"),
+      ChecklistItem('Pick the one thing that matters most today'),
+      ChecklistItem('Clear the desk'),
+      ChecklistItem('Fill a water bottle'),
     ]),
     createdAt: now,
   ),
   Template(
     id: '',
     kind: TemplateKind.note,
-    name: 'Huddle notes',
+    name: 'Meeting notes',
     workspace: Workspace.work,
-    title: 'Huddle {date}',
-    body:
-        'Schedule today:\n\nStaffing:\n\nWatch out for:\n\n'
-        'Wins from yesterday:\n\nTo do:\n- ',
+    title: 'Meeting {date}',
+    body: 'Who:\n\nDecisions:\n\nQuestions:\n\nTo do:\n- ',
     createdAt: now,
   ),
   Template(
