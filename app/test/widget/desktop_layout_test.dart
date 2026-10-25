@@ -1,6 +1,8 @@
+import 'package:adhd_tax/app.dart';
 import 'package:adhd_tax/data/models/task.dart';
 import 'package:adhd_tax/features/capture/quick_add_sheet.dart';
 import 'package:adhd_tax/features/notes/notes_controller.dart';
+import 'package:adhd_tax/features/tasks/checklist_editor.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:adhd_tax/widgets/ui.dart';
 import 'package:flutter/material.dart';
@@ -9,39 +11,70 @@ import 'package:go_router/go_router.dart';
 
 import 'app_flow_test.dart' show pumpApp;
 
+import 'package:adhd_tax/core/theme/ph.dart';
+
 const _desktop = Size(1440, 900);
 
 void main() {
-  testWidgets('desktop Tasks: filters in a sidebar, view switch in the '
-      'header', (tester) async {
+  testWidgets('desktop Tasks: filter pills, the list, and a detail pane '
+      'for the selected task', (tester) async {
     final c = await pumpApp(tester, size: _desktop);
     final p = c
         .read(projectsProvider.notifier)
         .create('Front desk training', Workspace.work);
     final tasks = c.read(tasksProvider.notifier);
-    tasks.create(
+    final sheet = tasks.create(
       title: 'Write the cheat sheet',
       workspace: Workspace.work,
       projectId: p.id,
+      checklist: '[ ] List the calls\n[ ] Ask a senior',
     );
     tasks.create(title: 'Laundry');
     await tester.tap(find.text('Tasks'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(SideItem), findsWidgets);
-    expect(find.widgetWithText(SideItem, 'Everything'), findsOneWidget);
-    expect(find.widgetWithText(SideItem, 'Weekly reset'), findsOneWidget);
-    // No phone pills duplicating the sidebar.
-    expect(find.widgetWithText(Pill, 'All projects'), findsNothing);
+    // No second sidebar: the filters are pills above the list.
+    expect(find.widgetWithText(SideItem, 'Everything'), findsNothing);
+    expect(find.widgetWithText(Pill, 'All'), findsOneWidget);
+    expect(find.widgetWithText(Pill, 'Projects'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(SideItem, 'Front desk training'));
+    // Tapping a row shows it in the pane instead of opening the editor;
+    // a step can be ticked there.
+    await tester.tap(find.text('Write the cheat sheet').first);
     await tester.pumpAndSettle();
-    expect(find.text('Write the cheat sheet'), findsOneWidget);
-    expect(find.text('Laundry'), findsNothing);
-    expect(find.byTooltip('Project options'), findsOneWidget);
+    expect(c.read(routerProvider).state.uri.path, '/tasks');
+    expect(find.text('STEPS'), findsOneWidget);
+    expect(find.text('Work · Front desk training'), findsOneWidget);
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(ChecklistRow).first,
+            matching: find.byType(InkResponse),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    expect(tasks.byId(sheet.id)!.steps.first.done, isTrue);
 
+    await tester.tap(find.widgetWithText(Pill, 'Work'));
+    await tester.pumpAndSettle();
+    expect(find.text('Laundry'), findsNothing);
+
+    // Projects and List/Board are in the sheet behind the Projects pill.
+    await tester.tap(find.widgetWithText(Pill, 'Projects'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.widgetWithText(Pill, 'Front desk training'),
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Board'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Done').last);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Project options'), findsOneWidget);
     expect(find.text('To do'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
@@ -71,7 +104,13 @@ void main() {
     showQuickAdd(tester.element(find.byType(Scaffold).first));
     await tester.pumpAndSettle();
     expect(find.byType(Dialog), findsOneWidget);
-    expect(find.textContaining('Type when, how long'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text('Add a task'),
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -91,11 +130,15 @@ void main() {
       expect((pb.dy - pa.dy).abs(), lessThan(200), reason: 'same height');
     }
 
-    // Home: the task card on the left; the picker's controls on the
-    // right, live, with no sheet to open.
-    sideBySide(find.text('Renew the parking permit'), find.text('Right now'));
+    // Home: the task on the left; the picker's controls on the right,
+    // live, with no sheet to open.
+    expect(
+      tester.getTopLeft(find.text('Right now')).dx -
+          tester.getTopLeft(find.text('Renew the parking permit')).dx,
+      greaterThan(300),
+    );
     expect(find.text('How much time do you have?'), findsOneWidget);
-    expect(find.byIcon(Icons.edit_outlined), findsNothing);
+    expect(find.byIcon(Ph.pencilSimple), findsNothing);
     await tester.tap(find.text('10m'));
     await tester.pumpAndSettle();
     expect(find.byType(BottomSheet), findsNothing);
@@ -106,7 +149,12 @@ void main() {
 
     await tester.tap(find.text('Progress'));
     await tester.pumpAndSettle();
-    sideBySide(find.textContaining('Level '), find.text('Reward shop'));
+    // The sky across the top, then two columns under it.
+    expect(
+      tester.getTopLeft(find.text('Reward shop')).dx -
+          tester.getTopLeft(find.textContaining('Level ').first).dx,
+      greaterThan(300),
+    );
 
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
@@ -128,7 +176,7 @@ void main() {
     GoRouter.of(tester.element(find.byType(Scaffold).first))
         .push('/task/${t.id}');
     await tester.pumpAndSettle();
-    sideBySide(find.text('Task'), find.text('Workspace'));
+    sideBySide(find.text('FIRST 2-MINUTE STEP'), find.text('DETAILS'));
     expect(tester.takeException(), isNull);
   });
 }

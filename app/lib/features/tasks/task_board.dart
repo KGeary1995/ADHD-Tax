@@ -13,6 +13,7 @@ import '../notes/project_widgets.dart';
 import 'task_actions.dart';
 import 'tasks_controller.dart';
 import 'waiting_sheet.dart';
+import '../../core/theme/ph.dart';
 
 /// A board column. Inbox counts as To do; archived tasks aren't shown.
 enum BoardColumn {
@@ -162,8 +163,8 @@ class _TabbedBoardState extends ConsumerState<_TabbedBoard> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Hold a card and drop it on a tab to move it.',
-          style: TextStyle(fontSize: 12, color: s.faint),
+          'Hold a card and drop it on a column to move it.',
+          style: TextStyle(fontSize: 12, color: s.ink3),
         ),
         const SizedBox(height: 8),
         GestureDetector(
@@ -222,23 +223,26 @@ class _ColumnTab extends ConsumerWidget {
       builder: (context, candidates, _) {
         final hovering = candidates.isNotEmpty;
         final on = selected || hovering;
-        final fg = on ? s.background : s.text2;
+        final fg = on ? s.bg : s.ink;
         return Semantics(
           selected: selected,
           button: true,
           label: '${column.label}, $count',
           excludeSemantics: true,
           child: Material(
-            color: hovering ? s.primary : (selected ? s.onSurface : null),
+            color: hovering ? s.star : (selected ? s.ink : Colors.transparent),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: on ? BorderSide.none : BorderSide(color: s.outline),
+              borderRadius: BorderRadius.circular(Radii.md),
+              side: BorderSide(
+                color: hovering ? s.star : (selected ? s.ink : s.line2),
+                width: 2,
+              ),
             ),
             child: InkWell(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(Radii.md),
               onTap: onTap,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                 child: Column(
                   children: [
                     FittedBox(
@@ -247,14 +251,13 @@ class _ColumnTab extends ConsumerWidget {
                         column.label,
                         maxLines: 1,
                         style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: on ? FontWeight.w600 : FontWeight.w500,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
                           color: fg,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text('$count', style: s.mono(13, color: fg)),
+                    Text('$count', style: s.stat(17, fg)),
                   ],
                 ),
               ),
@@ -291,9 +294,9 @@ class _Column extends ConsumerWidget {
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
             decoration: BoxDecoration(
-              color: hovering ? s.selected : s.surface.withValues(alpha: 0.55),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: hovering ? s.primary : s.hairline),
+              color: hovering ? s.starSoft : Colors.transparent,
+              borderRadius: BorderRadius.circular(Radii.lg),
+              border: Border.all(color: hovering ? s.star : s.line2, width: 2),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -302,16 +305,7 @@ class _Column extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: Text(
-                          column.label,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: s.onSurface,
-                          ),
-                        ),
-                      ),
+                      Expanded(child: Text(column.label, style: s.display(15))),
                       Text('${tasks.length}', style: s.mono(13)),
                     ],
                   ),
@@ -385,13 +379,13 @@ class _Card extends ConsumerWidget {
           )
         : null;
     return Material(
-      color: s.background,
+      color: s.isDark ? s.bg : s.raised.withAlpha(150),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: s.border),
+        borderRadius: BorderRadius.circular(Radii.lg),
+        side: BorderSide(color: s.line2, width: 2),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.lg),
         onTap: () => context.push('/task/${task.id}'),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 2, 10),
@@ -408,16 +402,16 @@ class _Card extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w700,
                         height: 1.3,
-                        color: isDone ? s.muted : s.onSurface,
+                        color: isDone ? s.ink3 : s.ink,
                         decoration: isDone ? TextDecoration.lineThrough : null,
                         decorationColor: s.muted,
                       ),
                     ),
                     if (!isDone) ...[
                       const SizedBox(height: 4),
-                      TaskMeta(task: task, now: now),
+                      TaskMeta(task: task, now: now, compact: true),
                     ],
                     if (project != null) ...[
                       const SizedBox(height: 6),
@@ -430,7 +424,7 @@ class _Card extends ConsumerWidget {
                 useRootNavigator: true,
                 tooltip: 'Move, start or delete',
                 padding: EdgeInsets.zero,
-                icon: Icon(Icons.more_vert_rounded, size: 20, color: s.faint),
+                icon: Icon(Ph.dotsThree, size: 20, color: s.ink3),
                 onSelected: (v) {
                   if (v == 'start') {
                     openFocus(context, task.id, minutes: task.estimateMin);

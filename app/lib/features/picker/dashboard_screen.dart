@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../settings/device_workspaces.dart';
@@ -17,6 +19,7 @@ import '../gamification/level_badge.dart';
 import '../gamification/progress_controller.dart';
 import '../gamification/xp_rules.dart';
 import '../guide/examples.dart';
+import '../capture/first_steps.dart';
 import '../guide/guide_screen.dart';
 import '../motivation/quote_rotator.dart';
 import '../motivation/quote_service.dart';
@@ -27,196 +30,73 @@ import '../tasks/weekly_reset_screen.dart';
 import 'errand_run_screen.dart';
 import 'picker_controller.dart';
 import 'picker_engine.dart';
+import '../../core/theme/ph.dart';
 
-/// Home: one task, right now.
+/// Home: one task, right now. Not a card: the task sits on the sky, with
+/// Start under it and three quiet ways out.
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final s = context.spec;
-    final inputs = ref.watch(pickerInputsProvider);
     final result = ref.watch(pickResultProvider);
-    final choices = inputs.shouldCommit
-        ? ref.watch(commitChoicesProvider)
-        : const <Suggestion>[];
-    final suggestion = choices.isEmpty ? result.suggestion : null;
-
-    Widget mainPanel({bool large = false}) {
-      if (choices.isNotEmpty) return _CommitPanel(choices: choices);
-      if (suggestion != null) {
-        return _TaskCard(suggestion: suggestion, large: large);
-      }
-      return _NothingPanel(reason: result.noPickReason!);
-    }
-
-    const header = Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
-        children: [
-          Wordmark(),
-          SizedBox(width: 12),
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SyncAlert(),
-                  SizedBox(width: 4),
-                  Flexible(child: LevelPill()),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    Widget headline(double size) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: Text.rich(
-          TextSpan(
-            text: "Don't decide. ",
-            children: [
-              TextSpan(
-                text: 'Just start.',
-                style: TextStyle(color: s.primary),
-              ),
-            ],
-          ),
-          style: s.display(size),
-          maxLines: 1,
-        ),
-      ),
-    );
-    Widget card({bool large = false}) => AnimatedSwitcher(
-      duration: Duration(milliseconds: context.reduceMotion ? 0 : 250),
-      child: KeyedSubtree(
-        key: ValueKey(
-          suggestion?.task.id ??
-              (choices.isNotEmpty ? 'commit' : result.noPickReason?.name),
-        ),
-        child: mainPanel(large: large),
-      ),
-    );
+    final suggestion = result.suggestion;
     // Tap to skip ahead. Dread-busting when the pick is one you rated
     // "Ugh" or worse.
     final quoteContext = (suggestion?.task.ugh ?? 0) >= 2
         ? QuoteContext.dreadTask
         : QuoteContext.dashboard;
-    final quote = QuoteRotator(context: quoteContext);
+
+    Widget pick({required bool compact, bool large = false}) =>
+        AnimatedSwitcher(
+          duration: Duration(milliseconds: context.reduceMotion ? 0 : 250),
+          child: KeyedSubtree(
+            key: ValueKey(suggestion?.task.id ?? result.noPickReason?.name),
+            child: suggestion != null
+                ? _Pick(suggestion: suggestion, compact: compact, large: large)
+                : _NothingPanel(reason: result.noPickReason!),
+          ),
+        );
 
     return LayoutBuilder(
       builder: (context, c) {
-        // A computer: the one task stays front and center; everything
-        // around it moves to a column on the right instead of stacking
-        // above it.
+        final bottom = MediaQuery.paddingOf(context).bottom;
+        // A computer: the task in the main column, the situation and
+        // everything around it in a column on the right.
         if (c.maxWidth >= 1000) {
           return ContentWidth(
-            maxWidth: 1240,
+            maxWidth: 1200,
             child: CustomScrollView(
               slivers: [
                 SliverFillRemaining(
                   hasScrollBody: false,
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      28,
-                      28,
-                      28,
-                      MediaQuery.paddingOf(context).bottom + 28,
-                    ),
-                    child: Column(
+                    padding: EdgeInsets.fromLTRB(44, 36, 36, bottom + 28),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        header,
-                        const SizedBox(height: 30),
                         Expanded(
-                          child: Row(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    headline(48),
-                                    const SizedBox(height: 26),
-                                    card(large: true),
-                                    if (suggestion != null) ...[
-                                      const SizedBox(height: 12),
-                                      _Tiles(task: suggestion.task),
-                                    ],
-                                    const SizedBox(height: 32),
-                                    const Spacer(),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      child: QuoteRotator(
-                                        context: quoteContext,
-                                        large: true,
-                                      ),
-                                    ),
-                                  ],
+                              const _DesktopHeader(),
+                              const Spacer(),
+                              pick(compact: false, large: true),
+                              const Spacer(),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 520,
                                 ),
-                              ),
-                              const SizedBox(width: 32),
-                              // Tune the pick without opening a sheet, see
-                              // what's waiting, and how today is going.
-                              SizedBox(
-                                width: 360,
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    // Same inset as the banners below.
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      child: Panel(
-                                        radius: 22,
-                                        padding: const EdgeInsets.fromLTRB(
-                                          20,
-                                          18,
-                                          20,
-                                          20,
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                            Text(
-                                              'Right now',
-                                              style: s.display(22),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            const SituationControls(gap: 14),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    // The banners carry their own top gap.
-                                    const _CheckBackBanner(),
-                                    const _ErrandRunBanner(),
-                                    const _ResetBanner(),
-                                    const _ExamplesBanner(),
-                                    const SizedBox(height: 14),
-                                    const Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      child: _TodayPanel(),
-                                    ),
-                                  ],
+                                child: QuoteRotator(
+                                  context: quoteContext,
+                                  footnote: true,
                                 ),
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(width: 40),
+                        const SizedBox(width: 320, child: _RightNowPanel()),
                       ],
                     ),
                   ),
@@ -225,6 +105,12 @@ class DashboardScreen extends ConsumerWidget {
             ),
           );
         }
+        // A small phone, or big text: fewer reminder lines, and the quiet
+        // actions in one row.
+        final compact =
+            c.maxWidth < 380 ||
+            c.maxHeight < 700 ||
+            MediaQuery.textScalerOf(context).scale(10) > 12;
         return ContentWidth(
           maxWidth: 560,
           child: CustomScrollView(
@@ -233,44 +119,37 @@ class DashboardScreen extends ConsumerWidget {
                 hasScrollBody: false,
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
-                    14,
-                    20,
-                    14,
-                    MediaQuery.paddingOf(context).bottom + 14,
+                    Gap.s8,
+                    6,
+                    Gap.s8,
+                    bottom + Gap.s6,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      header,
-                      const SizedBox(height: 26),
-                      headline(31),
-                      const SizedBox(height: 20),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Row(
-                          children: [
-                            Expanded(child: _SituationBar()),
-                            _CheckBackChip(),
-                          ],
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(child: _SituationButton(compact: compact)),
+                          const SizedBox(width: Gap.s4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SyncAlert(),
+                              LevelPill(compact: compact),
+                            ],
+                          ),
+                        ],
                       ),
-                      const _ErrandRunBanner(),
-                      const _ResetBanner(),
-                      const _ExamplesBanner(),
-                      const SizedBox(height: 20),
-                      card(),
-                      if (suggestion != null) ...[
-                        const SizedBox(height: 10),
-                        _Tiles(task: suggestion.task),
-                      ],
-                      const SizedBox(height: 24),
+                      _Reminders(compact: compact),
+                      // Free space splits evenly above the task and above
+                      // the footer.
                       const Spacer(),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: quote,
-                      ),
-                      const SizedBox(height: 18),
-                      const _TodayLine(),
+                      SizedBox(height: compact ? Gap.s7 : Gap.s9),
+                      pick(compact: compact),
+                      const Spacer(),
+                      SizedBox(height: compact ? Gap.s4 : Gap.s8),
+                      if (!compact) _Footer(quoteContext: quoteContext),
                     ],
                   ),
                 ),
@@ -283,8 +162,11 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _SituationBar extends ConsumerWidget {
-  const _SituationBar();
+/// "30 min · Staying in ⌄": what the picker knows about right now. Opens
+/// the Right now sheet.
+class _SituationButton extends ConsumerWidget {
+  const _SituationButton({this.compact = false});
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -293,41 +175,62 @@ class _SituationBar extends ConsumerWidget {
     final single = ref.watch(deviceWorkspacesProvider).single;
     final parts = [
       i.availableMin >= 120 ? '2h+' : formatMinutes(i.availableMin),
-      i.willingToLeave ? 'Can go out' : 'At home',
-      if (i.energy != null) '${i.energy!.label} energy',
-      if (i.workspaces.length == 1 && !single)
+      if (!compact) i.willingToLeave ? 'Can go out' : 'Staying in',
+      if (!compact && i.energy != null) '${i.energy!.label} energy',
+      if (!compact && i.workspaces.length == 1 && !single)
         '${i.workspaces.first.label} only',
     ];
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(Radii.md),
+      side: BorderSide(color: s.line2, width: 2),
+    );
     return Semantics(
       button: true,
-      label: 'Your situation: ${parts.join(', ')}. Change',
+      label:
+          'Right now: ${[i.availableMin >= 120 ? '2h+' : formatMinutes(i.availableMin), i.willingToLeave ? 'Can go out' : 'Staying in'].join(', ')}. Change',
       excludeSemantics: true,
-      child: Panel(
-        radius: 14,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        onTap: () => showSituationSheet(context),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    for (final (n, p) in parts.indexed) ...[
-                      if (n > 0)
-                        TextSpan(
-                          text: '  /  ',
-                          style: TextStyle(color: s.faint),
-                        ),
-                      TextSpan(text: p),
-                    ],
-                  ],
-                ),
-                style: TextStyle(fontSize: 15, color: s.text2),
+      child: Material(
+        color: Colors.transparent,
+        shape: shape,
+        child: InkWell(
+          customBorder: shape,
+          onTap: () => showSituationSheet(context),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 42),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          for (final (n, p) in parts.indexed) ...[
+                            if (n > 0)
+                              TextSpan(
+                                text: ' · ',
+                                style: TextStyle(color: s.ink3),
+                              ),
+                            TextSpan(text: p),
+                          ],
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: s.ink,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Icon(Ph.caretDown, size: 13, color: s.ink3),
+                ],
               ),
             ),
-            const SizedBox(width: 10),
-            Icon(Icons.edit_outlined, size: 17, color: s.muted),
-          ],
+          ),
         ),
       ),
     );
@@ -339,17 +242,18 @@ Future<void> showSituationSheet(BuildContext context) => showAppSheet<void>(
   context: context,
   builder: (ctx) => SafeArea(
     child: SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: sheetPadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Your situation', style: ctx.spec.display(26)),
-          const SizedBox(height: 18),
+          const SheetTitle('Right now'),
+          const SizedBox(height: Gap.s7),
           const SituationControls(),
-          const SizedBox(height: 24),
-          FilledButton(
+          const SizedBox(height: Gap.s8),
+          PrimaryButton(
+            label: 'Pick for me',
+            height: 58,
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Done'),
           ),
         ],
       ),
@@ -360,7 +264,7 @@ Future<void> showSituationSheet(BuildContext context) => showAppSheet<void>(
 /// The picker's inputs as controls: in the sheet on a phone, always on
 /// screen on a computer. Every change re-picks straight away.
 class SituationControls extends ConsumerWidget {
-  const SituationControls({super.key, this.gap = 18});
+  const SituationControls({super.key, this.gap = Gap.s7});
   final double gap;
 
   @override
@@ -375,31 +279,39 @@ class SituationControls extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const FieldLabel('How much time do you have?'),
-        ChoiceGroup<int>(
-          values: timeOptions,
-          selected: i.availableMin,
-          mono: true,
-          labelOf: (m) => m >= 120 ? '2h+' : shortMinutes(m),
-          onSelected: ctl.setTime,
-        ),
-        space,
-        const FieldLabel('Can you leave the house?'),
-        Segmented<bool>(
-          values: const [false, true],
-          selected: i.willingToLeave,
-          inset: s.isDark,
-          labelOf: (v) => v ? 'Can go out' : 'Staying in',
-          onSelected: ctl.setWillingToLeave,
-        ),
-        space,
-        const FieldLabel('Energy right now (optional)'),
+        const OptionLabel('How much time do you have?'),
         Wrap(
-          spacing: 6,
-          runSpacing: 6,
+          spacing: Gap.s4,
+          runSpacing: Gap.s4,
+          children: [
+            for (final m in timeOptions)
+              _TimePill(
+                label: m >= 120 ? '2h+' : shortMinutes(m),
+                selected: i.availableMin == m,
+                onTap: () => ctl.setTime(m),
+              ),
+          ],
+        ),
+        space,
+        const OptionLabel('Can you leave the house?'),
+        OptionRow(
+          children: [
+            for (final out in [false, true])
+              OptionButton(
+                label: out ? 'Can go out' : 'Staying in',
+                icon: out ? Ph.carSimple : Ph.houseSimple,
+                height: 48,
+                selected: i.willingToLeave == out,
+                onTap: () => ctl.setWillingToLeave(out),
+              ),
+          ],
+        ),
+        space,
+        const OptionLabel('Energy', note: 'optional'),
+        OptionRow(
           children: [
             for (final e in Energy.values)
-              Pill(
+              OptionButton(
                 label: e.label,
                 selected: i.energy == e,
                 onTap: () => ctl.setEnergy(i.energy == e ? null : e),
@@ -408,13 +320,21 @@ class SituationControls extends ConsumerWidget {
         ),
         if (!single) ...[
           space,
-          const FieldLabel('Which tasks?'),
-          Segmented<Workspace?>(
-            values: const [null, Workspace.personal, Workspace.work],
-            selected: ws,
-            inset: s.isDark,
-            labelOf: (w) => w?.label ?? 'Both',
-            onSelected: (w) => ctl.setWorkspaces(w == null ? both : {w}),
+          const OptionLabel('Which tasks?'),
+          OptionRow(
+            children: [
+              for (final w in const [null, Workspace.personal, Workspace.work])
+                OptionButton(
+                  label: w?.label ?? 'Both',
+                  dot: switch (w) {
+                    null => null,
+                    Workspace.personal => s.personal,
+                    Workspace.work => s.work,
+                  },
+                  selected: ws == w,
+                  onTap: () => ctl.setWorkspaces(w == null ? both : {w}),
+                ),
+            ],
           ),
         ],
       ],
@@ -422,251 +342,673 @@ class SituationControls extends ConsumerWidget {
   }
 }
 
-class _TaskCard extends StatelessWidget {
-  const _TaskCard({required this.suggestion, this.large = false});
-  final Suggestion suggestion;
-
-  /// On a computer: bigger type, and room for the whole checklist and why
-  /// it was picked.
-  final bool large;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = context.spec;
-    final t = suggestion.task;
-    final now = DateTime.now();
-    // A phone gets the short version ("30 min · due tomorrow") so it stays
-    // on one line; the full times are in the editor.
-    final time = !large
-        ? formatMinutes(suggestion.plannedMin)
-        : suggestion.isChunk
-        ? '${suggestion.plannedMin} of ${t.estimateMin} min'
-        : suggestion.plannedMin != t.estimateMin
-        ? '~${suggestion.plannedMin} min'
-        : formatMinutes(t.estimateMin);
-    final meta = [
-      time,
-      if (t.dueAt != null)
-        'due ${large ? formatDue(t.dueAt!, now) : formatDueDay(t.dueAt!, now)}',
-    ].join(' · ');
-    final hasFirstStep = t.nextStep.isNotEmpty;
-    final steps = t.steps;
-
-    final buttonHeight = large ? 64.0 : 58.0;
-
-    return Container(
-      padding: large
-          ? const EdgeInsets.fromLTRB(32, 30, 32, 30)
-          : const EdgeInsets.fromLTRB(22, 24, 22, 22),
-      decoration: BoxDecoration(
-        color: s.accent,
-        borderRadius: BorderRadius.circular(large ? 34 : 30),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                t.workspace.label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: s.onAccentMuted,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  meta,
-                  textAlign: TextAlign.right,
-                  style: s.mono(
-                    14,
-                    color: s.onAccentMuted,
-                    weight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(t.title, style: s.display(large ? 44 : 32, color: s.onAccent)),
-          const SizedBox(height: 10),
-          Text.rich(
-            hasFirstStep
-                ? TextSpan(
-                    children: [
-                      TextSpan(
-                        text: steps.isEmpty
-                            ? 'First: '
-                            : 'Step ${steps.indexWhere((i) => !i.done) + 1} '
-                                  'of ${steps.length}: ',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      TextSpan(text: t.nextStep),
-                    ],
-                  )
-                : TextSpan(text: suggestion.reasonLine),
-            style: TextStyle(
-              fontSize: hasFirstStep ? (large ? 19 : 17) : (large ? 17 : 15),
-              height: 1.4,
-              color: s.onAccentMuted,
-            ),
-          ),
-          if (large && steps.length > 1) ...[
-            const SizedBox(height: 16),
-            for (final step in steps.take(6))
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      step.done
-                          ? Icons.check_circle_rounded
-                          : Icons.radio_button_unchecked_rounded,
-                      size: 18,
-                      color: s.onAccentMuted,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        step.text,
-                        style: TextStyle(
-                          fontSize: 15,
-                          height: 1.3,
-                          color: s.onAccentMuted,
-                          decoration: step.done
-                              ? TextDecoration.lineThrough
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (steps.length > 6)
-              Text(
-                '+${steps.length - 6} more',
-                style: TextStyle(fontSize: 14, color: s.onAccentMuted),
-              ),
-          ],
-          if (large && hasFirstStep && suggestion.reasonLine.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Why this one: ${suggestion.reasonLine}',
-              style: TextStyle(fontSize: 14, color: s.onAccentMuted),
-            ),
-          ],
-          SizedBox(height: large ? 28 : 22),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () =>
-                      openFocus(context, t.id, minutes: suggestion.plannedMin),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: s.ink,
-                    foregroundColor: s.onInk,
-                    minimumSize: Size(0, buttonHeight),
-                    textStyle: const TextStyle(
-                      fontFamily: Fonts.ui,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  icon: Icon(Icons.play_arrow_rounded, color: s.accent),
-                  label: const Text('Start'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Tooltip(
-                message: 'Just 5 minutes',
-                child: OutlinedButton(
-                  onPressed: () =>
-                      openFocus(context, t.id, minutes: 5, justFive: true),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: s.ink,
-                    side: BorderSide(color: s.ink, width: 2),
-                    minimumSize: Size(98, buttonHeight),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                  ),
-                  child: const Text('5 min'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Not this one / Smaller / Later, under the task card.
-class _Tiles extends ConsumerWidget {
-  const _Tiles({required this.task});
-  final Task task;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tiles = [
-      (
-        Icons.shuffle_rounded,
-        'Not this one',
-        () => ref.read(pickerInputsProvider.notifier).reject(task.id),
-      ),
-      (
-        Icons.compress_rounded,
-        'Smaller',
-        () => context.push('/task/${task.id}?focusFirstStep=1'),
-      ),
-      (Icons.schedule_rounded, 'Later', () => _snooze(context, ref, task)),
-    ];
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final (i, (icon, label, onTap)) in tiles.indexed) ...[
-            if (i > 0) const SizedBox(width: 8),
-            Expanded(
-              child: _Tile(icon: icon, label: label, onTap: onTap),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _Tile extends StatelessWidget {
-  const _Tile({required this.icon, required this.label, required this.onTap});
-  final IconData icon;
+/// A time option: Sora numbers, 44 tall.
+class _TimePill extends StatelessWidget {
+  const _TimePill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
   final String label;
+  final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final s = context.spec;
-    return Panel(
-      radius: 20,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 11),
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(Radii.md),
+      side: BorderSide(color: selected ? s.star : s.line2, width: 2),
+    );
+    return Semantics(
+      selected: selected,
+      button: true,
+      inMutuallyExclusiveGroup: true,
+      child: Material(
+        color: selected ? s.star : Colors.transparent,
+        shape: shape,
+        child: InkWell(
+          customBorder: shape,
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  label,
+                  style: s.button(15, selected ? s.onStar : s.ink),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The lines under the header: errand run, check back, weekly reset,
+/// examples. On a small phone just the check-back count, with Wrap up and
+/// Overwhelmed? beside it.
+class _Reminders extends ConsumerWidget {
+  const _Reminders({required this.compact});
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final now = ref.read(clockProvider)();
+    final waiting = ref
+        .watch(tasksProvider)
+        .where((t) => followUpDue(t, now))
+        .toList();
+    final out = ref.watch(pickerInputsProvider.select((i) => i.willingToLeave));
+    final run = out ? ref.watch(errandRunProvider) : null;
+    final stale = staleTasks(ref.watch(tasksProvider), now).length;
+    final resetIsDue = resetDue(
+      staleCount: stale,
+      lastReset: ref.watch(lastResetProvider),
+      now: now,
+    );
+    final examples = ref.watch(examplesShowingProvider);
+
+    final rows = <Widget>[
+      if (run != null)
+        _ReminderRow(
+          icon: Ph.carSimple,
+          text:
+              'Errand run: ${run.summary}, about ${formatMinutes(run.minutes)}',
+          onTap: () => context.push('/errands'),
+        ),
+      if (compact)
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: Gap.s4,
+          children: [
+            if (waiting.isNotEmpty)
+              Tooltip(
+                message:
+                    'Check back on ${waiting.length} waiting '
+                    '${waiting.length == 1 ? 'task' : 'tasks'}',
+                child: _ReminderRow(
+                  icon: Ph.bellSimpleRinging,
+                  text: '${waiting.length} new',
+                  onTap: () => context.go('/tasks'),
+                  shrink: true,
+                ),
+              ),
+            const _WrapAndOverwhelmed(),
+          ],
+        )
+      else ...[
+        if (waiting.isNotEmpty)
+          _ReminderRow(
+            icon: Ph.bellSimpleRinging,
+            text: waiting.length == 1
+                ? 'Check back: ${waiting.single.waitingOn.isEmpty ? waiting.single.title : 'any news on ${_lowerFirst(waiting.single.waitingOn)}'}?'
+                : 'Check back on ${waiting.length} waiting tasks',
+            onTap: () => context.go('/tasks'),
+          ),
+        if (resetIsDue)
+          _ReminderRow(
+            icon: Ph.broom,
+            text:
+                'Weekly reset: $stale ${stale == 1 ? 'task' : 'tasks'} to '
+                'sort, about ${_resetTime(stale)}',
+            onTap: () => context.push('/reset'),
+          ),
+        if (examples)
+          _ReminderRow(
+            icon: Ph.flask,
+            text: 'These are example tasks. How Gumption works',
+            onTap: () => context.push('/guide'),
+          ),
+      ],
+    ];
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 18),
+      padding: const EdgeInsets.only(bottom: Gap.s6),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: s.line)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: rows,
+      ),
+    );
+  }
+}
+
+String _lowerFirst(String s) =>
+    s.isEmpty ? s : s[0].toLowerCase() + s.substring(1);
+
+String _resetTime(int stale) {
+  final min = (stale / 2).ceil().clamp(1, 15);
+  return min == 1 ? 'a minute' : '$min minutes';
+}
+
+class _ReminderRow extends StatelessWidget {
+  const _ReminderRow({
+    required this.icon,
+    required this.text,
+    required this.onTap,
+    this.shrink = false,
+  });
+  final IconData icon;
+  final String text;
+  final VoidCallback onTap;
+
+  /// As wide as its text (beside other things in a row).
+  final bool shrink;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    final label = Text(
+      text,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        height: 1.35,
+        color: s.ink2,
+      ),
+    );
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(Radii.sm),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 19, color: s.text2),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: s.text2,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            mainAxisSize: shrink ? MainAxisSize.min : MainAxisSize.max,
+            children: [
+              Icon(icon, size: 17, color: s.accentText),
+              const SizedBox(width: Gap.s4),
+              if (shrink) label else Expanded(child: label),
+              const SizedBox(width: Gap.s4),
+              Icon(Ph.caretRight, size: 14, color: s.ink2),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "☾ Wrap up   Overwhelmed?": quiet links. Wrap up shows after 5 pm.
+class _WrapAndOverwhelmed extends ConsumerWidget {
+  const _WrapAndOverwhelmed({this.stacked = false});
+
+  /// One above the other, right-aligned: beside the quote at the foot of
+  /// Today, so the evening's second link doesn't squeeze the quote.
+  final bool stacked;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final now = ref.read(clockProvider)();
+    Widget link(String text, IconData? icon, VoidCallback onTap) => InkWell(
+      borderRadius: BorderRadius.circular(Radii.sm),
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 14, color: s.ink2),
+                const SizedBox(width: Gap.s2),
+              ],
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: s.ink2,
+                ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final links = [
+      if (now.hour >= 17)
+        link('Wrap up', Ph.moon, () => context.push('/wrapup')),
+      link('Overwhelmed?', null, () => overwhelm(context, ref)),
+    ];
+    return stacked
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: links,
+          )
+        : Wrap(spacing: 10, children: links);
+  }
+}
+
+/// The quote and the quiet links, above a hairline at the foot of Today.
+class _Footer extends StatelessWidget {
+  const _Footer({required this.quoteContext});
+  final QuoteContext quoteContext;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.only(top: Gap.s4),
+    decoration: BoxDecoration(
+      border: Border(top: BorderSide(color: context.spec.line)),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(child: QuoteRotator(context: quoteContext, footnote: true)),
+        const SizedBox(width: Gap.s4),
+        const _WrapAndOverwhelmed(stacked: true),
+      ],
+    ),
+  );
+}
+
+/// The picked task: meta line, title, due, step dots, the step, Start and
+/// 5 min, then Not this one / Smaller / Later.
+class _Pick extends ConsumerWidget {
+  const _Pick({
+    required this.suggestion,
+    required this.compact,
+    this.large = false,
+  });
+  final Suggestion suggestion;
+  final bool compact;
+
+  /// On a computer: bigger type.
+  final bool large;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final t = suggestion.task;
+    final now = ref.read(clockProvider)();
+    final time = suggestion.isChunk
+        ? '${suggestion.plannedMin} of ${t.estimateMin} min'
+        : formatMinutes(suggestion.plannedMin);
+    final steps = t.steps;
+    final current = steps.indexWhere((i) => !i.done);
+    final step = t.nextStep;
+    final due = t.dueAt == null
+        ? null
+        : 'Due ${_dueText(t.dueAt!, now)}${t.hardDeadline ? '' : ''}';
+    final titleSize = large ? 56.0 : (compact ? 26.0 : 34.0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            WsDot(s.workspaceColor(t.workspace == Workspace.work)),
+            const SizedBox(width: Gap.s4),
+            Flexible(
+              child: Text(
+                '${t.workspace.label} · $time',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: s.ink2,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Gap.s5),
+        Text(t.title, style: s.display(titleSize)),
+        if (due != null) ...[
+          const SizedBox(height: Gap.s1),
+          Text(
+            due,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: s.accentText,
+            ),
+          ),
+        ] else if (suggestion.reasonLine.isNotEmpty) ...[
+          const SizedBox(height: Gap.s1),
+          Text(suggestion.reasonLine, style: s.caption(color: s.ink2)),
+        ],
+        if (step.isNotEmpty) ...[
+          SizedBox(height: compact ? 16 : 22),
+          if (steps.length > 1)
+            _StepDots(count: steps.length, current: current)
+          else
+            Text('First step', style: s.caption()),
+          const SizedBox(height: Gap.s4),
+          Text(step, style: s.step(compact ? 17 : (large ? 22 : 19))),
+        ],
+        SizedBox(height: compact ? 18 : 28),
+        Row(
+          children: [
+            Expanded(
+              child: PrimaryButton(
+                label: 'Start',
+                icon: Ph.starFourFill,
+                height: 64,
+                fontSize: 20,
+                onPressed: () =>
+                    openFocus(context, t.id, minutes: suggestion.plannedMin),
+              ),
+            ),
+            const SizedBox(width: Gap.s5),
+            SizedBox(
+              width: 100,
+              child: Tooltip(
+                message: 'Just 5 minutes',
+                child: OutlineButton(
+                  label: '5 min',
+                  height: 64,
+                  onPressed: () =>
+                      openFocus(context, t.id, minutes: 5, justFive: true),
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: compact ? Gap.s3 : 12),
+        _QuietActions(task: t, compact: compact),
+        if (compact) ...[
+          const SizedBox(height: Gap.s2),
+          const Center(child: _WrapAndOverwhelmed()),
+        ],
+      ],
+    );
+  }
+}
+
+/// "tomorrow, 3:27 pm" / "today, 5 pm" / "Oct 27".
+String _dueText(DateTime d, DateTime now) {
+  final day = formatDueDay(d, now);
+  final hasTime = d.hour != 0 || d.minute != 0;
+  if ((day == 'today' || day == 'tomorrow') && hasTime) {
+    return '$day, ${formatClock(d)}';
+  }
+  return day;
+}
+
+/// ● ○ ○ ○ Step 2 of 4: done steps filled, this one outlined in star.
+class _StepDots extends StatelessWidget {
+  const _StepDots({required this.count, required this.current});
+  final int count;
+  final int current;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    final shown = math.min(count, 8);
+    return Row(
+      children: [
+        for (var i = 0; i < shown; i++) ...[
+          Container(
+            width: 9,
+            height: 9,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: i < current ? s.star : Colors.transparent,
+              border: Border.all(
+                color: i <= current ? s.star : s.ink3,
+                width: 1.5,
+              ),
+            ),
+          ),
+          const SizedBox(width: 7),
+        ],
+        const SizedBox(width: Gap.s1),
+        Text('Step ${current + 1} of $count', style: s.caption()),
+      ],
+    );
+  }
+}
+
+/// Not this one / Smaller / Later: an icon over a label, or side by side
+/// on a small phone.
+class _QuietActions extends ConsumerWidget {
+  const _QuietActions({required this.task, required this.compact});
+  final Task task;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final actions = [
+      (
+        Ph.shuffle,
+        compact ? 'Not this' : 'Not this one',
+        () => notThisOne(context, ref, task),
+      ),
+      (Ph.arrowsInLineVertical, 'Smaller', () => showSmaller(context, task)),
+      (Ph.moonStars, 'Later', () => _snooze(context, ref, task)),
+    ];
+    return Row(
+      children: [
+        for (final (icon, label, onTap) in actions)
+          Expanded(
+            child: Semantics(
+              button: true,
+              label: label == 'Not this' ? 'Not this one' : label,
+              excludeSemantics: true,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(Radii.md),
+                onTap: onTap,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: compact ? 4 : 10),
+                    child: Flex(
+                      direction: compact ? Axis.horizontal : Axis.vertical,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, size: compact ? 17 : 20, color: s.ink2),
+                        SizedBox(width: 5, height: Gap.s2),
+                        Flexible(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: compact ? 13 : 14,
+                              fontWeight: FontWeight.w600,
+                              color: s.ink2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Passes on [task]. After two in a row, asks you to pick one of three.
+void notThisOne(BuildContext context, WidgetRef ref, Task task) {
+  final ctl = ref.read(pickerInputsProvider.notifier);
+  ctl.reject(task.id);
+  if (ref.read(pickerInputsProvider).shouldCommit) showCommit(context, ref);
+}
+
+/// "Pick one of these three": after too many rerolls, choose and it's
+/// decided. The sheet reads providers itself: the widget that opened it is
+/// gone by then, replaced by the next pick.
+Future<void> showCommit(BuildContext context, WidgetRef ref) {
+  final choices = ref.read(commitChoicesProvider);
+  return showAppSheet<void>(
+    context: context,
+    builder: (ctx) => Consumer(
+      builder: (ctx, ref, _) => SafeArea(
+        child: SingleChildScrollView(
+          padding: sheetPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SheetTitle(
+                'Pick one of these three',
+                subtitle: "Any of them is a good start. Then it's decided.",
+              ),
+              const SizedBox(height: Gap.s6),
+              for (final c in choices) ...[
+                SheetChoice(
+                  icon: Ph.starFour,
+                  title: c.task.title,
+                  subtitle: [
+                    c.isChunk
+                        ? '${c.plannedMin} of ${c.task.estimateMin} min'
+                        : formatMinutes(c.plannedMin),
+                    c.task.workspace.label,
+                  ].join(' · '),
+                  onTap: () {
+                    ref.read(pickerInputsProvider.notifier).choose(c.task.id);
+                    Navigator.pop(ctx);
+                  },
+                ),
+                const SizedBox(height: Gap.s4),
+              ],
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// "Make it smaller": write a smaller next step, or take an idea. On a
+/// task with a checklist the new step goes in before the current one.
+Future<void> showSmaller(BuildContext context, Task task) => showAppSheet<void>(
+  context: context,
+  builder: (ctx) => _SmallerSheet(task: task),
+);
+
+class _SmallerSheet extends ConsumerStatefulWidget {
+  const _SmallerSheet({required this.task});
+  final Task task;
+
+  @override
+  ConsumerState<_SmallerSheet> createState() => _SmallerSheetState();
+}
+
+class _SmallerSheetState extends ConsumerState<_SmallerSheet> {
+  late final _text = TextEditingController(text: widget.task.nextStep);
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  void _use(String step) {
+    final text = step.trim();
+    final t = ref
+        .read(tasksProvider)
+        .firstWhere((x) => x.id == widget.task.id, orElse: () => widget.task);
+    if (text.isEmpty || text == t.nextStep) {
+      Navigator.pop(context);
+      return;
+    }
+    final items = t.steps;
+    final current = items.indexWhere((i) => !i.done);
+    final Task updated;
+    if (items.isEmpty) {
+      updated = t.copyWith(firstStep: text);
+    } else {
+      final at = current < 0 ? items.length : current;
+      items.insert(at, ChecklistItem(text));
+      updated = t.copyWith(checklist: encodeChecklist(items));
+    }
+    ref.read(tasksProvider.notifier).save(updated);
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Smaller. Much better.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    final ideas = stepIdeasFor(widget.task.title).firstSteps;
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: sheetPadding.add(
+          EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SheetTitle(
+              'Make it smaller',
+              subtitle: 'So small it feels a bit silly.',
+            ),
+            const SizedBox(height: Gap.s6),
+            TextField(
+              controller: _text,
+              textInputAction: TextInputAction.done,
+              onSubmitted: _use,
+              style: TextStyle(fontSize: 17, color: s.ink),
+              decoration: InputDecoration(
+                hintText: 'The very first thing to do',
+                fillColor: Colors.transparent,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Radii.lg),
+                  borderSide: BorderSide(color: s.star, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 16,
+                ),
+              ),
+            ),
+            const SizedBox(height: Gap.s6),
+            for (final idea in ideas) ...[
+              SheetChoice(
+                icon: Ph.sparkle,
+                title: idea,
+                caret: false,
+                onTap: () => _use(idea),
+              ),
+              const SizedBox(height: Gap.s4),
+            ],
+            const SizedBox(height: Gap.s4),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    context.push('/task/${widget.task.id}?focusFirstStep=1');
+                  },
+                  child: const Text('Edit all the steps'),
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: 120,
+                  child: PrimaryButton(
+                    label: 'Use this',
+                    height: 48,
+                    fontSize: 15,
+                    onPressed: () => _use(_text.text),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -678,13 +1020,57 @@ class _Tile extends StatelessWidget {
 void _snooze(BuildContext context, WidgetRef ref, Task t) {
   ref.read(tasksProvider.notifier).snooze(t.id, const Duration(hours: 3));
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('"${t.title}" will come back in 3 hours.')),
+    SnackBar(content: Text('"${t.title}" comes back in 3 hours.')),
   );
 }
 
-/// Today's numbers on a computer, with the way out when it's too much.
-class _TodayPanel extends ConsumerWidget {
-  const _TodayPanel();
+/// "Saturday evening" and the level, over the task on a computer.
+class _DesktopHeader extends ConsumerWidget {
+  const _DesktopHeader();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.spec;
+    final now = ref.read(clockProvider)();
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    final part = now.hour < 12
+        ? 'morning'
+        : now.hour < 17
+        ? 'afternoon'
+        : now.hour < 22
+        ? 'evening'
+        : 'night';
+    return Row(
+      children: [
+        Text(
+          '${days[now.weekday - 1]} $part',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: s.ink2,
+          ),
+        ),
+        const SizedBox(width: Gap.s4),
+        const SyncAlert(),
+        const Spacer(),
+        const LevelPill(),
+      ],
+    );
+  }
+}
+
+/// The right-hand column on a computer: Right now, what's waiting, and
+/// how today is going.
+class _RightNowPanel extends ConsumerWidget {
+  const _RightNowPanel();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -701,248 +1087,144 @@ class _TodayPanel extends ConsumerWidget {
         .fold(0, (a, r) => a + r.amount);
     final streak = streakWithGrace(p.activeDays, now);
     final stats = [
-      ('${p.completedOn(now)}', 'done'),
-      ('$xpToday', 'XP'),
-      ('$streak', streak == 1 ? 'day streak' : 'days streak'),
+      ('${p.startedOn(now)}', 'Started today'),
+      ('$xpToday', 'XP today'),
+      ('$streak', 'Day streak'),
     ];
-    return Panel(
-      radius: 22,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const FieldLabel('Today'),
-          Row(
-            children: [
-              for (final (value, label) in stats)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        value,
-                        style: s.display(30, weight: FontWeight.w600),
-                      ),
-                      Text(
-                        label,
-                        style: TextStyle(fontSize: 13, color: s.muted),
-                      ),
-                    ],
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Right now', style: s.display(20)),
+        const SizedBox(height: Gap.s7),
+        const SituationControls(gap: Gap.s7),
+        const SizedBox(height: Gap.s7),
+        Divider(color: s.line2, height: 2, thickness: 2),
+        const _Reminders(compact: false),
+        const Spacer(),
+        Row(
+          children: [
+            for (final (value, label) in stats)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(value, style: s.stat()),
+                    const SizedBox(height: Gap.s2),
+                    Text(label, style: s.caption(color: s.ink2)),
+                  ],
                 ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 4,
-            children: [
-              if (now.hour >= 17)
-                TextButton.icon(
-                  onPressed: () => context.push('/wrapup'),
-                  icon: const Icon(Icons.nights_stay_outlined, size: 18),
-                  label: const Text('Wrap up'),
-                ),
-              TextButton.icon(
-                onPressed: () => overwhelm(context, ref),
-                style: TextButton.styleFrom(foregroundColor: s.text2),
-                icon: const Icon(Icons.spa_outlined, size: 18),
-                label: const Text('Overwhelmed?'),
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// "Wrap up · Overwhelmed?" under the quote. Today's counts live on
-/// Progress (and in the level pill), so the phone's Home stays quiet.
-class _TodayLine extends ConsumerWidget {
-  const _TodayLine();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = context.spec;
-    final now = ref.read(clockProvider)();
-    final style = s.mono(12, color: s.isDark ? const Color(0xFF7C8885) : null);
-    Widget link(String text, Color? color, VoidCallback onTap) => InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-        child: Text(
-          text,
-          style: style.copyWith(
-            color: color,
-            decoration: TextDecoration.underline,
-            decorationColor: color ?? style.color,
-          ),
+          ],
         ),
-      ),
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Wrap(
-        spacing: 14,
-        children: [
-          if (now.hour >= 17)
-            link('Wrap up', s.primary, () => context.push('/wrapup')),
-          link('Overwhelmed?', null, () => overwhelm(context, ref)),
-        ],
-      ),
+        const SizedBox(height: Gap.s7),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: _WrapAndOverwhelmed(),
+        ),
+      ],
     );
   }
 }
 
-/// Hide everything except one tiny step and a 5-minute timer.
+/// "Okay. Breathe.": everything else hidden; one tiny step and five
+/// minutes.
 Future<void> overwhelm(BuildContext context, WidgetRef ref) async {
   final tiny = ref.read(tinySuggestionProvider);
   final s = context.spec;
   await showDialog<void>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Okay. Breathe.'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: tiny == null
-              ? [
-                  Text(
-                    "Nothing's on your list yet. Write down the one thing "
-                    "that's bugging you most. That's the whole task.",
-                    style: TextStyle(color: s.text2, height: 1.4),
+    builder: (ctx) => Dialog(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Okay. Breathe.', style: s.display(30)),
+              const SizedBox(height: Gap.s3),
+              Text(
+                tiny == null
+                    ? "Nothing's on your list yet. Write down the one thing "
+                          "that's bugging you most. That's the whole task."
+                    : 'Everything else is hidden. Just this, for five '
+                          'minutes:',
+                style: TextStyle(fontSize: 16, height: 1.45, color: s.ink2),
+              ),
+              if (tiny != null) ...[
+                const SizedBox(height: Gap.s7),
+                Panel(
+                  color: Colors.transparent,
+                  borderColor: s.line2,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 16,
                   ),
-                ]
-              : [
-                  Text(
-                    'Everything else is hidden. Just this, for 5 minutes:',
-                    style: TextStyle(color: s.text2, height: 1.4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(tiny.task.startLine, style: s.display(22)),
+                      if (tiny.task.startLine != tiny.task.title) ...[
+                        const SizedBox(height: Gap.s3),
+                        Text(
+                          tiny.task.title,
+                          style: TextStyle(fontSize: 14, color: s.ink3),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(tiny.task.startLine, style: s.display(22)),
-                  const SizedBox(height: 10),
-                  Text(
-                    "When the timer ends you can stop. That's a win.",
-                    style: TextStyle(color: s.muted),
+                ),
+                const SizedBox(height: Gap.s6),
+                Text(
+                  "When the timer ends you can stop. That's a win.",
+                  style: TextStyle(fontSize: 15, height: 1.45, color: s.ink2),
+                ),
+              ],
+              const SizedBox(height: Gap.s8),
+              Wrap(
+                spacing: Gap.s5,
+                runSpacing: Gap.s5,
+                verticalDirection: VerticalDirection.up,
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: OutlineButton(
+                      label: 'Not now',
+                      quiet: true,
+                      fontSize: 16,
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 190,
+                    child: PrimaryButton(
+                      label: tiny == null ? 'Write it down' : 'Start 5 minutes',
+                      fontSize: 16,
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        if (tiny == null) {
+                          showQuickAdd(context);
+                        } else {
+                          openFocus(
+                            context,
+                            tiny.task.id,
+                            minutes: 5,
+                            justFive: true,
+                            panic: true,
+                          );
+                        }
+                      },
+                    ),
                   ),
                 ],
+              ),
+            ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Not now'),
-        ),
-        if (tiny == null)
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              showQuickAdd(context);
-            },
-            child: const Text('Write it down'),
-          )
-        else
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              openFocus(
-                context,
-                tiny.task.id,
-                minutes: 5,
-                justFive: true,
-                panic: true,
-              );
-            },
-            child: const Text('Start 5 minutes'),
-          ),
-      ],
     ),
   );
-}
-
-class _CommitPanel extends ConsumerWidget {
-  const _CommitPanel({required this.choices});
-  final List<Suggestion> choices;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = context.spec;
-    return Panel(
-      radius: 30,
-      padding: const EdgeInsets.fromLTRB(22, 24, 22, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Pick one of these and commit.', style: s.display(26)),
-          const SizedBox(height: 8),
-          Text(
-            "Rerolling feels productive, but it's the dread talking. "
-            'Any of these is a good choice.',
-            style: TextStyle(color: s.muted, height: 1.4),
-          ),
-          const SizedBox(height: 14),
-          const QuoteRotator(context: QuoteContext.afterSkip),
-          const SizedBox(height: 8),
-          for (final (i, c) in choices.indexed)
-            InkWell(
-              onTap: () {
-                ref.read(pickerInputsProvider.notifier).resetRejections();
-                openFocus(context, c.task.id, minutes: c.plannedMin);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  border: i == 0
-                      ? null
-                      : Border(top: BorderSide(color: s.hairline)),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            c.task.title,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: s.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          TaskMeta(
-                            task: c.task,
-                            plannedMin: c.isChunk ? c.plannedMin : null,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: s.accent,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.play_arrow_rounded,
-                        color: s.onAccent,
-                        semanticLabel: 'Start',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 class _NothingPanel extends ConsumerWidget {
@@ -955,248 +1237,138 @@ class _NothingPanel extends ConsumerWidget {
     final ctl = ref.read(pickerInputsProvider.notifier);
     final inputs = ref.watch(pickerInputsProvider);
 
+    Widget buttons(
+      String primary,
+      VoidCallback onPrimary, [
+      String? secondary,
+      VoidCallback? onSecondary,
+    ]) => Wrap(
+      spacing: Gap.s5,
+      runSpacing: Gap.s5,
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 150),
+          child: IntrinsicWidth(
+            child: PrimaryButton(
+              label: primary,
+              height: 60,
+              fontSize: 18,
+              onPressed: onPrimary,
+            ),
+          ),
+        ),
+        if (secondary != null)
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 150),
+            child: IntrinsicWidth(
+              child: OutlineButton(
+                label: secondary,
+                height: 60,
+                onPressed: onSecondary,
+              ),
+            ),
+          ),
+      ],
+    );
+
     final (String title, String body, List<Widget> actions) = switch (reason) {
       NoPickReason.noOpenTasks => (
-        'Your list is empty.',
-        'Get everything out of your head, then let Gumption choose.',
+        'Your sky is clear.',
+        "Get what's on your mind out of your head. I'll pick the first one.",
         [
-          FilledButton(
-            onPressed: () => showQuickAdd(context),
-            child: const Text('Add a task'),
+          buttons(
+            'Add a task',
+            () => showQuickAdd(context),
+            'Brain dump',
+            () => showQuickAdd(context, brainDump: true),
           ),
-          OutlinedButton(
-            onPressed: () => showQuickAdd(context, brainDump: true),
-            child: const Text('Brain dump'),
-          ),
-          // New here: see it full first, or read how it works.
-          const ExamplesButton(),
-          TextButton(
-            onPressed: () => context.push('/guide'),
-            child: const Text('How Gumption works'),
+          const SizedBox(height: Gap.s4),
+          Wrap(
+            spacing: Gap.s4,
+            children: [
+              // New here: see it full first, or read how it works.
+              const ExamplesButton(link: true),
+              TextButton(
+                onPressed: () => context.push('/guide'),
+                child: const Text('How Gumption works'),
+              ),
+            ],
           ),
         ],
       ),
       NoPickReason.allNeedLeaving => (
         'Everything left needs you out of the house.',
         'Up for an errand run?',
-        [
-          FilledButton(
-            onPressed: () => ctl.setWillingToLeave(true),
-            child: const Text('I can go out'),
-          ),
-        ],
+        [buttons('I can go out', () => ctl.setWillingToLeave(true))],
       ),
       NoPickReason.allExcluded => (
         "You've passed on everything.",
         "That's okay. Let's look again with fresh eyes.",
-        [
-          FilledButton(
-            onPressed: ctl.resetRejections,
-            child: const Text('Show me again'),
-          ),
-        ],
+        [buttons('Show me again', ctl.resetRejections)],
       ),
       NoPickReason.nothingFitsTime => (
         'Nothing fits ${formatMinutes(inputs.availableMin)}.',
         'Try a bigger window, or mark long tasks as "can do in chunks".',
         [
           if (inputs.availableMin < timeOptions.last)
-            FilledButton(
-              onPressed: () => ctl.setTime(
+            buttons(
+              'A bit more time',
+              () => ctl.setTime(
                 timeOptions.firstWhere((m) => m > inputs.availableMin),
               ),
-              child: const Text('A bit more time'),
-            ),
-          OutlinedButton(
-            onPressed: () => overwhelm(context, ref),
-            child: const Text('5 minutes on something'),
-          ),
+              '5 minutes on something',
+              () => overwhelm(context, ref),
+            )
+          else
+            buttons('5 minutes on something', () => overwhelm(context, ref)),
         ],
       ),
     };
 
-    return Panel(
-      radius: 30,
-      padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: s.display(28)),
-          const SizedBox(height: 8),
-          Text(body, style: TextStyle(color: s.muted, height: 1.4)),
-          const SizedBox(height: 20),
-          Wrap(spacing: 10, runSpacing: 10, children: actions),
-        ],
-      ),
-    );
-  }
-}
-
-/// "Check back on 2 waiting tasks": shown only when a follow-up is due.
-class _CheckBackBanner extends ConsumerWidget {
-  const _CheckBackBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = context.spec;
-    final now = ref.read(clockProvider)();
-    final due = ref
-        .watch(tasksProvider)
-        .where((t) => followUpDue(t, now))
-        .toList();
-    if (due.isEmpty) return const SizedBox.shrink();
-    return _Banner(
-      icon: Icons.mark_email_unread_outlined,
-      color: s.warning,
-      text: due.length == 1
-          ? 'Check back: ${due.single.waitingOn.isEmpty ? due.single.title : due.single.waitingOn}'
-          : 'Check back on ${due.length} waiting tasks',
-      onTap: () => context.go('/tasks'),
-    );
-  }
-}
-
-/// Phone: the check-back reminder as a small badge beside the situation
-/// bar instead of a banner of its own.
-class _CheckBackChip extends ConsumerWidget {
-  const _CheckBackChip();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = context.spec;
-    final now = ref.read(clockProvider)();
-    final due = ref.watch(tasksProvider).where((t) => followUpDue(t, now));
-    if (due.isEmpty) return const SizedBox.shrink();
-    final n = due.length;
-    return Padding(
-      padding: const EdgeInsets.only(left: 8),
-      child: Tooltip(
-        message: 'Check back on $n waiting ${n == 1 ? 'task' : 'tasks'}',
-        child: Panel(
-          radius: 14,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-          onTap: () => context.go('/tasks'),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.mark_email_unread_outlined,
-                size: 18,
-                color: s.warning,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '$n',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: s.text2,
-                ),
-              ),
-            ],
-          ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          margin: const EdgeInsets.only(bottom: Gap.s8),
+          child: CustomPaint(painter: _DashedCircle(s.star)),
         ),
-      ),
+        Text(title, style: s.display(34)),
+        const SizedBox(height: Gap.s1),
+        Text(body, style: TextStyle(fontSize: 17, height: 1.45, color: s.ink2)),
+        const SizedBox(height: 28),
+        ...actions,
+      ],
     );
   }
 }
 
-/// "Errand run: Pharmacy + Post office · 45m" when you can go out.
-class _ErrandRunBanner extends ConsumerWidget {
-  const _ErrandRunBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final out = ref.watch(pickerInputsProvider.select((i) => i.willingToLeave));
-    final run = out ? ref.watch(errandRunProvider) : null;
-    if (run == null) return const SizedBox.shrink();
-    return _Banner(
-      icon: Icons.directions_car_outlined,
-      color: context.spec.primary,
-      text: 'Errand run: ${run.summary} · ${shortMinutes(run.minutes)}',
-      onTap: () => context.push('/errands'),
-    );
-  }
-}
-
-/// The weekly reset, offered on weekends (see `resetDue`).
-class _ResetBanner extends ConsumerWidget {
-  const _ResetBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final now = ref.read(clockProvider)();
-    final stale = staleTasks(ref.watch(tasksProvider), now).length;
-    final due = resetDue(
-      staleCount: stale,
-      lastReset: ref.watch(lastResetProvider),
-      now: now,
-    );
-    if (!due) return const SizedBox.shrink();
-    return _Banner(
-      icon: Icons.cleaning_services_outlined,
-      color: context.spec.primary,
-      text:
-          'Weekly reset: $stale ${stale == 1 ? 'task' : 'tasks'} to sort · '
-          'about ${(stale / 2).ceil().clamp(1, 15)} min',
-      onTap: () => context.push('/reset'),
-    );
-  }
-}
-
-/// While the example tasks are showing: a reminder they can go.
-class _ExamplesBanner extends ConsumerWidget {
-  const _ExamplesBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(examplesShowingProvider)) return const SizedBox.shrink();
-    return _Banner(
-      icon: Icons.science_outlined,
-      color: context.spec.primary,
-      text: 'These are example tasks · How Gumption works',
-      onTap: () => context.push('/guide'),
-    );
-  }
-}
-
-class _Banner extends StatelessWidget {
-  const _Banner({
-    required this.icon,
-    required this.color,
-    required this.text,
-    required this.onTap,
-  });
-  final IconData icon;
+/// A small dashed ring: a star still to come.
+class _DashedCircle extends CustomPainter {
+  _DashedCircle(this.color);
   final Color color;
-  final String text;
-  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final s = context.spec;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
-      child: Panel(
-        radius: 14,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        onTap: onTap,
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                text,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 15, color: s.text2),
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, size: 20, color: s.faint),
-          ],
-        ),
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final r = size.width / 2 - 1;
+    const n = 8;
+    for (var i = 0; i < n; i++) {
+      canvas.drawArc(
+        Rect.fromCircle(center: size.center(Offset.zero), radius: r),
+        i * 2 * math.pi / n,
+        math.pi / n,
+        false,
+        paint,
+      );
+    }
   }
+
+  @override
+  bool shouldRepaint(_DashedCircle old) => old.color != color;
 }

@@ -10,8 +10,8 @@ const _settingsKey = 'settings.v1';
 enum CelebrationLevel {
   off('Off', 'No animation. Just the XP.'),
   subtle('Subtle', 'A small card, no confetti.'),
-  normal('Normal', 'Confetti and a summary card.'),
-  party('Party', 'Maximum confetti. You earned it.');
+  normal('Normal', 'Stars and a summary card.'),
+  party('Party', 'The whole sky lights up.');
 
   const CelebrationLevel(this.label, this.description);
   final String label;
@@ -33,6 +33,7 @@ class AppSettings {
     this.wrapUpTime = 20 * 60 + 30,
     this.pinnedTaskId,
     this.pinnedDay,
+    this.timerBlocks = false,
   });
 
   final Appearance appearance;
@@ -67,6 +68,9 @@ class AppSettings {
   final String? pinnedTaskId;
   final String? pinnedDay;
 
+  /// The focus timer as one block a minute instead of a star on an orbit.
+  final bool timerBlocks;
+
   AppSettings copyWith({
     Appearance? appearance,
     CelebrationLevel? celebration,
@@ -79,6 +83,7 @@ class AppSettings {
     bool? askedForNotifications,
     bool? wrapUp,
     int? wrapUpTime,
+    bool? timerBlocks,
   }) => AppSettings(
     appearance: appearance ?? this.appearance,
     celebration: celebration ?? this.celebration,
@@ -93,6 +98,7 @@ class AppSettings {
     wrapUpTime: wrapUpTime ?? this.wrapUpTime,
     pinnedTaskId: pinnedTaskId,
     pinnedDay: pinnedDay,
+    timerBlocks: timerBlocks ?? this.timerBlocks,
   );
 
   /// Pins a task as tomorrow's first thing ([taskId] null clears it).
@@ -112,6 +118,7 @@ class AppSettings {
     pinnedDay: taskId == null
         ? null
         : dayKeyOf(DateTime(now.year, now.month, now.day + 1)),
+    timerBlocks: timerBlocks,
   );
 
   /// The pinned task id, if it was pinned for [now]'s day.
@@ -132,6 +139,7 @@ class AppSettings {
     'wrapUpTime': wrapUpTime,
     'pinnedTaskId': pinnedTaskId,
     'pinnedDay': pinnedDay,
+    'timerBlocks': timerBlocks,
   };
 
   factory AppSettings.fromJson(Map<String, Object?> j) => AppSettings(
@@ -158,6 +166,7 @@ class AppSettings {
     },
     pinnedTaskId: j['pinnedTaskId'] as String?,
     pinnedDay: j['pinnedDay'] as String?,
+    timerBlocks: j['timerBlocks'] as bool? ?? false,
   );
 }
 

@@ -60,15 +60,18 @@ void main() {
     now = DateTime(2026, 10, 20, 9, 30);
     c.read(routerProvider).go('/');
     await tester.pumpAndSettle();
-    // A phone shows it as a badge beside the situation bar.
-    expect(find.byTooltip('Check back on 1 waiting task'), findsOneWidget);
-    await tester.tap(find.byTooltip('Check back on 1 waiting task'));
-    await tester.pumpAndSettle();
+    // A line under the header on Today.
     expect(
-      find.textContaining('Waiting on Insurance callback'),
+      find.textContaining('Check back: any news on insurance callback'),
       findsOneWidget,
     );
-    await tester.tap(find.text('Back to my list'));
+    await tester.tap(find.textContaining('Check back:'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Waiting on insurance callback'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Back to list'));
     await tester.pumpAndSettle();
     expect(tasks.byId(t.id)!.status, TaskStatus.todo);
     expect(tasks.byId(t.id)!.followUpAt, isNull);
@@ -89,7 +92,7 @@ void main() {
 
     c.read(routerProvider).push('/wrapup');
     await tester.pumpAndSettle();
-    expect(find.text('Wrap up the day'), findsOneWidget);
+    expect(find.text('A quiet day.'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.tap(find.text('Schedule dentist'));
     await tester.pumpAndSettle();
@@ -164,6 +167,11 @@ void main() {
     expect(bridge.widgetUpdates.last['title'], 'Call IT about printer');
     expect(bridge.widgetUpdates.last.containsKey('alt1Title'), isFalse);
     expect(bridge.widgetUpdates.last['startRoute'], '/focus/${t.id}?min=15');
+    // 1.1 widgets: header, length, the step lines and a 5 min start.
+    expect(bridge.widgetUpdates.last['fiveRoute'], '/focus/${t.id}?min=5');
+    expect(bridge.widgetUpdates.last['length'], '15 min');
+    expect(bridge.widgetUpdates.last['header'], t.workspace.label);
+    expect(bridge.widgetUpdates.last['work'], isNotNull);
 
     // Widget "+" opens Quick add; Start opens the focus session.
     bridge.incoming.add(const OpenRoute('/add'));

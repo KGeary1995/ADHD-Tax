@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,27 +32,33 @@ import 'features/guide/guide_screen.dart';
 import 'features/wrapup/wrapup_screen.dart';
 import 'sync/sync_badge.dart';
 import 'widgets/ui.dart';
+import 'core/theme/ph.dart';
 
 class _Dest {
-  const _Dest(this.path, this.label, this.icon);
+  const _Dest(this.path, this.label, this.icon, this.iconOn);
   final String path;
   final String label;
   final IconData icon;
+
+  /// The Fill weight, for the tab you're on.
+  final IconData iconOn;
 }
 
 const _destinations = [
-  _Dest('/', 'Today', Icons.adjust_rounded),
-  _Dest('/tasks', 'Tasks', Icons.format_list_bulleted_rounded),
-  _Dest('/notes', 'Notes', Icons.sticky_note_2_outlined),
-  _Dest('/progress', 'Progress', Icons.bar_chart_rounded),
-  _Dest('/settings', 'Settings', Icons.tune_rounded),
+  _Dest('/', 'Today', Ph.sunHorizon, Ph.sunHorizonFill),
+  _Dest('/tasks', 'Tasks', Ph.listBullets, Ph.listBulletsFill),
+  _Dest('/notes', 'Notes', Ph.notePencil, Ph.notePencilFill),
+  _Dest('/progress', 'Progress', Ph.shootingStar, Ph.shootingStarFill),
 ];
+
+/// Every page sits on the sky.
+Widget _sky(Widget child) => SkyBackground(child: child);
 
 GoRouter buildRouter() => GoRouter(
   routes: [
     ShellRoute(
       builder: (context, state, child) =>
-          AppShell(location: state.uri.path, child: child),
+          _sky(AppShell(location: state.uri.path, child: child)),
       routes: [
         GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
         GoRoute(path: '/tasks', builder: (_, _) => const TaskListScreen()),
@@ -63,27 +71,34 @@ GoRouter buildRouter() => GoRouter(
       path: '/focus/:id',
       builder: (_, state) {
         final q = state.uri.queryParameters;
-        return FocusScreen(
-          taskId: state.pathParameters['id']!,
-          minutes: int.tryParse(q['min'] ?? '') ?? 25,
-          justFive: q['five'] == '1',
-          panic: q['panic'] == '1',
+        return _sky(
+          FocusScreen(
+            taskId: state.pathParameters['id']!,
+            minutes: int.tryParse(q['min'] ?? '') ?? 25,
+            justFive: q['five'] == '1',
+            panic: q['panic'] == '1',
+          ),
         );
       },
     ),
-    GoRoute(path: '/wrapup', builder: (_, _) => const WrapUpScreen()),
-    GoRoute(path: '/guide', builder: (_, _) => const GuideScreen()),
-    GoRoute(path: '/templates', builder: (_, _) => const TemplatesScreen()),
-    GoRoute(path: '/reset', builder: (_, _) => const WeeklyResetScreen()),
-    GoRoute(path: '/errands', builder: (_, _) => const ErrandRunScreen()),
+    GoRoute(path: '/wrapup', builder: (_, _) => _sky(const WrapUpScreen())),
+    GoRoute(path: '/guide', builder: (_, _) => _sky(const GuideScreen())),
+    GoRoute(
+      path: '/templates',
+      builder: (_, _) => _sky(const TemplatesScreen()),
+    ),
+    GoRoute(path: '/reset', builder: (_, _) => _sky(const WeeklyResetScreen())),
+    GoRoute(path: '/errands', builder: (_, _) => _sky(const ErrandRunScreen())),
     GoRoute(
       path: '/template/:id',
-      builder: (_, state) => TemplateEditorScreen(
-        templateId: state.pathParameters['id']!,
-        kind:
-            TemplateKind.values
-                .asNameMap()[state.uri.queryParameters['kind']] ??
-            TemplateKind.task,
+      builder: (_, state) => _sky(
+        TemplateEditorScreen(
+          templateId: state.pathParameters['id']!,
+          kind:
+              TemplateKind.values
+                  .asNameMap()[state.uri.queryParameters['kind']] ??
+              TemplateKind.task,
+        ),
       ),
     ),
     // The iOS widget's + button (unstuck://app/add): Home, then Quick add.
@@ -98,24 +113,28 @@ GoRouter buildRouter() => GoRouter(
       path: '/note/:id',
       builder: (_, state) {
         final q = state.uri.queryParameters;
-        return NoteEditorScreen(
-          noteId: state.pathParameters['id']!,
-          workspace: Workspace.values.firstWhere(
-            (w) => w.name == q['ws'],
-            orElse: () => Workspace.personal,
+        return _sky(
+          NoteEditorScreen(
+            noteId: state.pathParameters['id']!,
+            workspace: Workspace.values.firstWhere(
+              (w) => w.name == q['ws'],
+              orElse: () => Workspace.personal,
+            ),
+            projectId: q['project'] ?? '',
+            taskId: q['task'] ?? '',
+            tag: q['tag'],
           ),
-          projectId: q['project'] ?? '',
-          taskId: q['task'] ?? '',
-          tag: q['tag'],
         );
       },
     ),
     GoRoute(
       path: '/task/:id',
-      builder: (_, state) => TaskEditorScreen(
-        taskId: state.pathParameters['id']!,
-        focusFirstStep: state.uri.queryParameters['focusFirstStep'] == '1',
-        draft: state.extra is Task ? state.extra! as Task : null,
+      builder: (_, state) => _sky(
+        TaskEditorScreen(
+          taskId: state.pathParameters['id']!,
+          focusFirstStep: state.uri.queryParameters['focusFirstStep'] == '1',
+          draft: state.extra is Task ? state.extra! as Task : null,
+        ),
       ),
     ),
   ],
@@ -153,14 +172,20 @@ class GumptionApp extends ConsumerWidget {
   }
 }
 
-/// A floating pill nav on phones, a slim rail on wide screens. Both carry
-/// the Add button. Also owns the keyboard shortcuts and Android back.
+/// The tab bar on phones, a sidebar on wide screens. Both carry the Add
+/// button. Also owns the keyboard shortcuts and Android back. Settings
+/// lives in the shell too (the sidebar lists it); on a phone it hides the
+/// tab bar and is reached from the gear on Progress.
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.location, required this.child});
   final String location;
   final Widget child;
 
+  bool get _onSettings => location.startsWith('/settings');
+
+  /// The tab to light up. Settings belongs to Progress.
   int get _index {
+    if (_onSettings) return 3;
     final i = _destinations.indexWhere(
       (d) => d.path != '/' && location.startsWith(d.path),
     );
@@ -186,32 +211,41 @@ class AppShell extends ConsumerWidget {
 
     final scaffold = wide
         ? Scaffold(
+            backgroundColor: Colors.transparent,
             body: SafeArea(
               child: Row(
                 children: [
-                  _Rail(
-                    index: _index,
+                  _Sidebar(
+                    index: _onSettings ? -1 : _index,
+                    settings: _onSettings,
                     onSelect: go,
                     onAdd: add,
                     addLabel: addLabel,
                   ),
-                  const VerticalDivider(width: 1),
                   Expanded(child: child),
                 ],
               ),
             ),
           )
         : Scaffold(
-            // The nav floats over the content; screens pad their bottom by
-            // MediaQuery.padding, which then includes the nav.
+            backgroundColor: Colors.transparent,
+            // The bar sits over the content; screens pad their bottom by
+            // MediaQuery.padding, which then includes the bar.
             extendBody: true,
-            bottomNavigationBar: _PillNav(
-              index: _index,
-              onSelect: go,
-              onAdd: add,
-              addLabel: addLabel,
+            bottomNavigationBar: _onSettings
+                ? null
+                : _TabBar(
+                    index: _index,
+                    onSelect: go,
+                    onAdd: add,
+                    addLabel: addLabel,
+                  ),
+            // Progress draws its night sky under the status bar itself.
+            body: SafeArea(
+              top: !location.startsWith('/progress'),
+              bottom: false,
+              child: child,
             ),
-            body: SafeArea(bottom: false, child: child),
           );
 
     return CallbackShortcuts(
@@ -226,16 +260,18 @@ class AppShell extends ConsumerWidget {
             go(2),
         const SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
             go(3),
-        const SingleActivator(LogicalKeyboardKey.digit5, control: true): () =>
-            go(4),
+        const SingleActivator(LogicalKeyboardKey.comma, control: true): () =>
+            context.go('/settings'),
+        const SingleActivator(LogicalKeyboardKey.comma, meta: true): () =>
+            context.go('/settings'),
       },
       // Tabs replace each other rather than stacking, so Android's back
       // button would otherwise close the app from any tab. Back goes Home
-      // first, and only exits from there.
+      // first (from Settings, back to Progress), and only exits from there.
       child: PopScope(
         canPop: location == '/',
         onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) context.go('/');
+          if (!didPop) context.go(_onSettings ? '/progress' : '/');
         },
         child: Focus(autofocus: true, child: scaffold),
       ),
@@ -243,8 +279,9 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-class _PillNav extends StatelessWidget {
-  const _PillNav({
+/// Four tabs hanging from a 2px rule, and the + square.
+class _TabBar extends StatelessWidget {
+  const _TabBar({
     required this.index,
     required this.onSelect,
     required this.onAdd,
@@ -259,73 +296,113 @@ class _PillNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.spec;
     final bottom = MediaQuery.paddingOf(context).bottom;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(18, 0, 18, bottom > 0 ? bottom : 16),
-      child: Center(
-        heightFactor: 1,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Container(
-            height: 66,
-            padding: const EdgeInsets.fromLTRB(14, 0, 8, 0),
-            decoration: ShapeDecoration(
-              color: s.nav,
-              shape: StadiumBorder(side: BorderSide(color: s.navBorder)),
-              shadows: const [
-                BoxShadow(
-                  color: Color(0x33000000),
-                  blurRadius: 24,
-                  offset: Offset(0, 8),
+    final narrow = MediaQuery.sizeOf(context).width < 380;
+    // The bar's own text stays the designed size; a larger system font
+    // would push the labels out of their tabs. Screen readers still get
+    // the full label.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.1,
+      child: Container(
+        decoration: BoxDecoration(
+          color: s.bg,
+          border: Border(top: BorderSide(color: s.line2, width: 2)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          narrow ? 6 : 10,
+          0,
+          narrow ? 8 : 14,
+          math.max(bottom, 12),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final (i, d) in _destinations.indexed) ...[
+              Expanded(
+                child: _Tab(
+                  dest: d,
+                  selected: i == index,
+                  fontSize: narrow ? 11 : 12,
+                  onTap: () => onSelect(i),
                 ),
-              ],
+              ),
+              SizedBox(width: narrow ? 2 : 4),
+            ],
+            const SizedBox(width: 2),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: _AddButton(
+                onAdd: onAdd,
+                label: addLabel,
+                size: narrow ? 48 : 54,
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                for (final (i, d) in _destinations.indexed)
-                  IconButton(
-                    tooltip: d.label,
-                    isSelected: i == index,
-                    onPressed: () => onSelect(i),
-                    iconSize: 25,
-                    // Five tabs and + must fit a 360-wide phone.
-                    constraints: const BoxConstraints.tightFor(
-                      width: 48,
-                      height: 52,
-                    ),
-                    color: s.navIcon,
-                    selectedIcon: Icon(d.icon, color: s.navIconActive),
-                    icon: Icon(d.icon),
-                  ),
-                _AddButton(onAdd: onAdd, label: addLabel),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _AddButton extends StatelessWidget {
-  const _AddButton({required this.onAdd, required this.label});
-  final VoidCallback onAdd;
-  final String label;
+class _Tab extends StatelessWidget {
+  const _Tab({
+    required this.dest,
+    required this.selected,
+    required this.fontSize,
+    required this.onTap,
+  });
+  final _Dest dest;
+  final bool selected;
+  final double fontSize;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final s = context.spec;
+    const radius = BorderRadius.vertical(bottom: Radius.circular(Radii.md));
     return Tooltip(
-      message: label,
-      child: Material(
-        color: s.accent,
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onAdd,
-          child: SizedBox.square(
-            dimension: 50,
-            child: Icon(Icons.add_rounded, size: 28, color: s.onAccent),
+      message: dest.label,
+      excludeFromSemantics: true,
+      child: Semantics(
+        selected: selected,
+        button: true,
+        label: dest.label,
+        excludeSemantics: true,
+        child: Transform.translate(
+          // Tucks the tab under the bar's top rule.
+          offset: const Offset(0, -2),
+          child: Material(
+            color: selected ? s.raised : Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: radius,
+              side: selected
+                  ? BorderSide(color: s.line2, width: 2)
+                  : BorderSide.none,
+            ),
+            child: InkWell(
+              borderRadius: radius,
+              onTap: onTap,
+              child: SizedBox(
+                height: 54,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      selected ? dest.iconOn : dest.icon,
+                      size: 20,
+                      color: selected ? s.accentText : s.ink3,
+                    ),
+                    const SizedBox(height: Gap.s1),
+                    Text(
+                      dest.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.clip,
+                      softWrap: false,
+                      style: s.button(fontSize, selected ? s.ink : s.ink3),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -333,14 +410,65 @@ class _AddButton extends StatelessWidget {
   }
 }
 
-class _Rail extends StatelessWidget {
-  const _Rail({
+class _AddButton extends StatefulWidget {
+  const _AddButton({required this.onAdd, required this.label, this.size = 54});
+  final VoidCallback onAdd;
+  final String label;
+  final double size;
+
+  @override
+  State<_AddButton> createState() => _AddButtonState();
+}
+
+class _AddButtonState extends State<_AddButton> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    final edge = _down ? 1.0 : 4.0;
+    return Tooltip(
+      message: widget.label,
+      child: Semantics(
+        button: true,
+        label: widget.label,
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTapDown: (_) => setState(() => _down = true),
+          onTapCancel: () => setState(() => _down = false),
+          onTapUp: (_) => setState(() => _down = false),
+          onTap: widget.onAdd,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 80),
+            margin: EdgeInsets.only(top: 4 - edge, bottom: edge),
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              color: s.star,
+              borderRadius: BorderRadius.circular(Radii.lg),
+              boxShadow: [
+                BoxShadow(color: s.starDeep, offset: Offset(0, edge)),
+              ],
+            ),
+            child: Icon(Ph.plusBold, size: 24, color: s.onStar),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The 220px sidebar on Mac, iPad and wide windows.
+class _Sidebar extends StatelessWidget {
+  const _Sidebar({
     required this.index,
+    required this.settings,
     required this.onSelect,
     required this.onAdd,
     required this.addLabel,
   });
   final int index;
+  final bool settings;
   final ValueChanged<int> onSelect;
   final VoidCallback onAdd;
   final String addLabel;
@@ -348,63 +476,89 @@ class _Rail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.spec;
-    return SizedBox(
-      width: 92,
-      child: Column(
-        children: [
-          const SizedBox(height: 24),
-          const Tooltip(message: 'Gumption', child: GumptionMark(size: 28)),
-          const SizedBox(height: 28),
-          _AddButton(onAdd: onAdd, label: addLabel),
-          const SizedBox(height: 20),
-          for (final (i, d) in _destinations.indexed)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+    Widget item(String label, IconData icon, IconData iconOn, bool on, tap) =>
+        Padding(
+          padding: const EdgeInsets.only(bottom: Gap.s2),
+          child: Semantics(
+            selected: on,
+            button: true,
+            child: Material(
+              color: on ? s.raised : Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(Radii.md),
+                ),
+                side: on
+                    ? BorderSide(color: s.line2, width: 2)
+                    : BorderSide.none,
+              ),
               child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => onSelect(i),
-                child: Semantics(
-                  selected: i == index,
-                  button: true,
-                  child: Container(
-                    width: 76,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 30,
-                          decoration: ShapeDecoration(
-                            color: i == index ? s.surface : null,
-                            shape: const StadiumBorder(),
-                          ),
-                          child: Icon(
-                            d.icon,
-                            size: 22,
-                            color: i == index ? s.onSurface : s.faint,
-                          ),
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(Radii.md),
+                ),
+                onTap: tap,
+                child: SizedBox(
+                  height: 48,
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 16),
+                      Icon(
+                        on ? iconOn : icon,
+                        size: 20,
+                        color: on ? s.accentText : s.ink3,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: s.button(15, on ? s.ink : s.ink2),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          d.label,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: i == index
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                            color: i == index ? s.onSurface : s.muted,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
+          ),
+        );
+    return Container(
+      width: 220,
+      decoration: BoxDecoration(
+        border: Border(right: BorderSide(color: s.line2, width: 2)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 20, 0, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(left: 4, right: 16),
+            child: Align(alignment: Alignment.centerLeft, child: Wordmark()),
+          ),
+          const SizedBox(height: Gap.s8),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: PrimaryButton(
+              label: addLabel,
+              icon: Ph.plusBold,
+              height: 46,
+              fontSize: 15,
+              onPressed: onAdd,
+            ),
+          ),
+          const SizedBox(height: Gap.s7),
+          for (final (i, d) in _destinations.indexed)
+            item(d.label, d.icon, d.iconOn, i == index, () => onSelect(i)),
           const Spacer(),
-          const SyncBadge(),
-          const SizedBox(height: 20),
+          item(
+            'Settings',
+            Ph.gearSix,
+            Ph.gearSixFill,
+            settings,
+            () => context.go('/settings'),
+          ),
+          const Align(alignment: Alignment.centerLeft, child: SyncBadge()),
         ],
       ),
     );

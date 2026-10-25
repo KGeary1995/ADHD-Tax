@@ -9,6 +9,7 @@ import '../../data/models/task.dart';
 import '../../widgets/ui.dart';
 import '../tasks/tasks_controller.dart';
 import 'notes_controller.dart';
+import '../../core/theme/ph.dart';
 
 /// A text controller that shows `[[links]]` in the accent color as you
 /// type. While the keyboard is still composing a word it draws plain text,
@@ -30,7 +31,7 @@ class LinkTextController extends TextEditingController {
       );
     }
     final s = context.spec;
-    final link = TextStyle(color: s.primary, fontWeight: FontWeight.w600);
+    final link = TextStyle(color: s.accentText, fontWeight: FontWeight.w700);
     final spans = <InlineSpan>[];
     var last = 0;
     for (final m in wikiLinkPattern.allMatches(text)) {
@@ -69,17 +70,17 @@ class LinkRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.spec;
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Panel(
-        radius: 14,
-        color: s.isDark ? null : s.background,
-        padding: EdgeInsets.fromLTRB(14, 10, trailing == null ? 14 : 6, 10),
-        onTap: onTap,
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: s.line)),
+        ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: dim ? s.faint : s.primary),
-            const SizedBox(width: 10),
+            Icon(icon, size: 20, color: dim ? s.ink3 : s.accentText),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +91,8 @@ class LinkRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 15,
-                      color: dim ? s.muted : s.onSurface,
+                      fontWeight: FontWeight.w700,
+                      color: dim ? s.ink2 : s.ink,
                     ),
                   ),
                   if (subtitle.isNotEmpty)
@@ -98,7 +100,7 @@ class LinkRow extends StatelessWidget {
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: s.muted),
+                      style: s.caption(),
                     ),
                 ],
               ),
@@ -207,9 +209,7 @@ class LinkSuggestionBar extends ConsumerWidget {
                   padding: const EdgeInsets.only(right: 6),
                   child: Pill(
                     label: f.name,
-                    icon: f is TaskLink
-                        ? Icons.task_alt_rounded
-                        : Icons.sticky_note_2_outlined,
+                    icon: f is TaskLink ? Ph.checkSquare : Ph.note,
                     selected: false,
                     onTap: () => onPick(f.name),
                   ),
@@ -217,7 +217,7 @@ class LinkSuggestionBar extends ConsumerWidget {
               if (typed.isNotEmpty && !exact)
                 Pill(
                   label: 'Link "$typed"',
-                  icon: Icons.add_link_rounded,
+                  icon: Ph.linkSimple,
                   selected: false,
                   onTap: () => onPick(typed),
                 ),
@@ -285,8 +285,8 @@ class NoteLinksPanel extends ConsumerWidget {
               switch (t) {
                 TaskLink(:final task) => LinkRow(
                   icon: task.status == TaskStatus.done
-                      ? Icons.check_circle_rounded
-                      : Icons.task_alt_rounded,
+                      ? Ph.checkCircleFill
+                      : Ph.checkSquare,
                   title: task.title,
                   subtitle: task.status == TaskStatus.done
                       ? 'Task, done'
@@ -294,13 +294,13 @@ class NoteLinksPanel extends ConsumerWidget {
                   onTap: () => context.push('/task/${task.id}'),
                 ),
                 NoteLink(:final note) => LinkRow(
-                  icon: Icons.sticky_note_2_outlined,
+                  icon: Ph.note,
                   title: note.heading,
                   subtitle: 'Note',
                   onTap: () => context.push('/note/${note.id}'),
                 ),
                 MissingLink(:final name) => LinkRow(
-                  icon: Icons.link_off_rounded,
+                  icon: Ph.linkBreak,
                   title: name,
                   subtitle: 'Not a task or note yet',
                   dim: true,
@@ -327,7 +327,7 @@ class NoteLinksPanel extends ConsumerWidget {
             const FieldLabel('Linked from'),
             for (final n in backlinks)
               LinkRow(
-                icon: Icons.sticky_note_2_outlined,
+                icon: Ph.note,
                 title: n.heading,
                 subtitle: 'Note',
                 onTap: () => context.push('/note/${n.id}'),

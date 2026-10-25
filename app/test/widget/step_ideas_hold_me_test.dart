@@ -6,7 +6,7 @@ import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'app_flow_test.dart' show pumpApp;
+import 'app_flow_test.dart' show pastStarted, pumpApp;
 import 'reset_errands_company_ai_test.dart' show FakeAmbient, frames;
 
 const _phone = Size(360, 800);
@@ -26,10 +26,11 @@ void main() {
       expect(tester.takeException(), isNull);
 
       // Ideas show while the first step is empty; one tap fills it in.
-      expect(find.text('Ideas:'), findsOneWidget);
-      await tester.tap(find.text('Find the number and put it on screen'));
+      final idea = find.text('+ Find the number and put it on screen');
+      expect(idea, findsOneWidget);
+      await tester.tap(idea);
       await tester.pump();
-      expect(find.text('Ideas:'), findsNothing);
+      expect(idea, findsNothing);
 
       final suggest = find.text('Suggest steps');
       await tester.ensureVisible(suggest);
@@ -63,8 +64,11 @@ void main() {
     for (final t in [mine, job]) {
       c.read(routerProvider).push('/focus/${t.id}?min=25');
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
+      await pastStarted(tester);
       await tester.tap(find.byTooltip('Hold me to it'));
+      await frames(tester);
+      // A sheet shows the message first; Share sends it.
+      await tester.tap(find.text('Share'));
       await frames(tester);
       c.read(routerProvider).go('/');
       await frames(tester);

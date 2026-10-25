@@ -6,6 +6,7 @@ import '../../data/models/note.dart';
 import '../../data/models/task.dart';
 import '../../widgets/ui.dart';
 import 'notes_controller.dart';
+import '../../core/theme/ph.dart';
 
 /// A project's colored dot.
 class ProjectDot extends StatelessWidget {
@@ -167,14 +168,13 @@ class ProjectPicker extends ConsumerWidget {
         for (final p in projects)
           Pill(
             label: p.name,
-            icon: Icons.circle,
-            iconColor: context.spec.projectColor(p.color),
+            dot: context.spec.projectColor(p.color),
             selected: selected == p.id,
             onTap: () => onSelected(p.id),
           ),
         Pill(
           label: 'New project',
-          icon: Icons.add_rounded,
+          icon: Ph.plusBold,
           selected: false,
           onTap: () async {
             final p = await showNewProjectDialog(context, ref, workspace);

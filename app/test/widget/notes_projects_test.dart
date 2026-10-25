@@ -16,7 +16,7 @@ Future<void> tab(WidgetTester tester, String name) async {
 
 /// Phone Tasks: workspace, project and list/board are in one sheet.
 Future<void> openFilters(WidgetTester tester) async {
-  await tester.tap(find.byIcon(Icons.filter_list_rounded));
+  await tester.tap(find.byTooltip('Show tasks'));
   await tester.pumpAndSettle();
 }
 
@@ -63,7 +63,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('Vendor call'), findsOneWidget);
-    expect(find.text('#orders'), findsWidgets);
+    expect(find.textContaining('#orders'), findsWidgets);
     await tester.enterText(find.byType(TextField).first, 'backordered');
     await tester.pumpAndSettle();
     expect(find.text('Vendor call'), findsOneWidget);
@@ -91,7 +91,7 @@ void main() {
     await tab(tester, 'Tasks');
 
     await openFilters(tester);
-    await tester.tap(find.text('New project'));
+    await tester.tap(find.text('+ New project'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Personal').last);
     await tester.pumpAndSettle();
@@ -129,7 +129,7 @@ void main() {
       c.read(tasksProvider.notifier).byId(booked.id)!.status,
       TaskStatus.done,
     );
-    expect(find.textContaining('Done: Book movers'), findsOneWidget);
+    expect(find.text('Done: Book movers'), findsOneWidget);
 
     // The choice of view sticks.
     expect(c.read(keyValueStoreProvider).read('tasks.view'), 'board');

@@ -6,7 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app.dart' show routerProvider;
 import '../../data/models/task.dart';
 import '../../widgets/task_chips.dart';
+import '../../core/providers.dart';
 import '../capture/quick_add_sheet.dart';
+import '../gamification/progress_controller.dart';
+import '../gamification/xp_rules.dart';
 import '../picker/picker_controller.dart';
 import '../picker/picker_engine.dart';
 import 'device_bridge.dart';
@@ -81,7 +84,8 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
     }
   }
 
-  /// The widget mirrors Home's teal card.
+  /// The widget mirrors Today's pick. `meta`/`step` are what widgets drawn
+  /// by builds before 1.1 read; the rest is the 1.1 layout's.
   void _pushWidget() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
@@ -105,6 +109,13 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
                       .indexed)
                 ..._altData(i + 1, alt),
             };
+      final streak = streakWithGrace(
+        ref.read(progressProvider).activeDays,
+        ref.read(clockProvider)(),
+      );
+      if (streak > 0) {
+        data['streak'] = '$streak ${streak == 1 ? 'day' : 'days'}';
+      }
       final key = data.toString();
       if (key == _lastWidget) return;
       _lastWidget = key;
@@ -121,9 +132,9 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
     'alt${n}Route': _focusRoute(s),
   };
 
-  String _focusRoute(Suggestion s) => Uri(
+  String _focusRoute(Suggestion s, {int? min}) => Uri(
     path: '/focus/${s.task.id}',
-    queryParameters: {'min': '${s.plannedMin}'},
+    queryParameters: {'min': '${min ?? s.plannedMin}'},
   ).toString();
 
   Map<String, String> _cardData(Suggestion s) {
@@ -134,11 +145,28 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
     final due = t.dueAt == null
         ? ''
         : ' · due ${formatDue(t.dueAt!, DateTime.now())}';
+    // The step you're on and the one after it, like Today's card.
+    final steps = t.steps;
+    final current = steps.indexWhere((i) => !i.done);
+    final lines = steps.isEmpty
+        ? [if (t.nextStep.isNotEmpty) t.nextStep]
+        : [
+            for (final i in steps.skip(current < 0 ? steps.length : current))
+              if (!i.done) i.text,
+          ];
     return {
       'title': t.title,
       'step': t.nextStep.isEmpty ? '' : 'First: ${t.nextStep}',
       'meta': '${t.workspace.label} · $time$due',
       'startRoute': _focusRoute(s),
+      'header': steps.isEmpty || current < 0
+          ? t.workspace.label
+          : '${t.workspace.label} · Step ${current + 1} of ${steps.length}',
+      'work': t.workspace == Workspace.work ? '1' : '0',
+      'length': time,
+      if (lines.isNotEmpty) 'line1': lines[0],
+      if (lines.length > 1) 'line2': lines[1],
+      'fiveRoute': _focusRoute(s, min: 5),
     };
   }
 

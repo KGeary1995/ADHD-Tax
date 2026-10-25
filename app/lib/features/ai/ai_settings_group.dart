@@ -7,6 +7,7 @@ import '../../data/models/task.dart';
 import '../../widgets/ui.dart';
 import '../settings/device_workspaces.dart';
 import 'ai_settings.dart';
+import '../../core/theme/ph.dart';
 
 /// Settings → AI helper: the API key and the Work switch.
 class AiSettingsGroup extends ConsumerWidget {
@@ -28,7 +29,7 @@ class AiSettingsGroup extends ConsumerWidget {
           subtitle: ai.hasKey
               ? 'Saved on this device only'
               : 'Optional. Lets "Break it down" turn a task into steps.',
-          trailing: Icon(Icons.chevron_right_rounded, color: s.faint),
+          trailing: Icon(Ph.caretRight, color: s.faint),
           onTap: () => _editKey(context, ref, ai.hasKey),
         ),
         if (showsWork)

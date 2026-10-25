@@ -14,7 +14,7 @@ import '../../widgets/ui.dart';
 import 'notes_controller.dart';
 import '../../data/models/template.dart';
 import '../templates/templates_screen.dart';
-import 'project_widgets.dart';
+import '../../core/theme/ph.dart';
 
 /// What the Notes list shows. Kept while switching tabs.
 class NotesFilter {
@@ -146,12 +146,13 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
         hintText: 'Search notes and #tags',
-        prefixIcon: const Icon(Icons.search_rounded),
+        fillColor: Colors.transparent,
+        prefixIcon: const Icon(Ph.magnifyingGlass, size: 19),
         suffixIcon: filter.query.isEmpty
             ? null
             : IconButton(
                 tooltip: 'Clear search',
-                icon: const Icon(Icons.close_rounded),
+                icon: const Icon(Ph.x),
                 onPressed: () {
                   _search.clear();
                   ctl.query('');
@@ -171,9 +172,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                 SideItem(
                   label: w?.label ?? 'Everything',
                   icon: switch (w) {
-                    null => Icons.all_inclusive_rounded,
-                    Workspace.work => Icons.work_outline_rounded,
-                    Workspace.personal => Icons.home_outlined,
+                    null => Ph.infinity,
+                    Workspace.work => Ph.briefcase,
+                    Workspace.personal => Ph.houseSimple,
                   },
                   count: all.where((n) => w == null || n.workspace == w).length,
                   selected: filter.workspace == w,
@@ -203,7 +204,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               for (final t in tags)
                 SideItem(
                   label: '#$t',
-                  icon: Icons.tag_rounded,
+                  icon: Ph.hash,
                   count: inWorkspace.where((n) => n.allTags.contains(t)).length,
                   selected: filter.tag == t,
                   onTap: () => ctl.tag(filter.tag == t ? null : t),
@@ -213,11 +214,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         SideSection(
           label: 'Start from',
           children: [
-            SideItem(
-              label: 'A template',
-              icon: Icons.sticky_note_2_outlined,
-              onTap: fromTemplate,
-            ),
+            SideItem(label: 'A template', icon: Ph.note, onTap: fromTemplate),
           ],
         ),
       ],
@@ -235,89 +232,75 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         children: [
           PageHeader(
             'Notes',
-            subtitle: all.isEmpty
-                ? 'Thoughts, call outcomes, meeting notes'
-                : '${all.length} ${all.length == 1 ? 'note' : 'notes'}',
+            trailing: SquareIconButton(
+              icon: Ph.notePencil,
+              tooltip: 'New note',
+              onPressed: () => openNewNote(context, ref),
+            ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: Gap.s6),
           search,
           if (!wide) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: Gap.s5),
             Wrap(
               spacing: 6,
               runSpacing: 6,
+              alignment: WrapAlignment.center,
               children: [
-                for (final w in [
-                  if (!single) ...[null, ...Workspace.values],
-                ])
-                  Pill(
-                    label: w?.label ?? 'Everything',
-                    selected: filter.workspace == w,
-                    solid: true,
-                    onTap: () => ctl.workspace(w),
+                if (!single)
+                  for (final w in [null, ...Workspace.values])
+                    Pill(
+                      label: w?.label ?? 'All',
+                      dot: switch (w) {
+                        null => s.star,
+                        Workspace.personal => s.personal,
+                        Workspace.work => s.work,
+                      },
+                      selected: filter.workspace == w,
+                      solid: true,
+                      onTap: () => ctl.workspace(w),
+                    ),
+                _TagsPill(
+                  active: filter.projectId != null || filter.tag != null,
+                  label: switch ((filter.projectId, filter.tag)) {
+                    (_, final String tag) => tag,
+                    (final String id, _) =>
+                      projects.where((p) => p.id == id).firstOrNull?.name ??
+                          'Tags',
+                    _ => 'Tags',
+                  },
+                  onTap: () => _showTagsSheet(
+                    context,
+                    projects: projects,
+                    tags: tags,
+                    fromTemplate: fromTemplate,
                   ),
-                Pill(
-                  label: 'From a template',
-                  icon: Icons.sticky_note_2_outlined,
-                  selected: false,
-                  onTap: fromTemplate,
                 ),
               ],
             ),
-            if (projects.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              const FieldLabel('Projects'),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final p in projects)
-                    Pill(
-                      label: p.name,
-                      icon: Icons.circle,
-                      iconColor: s.projectColor(p.color),
-                      selected: filter.projectId == p.id,
-                      onTap: () =>
-                          ctl.project(filter.projectId == p.id ? null : p.id),
-                    ),
-                ],
-              ),
-            ],
-            if (tags.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              const FieldLabel('Tags'),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final t in tags)
-                    Pill(
-                      label: '#$t',
-                      selected: filter.tag == t,
-                      onTap: () => ctl.tag(filter.tag == t ? null : t),
-                    ),
-                ],
-              ),
-            ],
           ],
           const SizedBox(height: 22),
           if (all.isEmpty)
-            Panel(
+            Padding(
+              padding: const EdgeInsets.only(top: Gap.s4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Get it out of your head.', style: s.display(24)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: Gap.s4),
                   Text(
                     'Jot it down now, sort it later. Put it in a project, '
                     'tag it with #words, and turn any line into a task when '
                     'you\'re ready.',
-                    style: TextStyle(color: s.muted, height: 1.4),
+                    style: TextStyle(color: s.ink2, height: 1.45),
                   ),
-                  const SizedBox(height: 14),
-                  FilledButton(
-                    onPressed: () => openNewNote(context, ref),
-                    child: const Text('New note'),
+                  const SizedBox(height: Gap.s7),
+                  SizedBox(
+                    width: 180,
+                    child: PrimaryButton(
+                      label: 'New note',
+                      onPressed: () => openNewNote(context, ref),
+                    ),
                   ),
                 ],
               ),
@@ -328,12 +311,22 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               style: TextStyle(color: s.muted),
             ),
           if (pinned.isNotEmpty) ...[
-            SectionTitle('Pinned', count: pinned.length),
+            Row(
+              children: [
+                Icon(Ph.pushPinFill, size: 16, color: s.accentText),
+                const SizedBox(width: Gap.s3),
+                Text('Pinned', style: s.display(15)),
+              ],
+            ),
+            const SizedBox(height: Gap.s2),
             _NoteGrid(notes: pinned),
-            const SizedBox(height: 22),
+            const SizedBox(height: Gap.s9),
           ],
           if (rest.isNotEmpty) ...[
-            if (pinned.isNotEmpty) SectionTitle('Notes', count: rest.length),
+            if (pinned.isNotEmpty) ...[
+              Text('Recent', style: s.display(15)),
+              const SizedBox(height: Gap.s2),
+            ],
             _NoteGrid(notes: rest),
           ],
         ],
@@ -407,67 +400,57 @@ class NoteTile extends ConsumerWidget {
         : null;
     final now = ref.read(clockProvider)();
     final tags = note.allTags;
+    final meta = [_when(note.updatedAt, now), ?project?.name].join(' · ');
     return SwipeActions(
       key: ValueKey('note-${note.id}'),
       onDelete: () => deleteNoteWithUndo(context, ref, note),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Panel(
-          radius: 18,
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          onTap: () => context.push('/note/${note.id}'),
+      child: InkWell(
+        onTap: () => context.push('/note/${note.id}'),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: s.line)),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      note.heading,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: s.onSurface,
-                      ),
-                    ),
-                  ),
-                  if (note.pinned)
-                    Icon(Icons.push_pin_rounded, size: 16, color: s.primary),
-                ],
+              Text(
+                note.heading,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: s.ink,
+                ),
               ),
               if (note.preview.isNotEmpty) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: Gap.s2),
                 Text(
                   note.preview,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 14, color: s.text2, height: 1.35),
+                  style: TextStyle(fontSize: 14, color: s.ink2, height: 1.45),
                 ),
               ],
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 10,
-                runSpacing: 4,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    _when(note.updatedAt, now),
-                    style: s.mono(12, color: s.muted),
-                  ),
-                  ?(project == null ? null : ProjectLabel(project)),
-                  for (final t in tags.take(4))
-                    Text(
-                      '#$t',
-                      style: TextStyle(fontSize: 13, color: s.primary),
-                    ),
-                  if (tags.length > 4)
-                    Text(
-                      '+${tags.length - 4}',
-                      style: TextStyle(fontSize: 13, color: s.muted),
-                    ),
-                ],
+              const SizedBox(height: Gap.s3),
+              Text.rich(
+                TextSpan(
+                  text: meta,
+                  children: [
+                    if (tags.isNotEmpty)
+                      TextSpan(
+                        text:
+                            ' · ${tags.take(4).map((t) => '#$t').join(' ')}'
+                            '${tags.length > 4 ? ' +${tags.length - 4}' : ''}',
+                        style: TextStyle(
+                          color: s.accentText,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
+                ),
+                style: s.caption(),
               ),
             ],
           ),
@@ -476,6 +459,147 @@ class NoteTile extends ConsumerWidget {
     );
   }
 }
+
+/// "# Tags": opens projects, tags and templates. Shows what's chosen.
+class _TagsPill extends StatelessWidget {
+  const _TagsPill({
+    required this.active,
+    required this.label,
+    required this.onTap,
+  });
+  final bool active;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    final fg = active ? s.bg : s.ink;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(Radii.md),
+      side: BorderSide(color: active ? s.ink : s.line2, width: 2),
+    );
+    return Semantics(
+      button: true,
+      label: 'Projects and tags',
+      child: Material(
+        color: active ? s.ink : Colors.transparent,
+        shape: shape,
+        child: InkWell(
+          customBorder: shape,
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '#',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: active ? s.bg : s.ink3,
+                    ),
+                  ),
+                  const SizedBox(width: Gap.s3),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: fg,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Phone: pick a project or a tag, or start from a template.
+Future<void> _showTagsSheet(
+  BuildContext context, {
+  required List<Project> projects,
+  required List<String> tags,
+  required Future<void> Function() fromTemplate,
+}) => showAppSheet<void>(
+  context: context,
+  builder: (ctx) => SafeArea(
+    child: SingleChildScrollView(
+      padding: sheetPadding,
+      child: Consumer(
+        builder: (ctx, ref, _) {
+          final filter = ref.watch(notesFilterProvider);
+          final ctl = ref.read(notesFilterProvider.notifier);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SheetTitle('Projects and tags'),
+              const SizedBox(height: Gap.s7),
+              if (projects.isNotEmpty) ...[
+                const OptionLabel('Project'),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final p in projects)
+                      Pill(
+                        label: p.name,
+                        dot: ctx.spec.projectColor(p.color),
+                        selected: filter.projectId == p.id,
+                        onTap: () =>
+                            ctl.project(filter.projectId == p.id ? null : p.id),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: Gap.s7),
+              ],
+              if (tags.isNotEmpty) ...[
+                const OptionLabel('Tag'),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final t in tags)
+                      Pill(
+                        label: '#$t',
+                        selected: filter.tag == t,
+                        onTap: () => ctl.tag(filter.tag == t ? null : t),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: Gap.s7),
+              ],
+              OutlineButton(
+                label: 'From a template',
+                icon: Ph.copySimple,
+                quiet: true,
+                fontSize: 15,
+                height: 48,
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  fromTemplate();
+                },
+              ),
+              const SizedBox(height: Gap.s6),
+              PrimaryButton(label: 'Done', onPressed: () => Navigator.pop(ctx)),
+            ],
+          );
+        },
+      ),
+    ),
+  ),
+);
 
 String _when(DateTime at, DateTime now) {
   final today = DateTime(now.year, now.month, now.day);

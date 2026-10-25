@@ -11,6 +11,7 @@ import '../gamification/progress_controller.dart';
 import '../settings/device_workspaces.dart';
 import 'tasks_controller.dart';
 import 'weekly_reset.dart';
+import '../../core/theme/ph.dart';
 
 /// When this device last finished a weekly reset. Device-local.
 final lastResetProvider = NotifierProvider<LastResetController, DateTime?>(
@@ -181,25 +182,25 @@ class _WeeklyResetScreenState extends ConsumerState<WeeklyResetScreen> {
           for (final (c, icon, label, help) in [
             (
               _Choice.keep,
-              Icons.check_rounded,
+              Ph.checkBold,
               'Keep it',
               'Still matters. Leave it on the list.',
             ),
             (
               _Choice.shrink,
-              Icons.compress_rounded,
+              Ph.arrowsInLineVertical,
               'Make it smaller',
               'Give it a first step you could do in 2 minutes.',
             ),
             (
               _Choice.snooze,
-              Icons.snooze_rounded,
+              Ph.moonStars,
               'Not this week',
               'Hide it for 7 days.',
             ),
             (
               _Choice.drop,
-              Icons.waving_hand_outlined,
+              Ph.handWaving,
               'Let it go',
               "Archive it. Deciding not to do something counts as done.",
             ),
@@ -245,8 +246,10 @@ class _WeeklyResetScreenState extends ConsumerState<WeeklyResetScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Weekly reset'),
+      appBar: topBar(
+        context,
+        close: true,
+        overline: 'WEEKLY RESET',
         actions: [
           if (_history.isNotEmpty && !_finished)
             TextButton(onPressed: _undo, child: const Text('Back')),

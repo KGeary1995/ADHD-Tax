@@ -5,6 +5,7 @@ import '../../core/theme/app_themes.dart';
 import '../../data/models/task.dart';
 import '../settings/settings_controller.dart';
 import 'phi_guard.dart';
+import '../../core/theme/ph.dart';
 
 /// Inline warning shown under Work task fields that look like patient info.
 class PhiWarning extends ConsumerWidget {
@@ -30,7 +31,7 @@ class PhiWarning extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.shield_outlined, color: s.warning, size: 20),
+          Icon(Ph.shieldCheck, color: s.warning, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

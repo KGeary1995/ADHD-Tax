@@ -16,6 +16,7 @@ class QuoteRotator extends ConsumerStatefulWidget {
     this.large = false,
     this.align = TextAlign.start,
     this.quiet = false,
+    this.footnote = false,
   });
 
   final QuoteContext context;
@@ -24,6 +25,9 @@ class QuoteRotator extends ConsumerStatefulWidget {
 
   /// Background voice (the focus screen), not something to read now.
   final bool quiet;
+
+  /// Small print at the foot of Today.
+  final bool footnote;
 
   @override
   ConsumerState<QuoteRotator> createState() => _QuoteRotatorState();
@@ -78,32 +82,41 @@ class _QuoteRotatorState extends ConsumerState<QuoteRotator> {
       onTap: _advance,
       child: AnimatedSwitcher(
         duration: Duration(milliseconds: context.reduceMotion ? 0 : 600),
-        child: Column(
-          key: ValueKey(_quote.text),
-          crossAxisAlignment: crossAxis,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _quote.text,
-              textAlign: widget.align,
-              style: s
-                  .display(
-                    widget.large ? 22 : 17,
-                    weight: FontWeight.w600,
-                    color: widget.quiet ? s.faint : s.text2,
-                  )
-                  .copyWith(height: 1.4, letterSpacing: 0),
-            ),
-            if (_quote.author != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                '— ${_quote.author}',
+        child: widget.footnote
+            ? Text(
+                _quote.author == null
+                    ? _quote.text
+                    : '${_quote.text} — ${_quote.author}',
+                key: ValueKey(_quote.text),
                 textAlign: widget.align,
-                style: TextStyle(fontSize: 13, color: s.faint),
+                style: s.caption(),
+              )
+            : Column(
+                key: ValueKey(_quote.text),
+                crossAxisAlignment: crossAxis,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _quote.text,
+                    textAlign: widget.align,
+                    style: s
+                        .display(
+                          widget.large ? 22 : 17,
+                          weight: FontWeight.w600,
+                          color: widget.quiet ? s.faint : s.text2,
+                        )
+                        .copyWith(height: 1.4, letterSpacing: 0),
+                  ),
+                  if (_quote.author != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      '— ${_quote.author}',
+                      textAlign: widget.align,
+                      style: TextStyle(fontSize: 13, color: s.faint),
+                    ),
+                  ],
+                ],
               ),
-            ],
-          ],
-        ),
       ),
     );
   }

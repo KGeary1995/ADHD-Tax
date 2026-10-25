@@ -11,10 +11,17 @@
 // Args: <outDir> <name> [path=/] [width=390] [height=844]
 //       [--appearance light|dark|system]  (default dark; system follows
 //                    the emulated phone, which is set to dark)
-//       [--tap x,y]  (tap a point after loading, e.g. to open a sheet)
+//       [--tap x,y]  (tap a point after loading, e.g. to open a sheet;
+//                    repeat it to tap several points in turn)
+//       [--wait ms]  (wait before the screenshot, e.g. past the Started
+//                    screen on /focus/1)
+//       [--celebration off|subtle|normal|party] [--blocks] (block timer)
+//       [--boot ms]  (time allowed for loading, default 6000)
 //       [--type text] (then type, e.g. into Quick add)
 //       [--scroll px] (scroll the page down before the screenshot)
 //       [--iphone]   (fakes a 34px home-indicator inset, like an iPhone)
+//       [--top px]   (with --iphone: a status-bar inset too, e.g. 62 for
+//                    the Dynamic Island; the store-screenshot frames)
 //       [--empty]    (no demo data)
 //       [--board]    (Tasks opens as a board)
 //       [--scale n]  (device pixel ratio, default 2; 3 at 430x932 gives the
@@ -31,7 +38,7 @@ import { mkdirSync } from 'node:fs';
 const args = process.argv.slice(2);
 const flag = (f) => args.includes(f);
 const opt = (f, d) => (args.includes(f) ? args[args.indexOf(f) + 1] : d);
-const valued = ['--appearance', '--tap', '--type', '--scroll', '--scale'];
+const valued = ['--top', '--appearance', '--tap', '--type', '--scroll', '--scale', '--wait', '--celebration', '--boot'];
 const pos = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && valued.includes(args[i - 1])));
 const [outDir, name, path = '/', width = '390', height = '844'] = pos;
 if (!outDir || !name) {
@@ -129,7 +136,8 @@ const replicas = {
     ]),
   }),
 };
-const settings = { appearance: opt('--appearance', 'dark'), celebration: 'normal', quoteSeconds: 60, phiGuard: true };
+const settings = { appearance: opt('--appearance', 'dark'), celebration: opt('--celebration', 'normal'), quoteSeconds: 60, phiGuard: true,
+  timerBlocks: flag('--blocks') };
 
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;
 const browser = await chromium.launch({ args: proxy ? [`--proxy-server=${proxy}`] : [] });
@@ -150,13 +158,14 @@ const page = await ctx.newPage();
 page.on('pageerror', (e) => console.log('pageerror:', e.message));
 if (flag('--iphone')) {
   const cdp = await ctx.newCDPSession(page);
-  await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 0, bottom: 34, left: 0, right: 0 } });
+  const top = +opt('--top', '0');
+  await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top, bottom: 34, left: 0, right: 0 } });
 }
 await page.goto(`${base}/#${path}`);
-await page.waitForTimeout(6000); // Flutter web boot + first frames
-const tap = opt('--tap', null);
-if (tap) {
-  const [x, y] = tap.split(',').map(Number);
+await page.waitForTimeout(+opt('--boot', '6000')); // Flutter web boot + first frames
+for (const [i, a] of args.entries()) {
+  if (a !== '--tap') continue;
+  const [x, y] = args[i + 1].split(',').map(Number);
   await page.mouse.click(x, y);
   await page.waitForTimeout(1500);
 }
@@ -171,6 +180,8 @@ if (scroll) {
   await page.mouse.wheel(0, +scroll);
   await page.waitForTimeout(800);
 }
+const wait = opt('--wait', null);
+if (wait) await page.waitForTimeout(+wait);
 mkdirSync(outDir, { recursive: true });
 await page.screenshot({ path: `${outDir}/${name}.png` });
 console.log(`wrote ${outDir}/${name}.png`);

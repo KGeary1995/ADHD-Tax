@@ -18,13 +18,13 @@ void main() {
         clockProvider.overrideWithValue(() => DateTime(2026, 10, 21, 10)),
       ],
     );
-    expect(find.text('Your list is empty.'), findsOneWidget);
+    expect(find.text('Your sky is clear.'), findsOneWidget);
 
     await tester.tap(find.text('Try with example tasks'));
     await tester.pumpAndSettle();
     expect(c.read(tasksProvider).length, greaterThan(5));
     expect(c.read(notesProvider), hasLength(2));
-    expect(find.text('Your list is empty.'), findsNothing);
+    expect(find.text('Your sky is clear.'), findsNothing);
     expect(find.textContaining('These are example tasks'), findsOneWidget);
 
     // Something of your own is kept when the examples go.

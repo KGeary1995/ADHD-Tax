@@ -14,7 +14,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'app_flow_test.dart' show pumpApp;
+import 'app_flow_test.dart' show pastStarted, pumpApp;
+
+import 'package:adhd_tax/core/theme/ph.dart';
 
 const _phone = Size(360, 800);
 
@@ -48,24 +50,23 @@ void main() {
         expect(tester.takeException(), isNull);
 
         // A phone starts with just a length and Personal/Work.
-        for (final label in ['How long?', 'Personal', 'Work']) {
+        for (final label in ['5m', '2h', 'Personal', 'Work']) {
           expect(find.text(label), findsOneWidget, reason: label);
         }
+        expect(find.bySemanticsLabel('How long?'), findsOneWidget);
         expect(find.text('Priority'), findsNothing);
         await tester.ensureVisible(find.text('More options'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('More options'));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
-        for (final label in ['Priority', 'How much do you dread it?']) {
+        for (final label in ['Priority', 'Dread', 'Dreading']) {
           expect(find.text(label), findsOneWidget, reason: label);
         }
-        // A yes/no toggle of its own, outside the dread levels' group.
-        final errand = find.widgetWithText(Pill, 'Leave the house');
-        expect(errand, findsOneWidget);
+        // A yes/no switch of its own, apart from the dread levels.
         expect(
-          find.ancestor(of: errand, matching: find.byType(ChoiceGroup<int>)),
-          findsNothing,
+          find.widgetWithText(SwitchRow, 'Need to leave the house'),
+          findsOneWidget,
         );
       });
 
@@ -95,10 +96,17 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         await tester.scrollUntilVisible(
-          find.text('Pick a date'),
+          find.text('Repeats'),
           200,
           scrollable: _editorScroll,
         );
+        expect(tester.takeException(), isNull);
+        // Each detail opens its own sheet.
+        await tester.ensureVisible(find.text('Due'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Due'));
+        await tester.pumpAndSettle();
+        expect(find.text('Pick a date'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
 
@@ -115,6 +123,11 @@ void main() {
           200,
           scrollable: _editorScroll,
         );
+        expect(tester.takeException(), isNull);
+        await tester.ensureVisible(find.text('Due'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Due'));
+        await tester.pumpAndSettle();
         expect(find.text('Clear'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
@@ -147,7 +160,7 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull, reason: path);
         }
-        await tester.tap(find.byIcon(Icons.filter_list_rounded));
+        await tester.tap(find.byIcon(Ph.funnelSimple));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: 'filter sheet');
         await tester.tap(find.text('Board'));
@@ -155,8 +168,8 @@ void main() {
         await tester.tap(find.text('Done').last);
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: 'board');
-        // Five tabs and + in the floating bar.
-        for (final tab in ['Today', 'Tasks', 'Notes', 'Progress', 'Settings']) {
+        // Four tabs and + in the bar.
+        for (final tab in ['Today', 'Tasks', 'Notes', 'Progress']) {
           expect(find.byTooltip(tab), findsOneWidget, reason: tab);
         }
       });
@@ -237,7 +250,7 @@ void main() {
         final t = c.read(tasksProvider).first;
         c.read(routerProvider).push('/focus/${t.id}?min=15');
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 500));
+        await pastStarted(tester);
         await tester.tap(find.byTooltip('Company'));
         for (var i = 0; i < 12; i++) {
           await tester.pump(const Duration(milliseconds: 100));
@@ -280,7 +293,7 @@ void main() {
         c.read(routerProvider).go('/progress');
         await tester.pumpAndSettle();
         await tester.scrollUntilVisible(
-          find.text('Redeem'),
+          find.text('120 to go'),
           200,
           scrollable: find.byType(Scrollable).first,
         );
@@ -303,8 +316,8 @@ void main() {
 
         c.read(routerProvider).push('/focus/${t.id}?min=15');
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 500));
-        expect(find.text('Step 2 of 3'), findsOneWidget);
+        await pastStarted(tester);
+        expect(find.text('STEP 2 OF 3'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'focus');
       });
     });
@@ -336,20 +349,18 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Critical'));
     await tester.pump();
-    await tester.tap(find.text('Full form'));
+    await tester.tap(find.byTooltip('Full form'));
     await tester.pumpAndSettle();
 
     expect(find.text('New task'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Renew license'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.widgetWithText(Pill, 'Critical'),
+      find.text('Priority'),
       300,
       scrollable: _editorScroll,
     );
-    expect(
-      tester.widget<Pill>(find.widgetWithText(Pill, 'Critical')).selected,
-      isTrue,
-    );
+    // The Priority detail shows what Quick add had.
+    expect(find.text('Critical'), findsOneWidget);
 
     // Back returns to where Quick add was opened, without saving.
     await tester.binding.handlePopRoute();

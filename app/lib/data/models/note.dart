@@ -154,7 +154,8 @@ List<String> hashtagsIn(String text) => [
 /// ("- ", "* ", "1. ", "[ ] ") stripped.
 List<String> taskLinesOf(String body) => [
   for (final raw in body.split('\n'))
-    if (raw
+    // A task named after a [[link]] reads better without the brackets.
+    if (withoutLinkBrackets(raw)
             .trim()
             .replaceFirst(RegExp(r'^([-*•]|\d+[.)]|\[[ xX]?\])\s*'), '')
             .trim()

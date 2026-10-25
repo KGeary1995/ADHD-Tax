@@ -21,14 +21,17 @@ void main() {
     }
 
     await open();
-    expect(find.text('How long?'), findsOneWidget);
+    expect(find.bySemanticsLabel('How long?'), findsOneWidget);
     expect(find.text('Priority'), findsNothing);
-    expect(find.widgetWithText(Pill, 'Leave the house'), findsNothing);
+    expect(find.text('Need to leave the house'), findsNothing);
 
     await tester.tap(find.text('More options'));
     await tester.pumpAndSettle();
     expect(find.text('Priority'), findsOneWidget);
-    expect(find.widgetWithText(Pill, 'Leave the house'), findsOneWidget);
+    expect(
+      find.widgetWithText(SwitchRow, 'Need to leave the house'),
+      findsOneWidget,
+    );
     expect(c.read(keyValueStoreProvider).read('quickadd.more'), 'open');
 
     // Typed extras still work with the options closed.
@@ -64,14 +67,15 @@ void main() {
 
     // Only how long it takes; priority, workspace and tags are in the
     // editor.
-    expect(find.text('1h'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^\uFFFC?1h$')), findsOneWidget);
     expect(find.textContaining('#training'), findsNothing);
     expect(find.textContaining('Critical'), findsNothing);
     expect(find.widgetWithText(Pill, 'All projects'), findsNothing);
 
-    await tester.tap(find.widgetWithText(Pill, 'Everything'));
+    // The filters are behind one button.
+    await tester.tap(find.byTooltip('Show tasks'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(Pill, 'Work'));
+    await tester.tap(find.widgetWithText(OptionButton, 'Work'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
@@ -91,8 +95,7 @@ void main() {
     );
     final tasks = c.read(tasksProvider.notifier);
     final t = tasks.create(title: 'Renew license', estimateMin: 15);
-    // The card reads the real clock for "tomorrow".
-    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final tomorrow = now.add(const Duration(days: 1));
     tasks.save(
       t.copyWith(
         dueAt: DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 17),
@@ -100,7 +103,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('15 min · due tomorrow'), findsOneWidget);
+    expect(find.text('Personal · 15 min'), findsOneWidget);
+    expect(find.text('Due tomorrow, 5 pm'), findsOneWidget);
     expect(find.textContaining('done today'), findsNothing);
     expect(find.text('Overwhelmed?'), findsOneWidget);
   });

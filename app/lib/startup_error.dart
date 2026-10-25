@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'core/theme/ph.dart';
+
 /// Shown instead of a blank screen when the app fails to start. Deliberately
 /// plain: no theme engine, providers or plugins, so it can't fail the same
 /// way the app did.
@@ -52,7 +54,7 @@ class StartupErrorView extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            const Icon(Icons.error_outline, size: 48),
+            const Icon(Ph.warningCircle, size: 48),
             const SizedBox(height: 12),
             const Text(
               'Something went wrong starting Gumption',
@@ -69,7 +71,7 @@ class StartupErrorView extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: () =>
                       Clipboard.setData(ClipboardData(text: details)),
-                  icon: const Icon(Icons.copy),
+                  icon: const Icon(Ph.copySimple),
                   label: const Text('Copy details'),
                 ),
                 const SizedBox(width: 12),

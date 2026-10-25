@@ -7,6 +7,7 @@ import '../reminders/platform_stub.dart'
     if (dart.library.io) '../reminders/platform_io.dart';
 import '../reminders/reminders.dart';
 import 'settings_controller.dart';
+import '../../core/theme/ph.dart';
 
 const _maxNudges = 6;
 
@@ -104,11 +105,7 @@ class _RemindersPanelState extends ConsumerState<RemindersPanel> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.notifications_off_outlined,
-                      size: 20,
-                      color: s.warning,
-                    ),
+                    Icon(Ph.bellSimpleSlash, size: 20, color: s.warning),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -184,7 +181,7 @@ class _RemindersPanelState extends ConsumerState<RemindersPanel> {
                     if (times.length < _maxNudges)
                       Pill(
                         label: 'Add a time',
-                        icon: Icons.add_rounded,
+                        icon: Ph.plusBold,
                         selected: false,
                         onTap: () => _addTime(times),
                       ),
@@ -259,7 +256,7 @@ class _TimePill extends StatelessWidget {
             onPressed: onRemove,
             iconSize: 16,
             visualDensity: VisualDensity.compact,
-            icon: const Icon(Icons.close_rounded),
+            icon: const Icon(Ph.x),
           ),
         ],
       ),

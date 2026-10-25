@@ -18,6 +18,7 @@ class PickerInputs {
     this.energy,
     this.workspaces = const {Workspace.personal, Workspace.work},
     this.rejected = const {},
+    this.chosen,
   });
 
   final int availableMin;
@@ -28,6 +29,10 @@ class PickerInputs {
   /// Tasks passed on with "Not this one" during this session.
   final Set<String> rejected;
 
+  /// Chosen from "Pick one of these three": shown first until done or
+  /// passed on.
+  final String? chosen;
+
   /// After two rerolls we stop rerolling and ask the user to commit.
   bool get shouldCommit => rejected.length >= 2;
 
@@ -37,12 +42,14 @@ class PickerInputs {
     Energy? Function()? energy,
     Set<Workspace>? workspaces,
     Set<String>? rejected,
+    String? Function()? chosen,
   }) => PickerInputs(
     availableMin: availableMin ?? this.availableMin,
     willingToLeave: willingToLeave ?? this.willingToLeave,
     energy: energy != null ? energy() : this.energy,
     workspaces: workspaces ?? this.workspaces,
     rejected: rejected ?? this.rejected,
+    chosen: chosen != null ? chosen() : this.chosen,
   );
 }
 
@@ -76,10 +83,17 @@ class PickerInputsController extends Notifier<PickerInputs> {
 
   void reject(String taskId) {
     ref.read(tasksProvider.notifier).skip(taskId);
-    state = state.copyWith(rejected: {...state.rejected, taskId});
+    state = state.copyWith(
+      rejected: {...state.rejected, taskId},
+      chosen: state.chosen == taskId ? () => null : null,
+    );
   }
 
   void resetRejections() => state = state.copyWith(rejected: const {});
+
+  /// "Pick one of these three": that one, and no more rerolling.
+  void choose(String taskId) =>
+      state = state.copyWith(rejected: const {}, chosen: () => taskId);
 }
 
 const pickerEngine = PickerEngine();
@@ -108,8 +122,11 @@ final pickResultProvider = Provider<PickResult>((ref) {
   final inputs = ref.watch(pickerInputsProvider);
   final now = ref.read(clockProvider)();
   final ctx = _context(inputs, now, ref.watch(calibrationProvider));
-  // Chosen in last night's wrap-up: first, until done or passed on.
-  final pinnedId = ref.watch(settingsProvider.select((s) => s.pinnedFor(now)));
+  // Chosen just now from three, or in last night's wrap-up: first, until
+  // done or passed on.
+  final pinnedId =
+      inputs.chosen ??
+      ref.watch(settingsProvider.select((s) => s.pinnedFor(now)));
   final pinned = pinnedId == null || inputs.rejected.contains(pinnedId)
       ? null
       : tasks
@@ -129,7 +146,11 @@ final pickResultProvider = Provider<PickResult>((ref) {
         score: double.infinity,
         plannedMin: chunk ? inputs.availableMin : real,
         isChunk: chunk,
-        reasons: const ['You chose this last night'],
+        reasons: [
+          inputs.chosen == pinned.id
+              ? 'You chose this one'
+              : 'You chose this last night',
+        ],
       ),
     );
   }

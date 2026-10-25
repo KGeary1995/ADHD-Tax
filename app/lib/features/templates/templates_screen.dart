@@ -8,6 +8,7 @@ import '../../data/models/task.dart' show formatMinutes;
 import '../../data/models/template.dart';
 import '../../widgets/ui.dart';
 import 'templates_controller.dart';
+import '../../core/theme/ph.dart';
 
 /// Opens a new task (in the editor, unsaved) or note from [t].
 void useTemplate(BuildContext context, WidgetRef ref, Template t) {
@@ -62,7 +63,7 @@ Future<Template?> pickTemplate(
                 onTap: () => Navigator.pop(ctx, t),
               ),
             ListTile(
-              leading: const Icon(Icons.tune_rounded),
+              leading: const Icon(Ph.slidersHorizontal),
               title: const Text('Manage templates'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -109,7 +110,7 @@ class TemplatesScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Templates')),
+      appBar: topBar(context, title: 'Templates'),
       body: ContentWidth(
         maxWidth: 760,
         child: ListView(
@@ -179,7 +180,7 @@ class TemplatesScreen extends ConsumerWidget {
                   OutlinedButton.icon(
                     onPressed: () =>
                         context.push('/template/new?kind=${k.name}'),
-                    icon: const Icon(Icons.add_rounded),
+                    icon: const Icon(Ph.plusBold),
                     label: Text('New ${k.label.toLowerCase()} template'),
                   ),
               ],
@@ -208,9 +209,7 @@ class _TemplateTile extends ConsumerWidget {
         child: Row(
           children: [
             Icon(
-              t.kind == TemplateKind.task
-                  ? Icons.checklist_rounded
-                  : Icons.sticky_note_2_outlined,
+              t.kind == TemplateKind.task ? Ph.listChecks : Ph.note,
               color: s.primary,
             ),
             const SizedBox(width: 12),
@@ -239,7 +238,7 @@ class _TemplateTile extends ConsumerWidget {
             PopupMenuButton<String>(
               useRootNavigator: true,
               tooltip: 'Template options',
-              icon: Icon(Icons.more_vert_rounded, color: s.muted),
+              icon: Icon(Ph.dotsThreeVertical, color: s.muted),
               onSelected: (v) => switch (v) {
                 'use' => useTemplate(context, ref, t),
                 'edit' => context.push('/template/${t.id}'),

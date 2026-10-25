@@ -45,7 +45,7 @@ class _ErrandRunScreenState extends ConsumerState<ErrandRunScreen> {
 
     if (run == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Errand run')),
+        appBar: topBar(context, close: true, overline: 'ERRAND RUN'),
         body: const Center(child: Text('No errands to batch right now.')),
       );
     }
@@ -53,7 +53,7 @@ class _ErrandRunScreenState extends ConsumerState<ErrandRunScreen> {
     final allDone = left.isEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Errand run')),
+      appBar: topBar(context, close: true, overline: 'ERRAND RUN'),
       body: ContentWidth(
         maxWidth: 560,
         child: ListView(

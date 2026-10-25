@@ -21,6 +21,7 @@ import '../../data/models/template.dart';
 import '../templates/templates_controller.dart';
 import '../templates/templates_screen.dart';
 import 'voice_input.dart';
+import '../../core/theme/ph.dart';
 
 /// Five-second capture. Only the title is required.
 Future<void> showQuickAdd(
@@ -287,29 +288,108 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
     final priority = r?.priority ?? _priority;
     final workspace = r?.workspace ?? _workspace;
     final project = r == null ? _project : r.project;
-    final side = narrow ? 18.0 : 22.0;
+    final side = narrow ? 20.0 : 22.0;
+    final single = ref.watch(deviceWorkspacesProvider).single;
+    final lines = _title.text
+        .split('\n')
+        .where((l) => l.trim().isNotEmpty)
+        .length;
     // Sits on top of the keyboard when it's open, above the system
     // navigation bar when it isn't.
     final bottom = MediaQuery.viewInsetsOf(context).bottom > 0
         ? MediaQuery.viewInsetsOf(context).bottom
         : MediaQuery.viewPaddingOf(context).bottom;
 
-    Widget section(String label, Widget child) => Padding(
-      padding: const EdgeInsets.only(top: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [FieldLabel(label), child],
+    Widget iconAction(IconData icon, String tip, VoidCallback onTap) =>
+        IconButton(
+          tooltip: tip,
+          onPressed: onTap,
+          icon: Icon(icon, size: 21, color: s.ink2),
+        );
+
+    // Where it goes stays in view, so Work tasks don't land in the personal
+    // account by accident.
+    final workspaces = single
+        ? null
+        : OptionRow(
+            children: [
+              for (final w in Workspace.values)
+                WorkspaceOption(
+                  work: w == Workspace.work,
+                  label: w.label,
+                  selected: workspace == w,
+                  onTap: () => setState(() {
+                    _workspace = w;
+                    _workspaceTouched = true;
+                    if (_project?.workspace != w) _project = null;
+                  }),
+                ),
+            ],
+          );
+
+    final field = TextField(
+      controller: _title,
+      autofocus: true,
+      minLines: _brainDump ? 5 : 1,
+      maxLines: _brainDump ? 12 : 3,
+      style: TextStyle(
+        fontSize: _brainDump ? 16 : 17,
+        height: _brainDump ? 1.75 : 1.35,
+        color: s.ink,
+      ),
+      keyboardType: TextInputType.multiline,
+      textInputAction: _brainDump
+          ? TextInputAction.newline
+          : TextInputAction.done,
+      onSubmitted: _brainDump ? null : (_) => _save(),
+      decoration: InputDecoration(
+        hintText: _brainDump
+            ? "Everything in your head, one per line.\nDon't sort it."
+            : 'e.g. Call insurance tomorrow 2pm…',
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(Radii.lg),
+          borderSide: BorderSide(color: s.star, width: 2),
+        ),
+        suffixIcon: VoiceButton(controller: _title, newLine: _brainDump),
       ),
     );
 
-    final link = TextButton.styleFrom(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      textStyle: const TextStyle(
-        fontFamily: Fonts.ui,
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
+    final moreRows = [
+      _OptionLine(
+        label: 'Priority',
+        narrow: narrow,
+        children: [
+          for (final p in Priority.values)
+            _SmallOption(
+              label: p.label,
+              selected: priority == p,
+              onTap: () => setState(() {
+                _priority = p;
+                _priorityTouched = true;
+              }),
+            ),
+        ],
       ),
-    );
+      _OptionLine(
+        label: 'Dread',
+        narrow: narrow,
+        children: [
+          for (var i = 0; i < ughLabels.length; i++)
+            _SmallOption(
+              label: i == 3 ? 'Dreading' : ughLabels[i],
+              selected: _ugh == i,
+              onTap: () => setState(() => _ugh = i),
+            ),
+        ],
+      ),
+      // A yes/no fact of its own, kept apart from the dread scale.
+      SwitchRow(
+        title: 'Need to leave the house',
+        leading: const Icon(Ph.carSimple),
+        value: _leave,
+        onChanged: (v) => setState(() => _leave = v),
+      ),
+    ];
 
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
@@ -323,97 +403,84 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 side,
                 widget.dialog ? 24 : 0,
                 side,
-                8,
+                4,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
+                  Row(
                     children: [
-                      Text(
-                        _brainDump ? 'Brain dump' : 'Add a task',
-                        style: s.display(26),
-                      ),
-                      Wrap(
-                        children: [
-                          TextButton(
-                            style: link,
-                            onPressed: () =>
-                                setState(() => _brainDump = !_brainDump),
-                            child: Text(_brainDump ? 'One task' : 'Brain dump'),
-                          ),
-                          if (!_brainDump)
-                            TextButton(
-                              style: link,
-                              onPressed: _fromTemplate,
-                              child: const Text('Template'),
-                            ),
-                          if (!_brainDump)
-                            Tooltip(
-                              message:
-                                  'First step, due date, notes, energy and '
-                                  'more',
-                              child: TextButton(
-                                style: link,
-                                onPressed: _openFullForm,
-                                child: const Text('Full form'),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: _title,
-                    autofocus: true,
-                    minLines: _brainDump ? 5 : 1,
-                    maxLines: _brainDump ? 12 : 1,
-                    style: TextStyle(fontSize: 17, color: s.onSurface),
-                    textInputAction: _brainDump
-                        ? TextInputAction.newline
-                        : TextInputAction.done,
-                    onSubmitted: _brainDump ? null : (_) => _save(),
-                    decoration: InputDecoration(
-                      hintText: _brainDump
-                          ? 'Everything in your head, one per line.\nDon\'t sort it. Just get it out.'
-                          : 'e.g. Call insurance tomorrow 2pm 15 min #billing',
-                      suffixIcon: VoiceButton(
-                        controller: _title,
-                        newLine: _brainDump,
-                      ),
-                    ),
-                  ),
-                  if (!_brainDump && _title.text.trim().isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        'Type when, how long, #tags or "urgent" right in the '
-                        'box and they fill themselves in.',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: s.muted,
-                          height: 1.35,
+                      Expanded(
+                        child: Text(
+                          _brainDump ? 'Brain dump' : 'Add a task',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: s.display(narrow ? 22 : 24),
                         ),
                       ),
+                      if (_brainDump)
+                        TextButton(
+                          onPressed: () => setState(() => _brainDump = false),
+                          child: const Text('One task'),
+                        )
+                      else ...[
+                        iconAction(
+                          Ph.lightning,
+                          'Brain dump',
+                          () => setState(() => _brainDump = true),
+                        ),
+                        iconAction(
+                          Ph.copySimple,
+                          'From a template',
+                          _fromTemplate,
+                        ),
+                        iconAction(
+                          Ph.arrowsOutSimple,
+                          'Full form',
+                          _openFullForm,
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (_brainDump) ...[
+                    const SizedBox(height: Gap.s1),
+                    Text(
+                      "Everything in your head, one per line. Don't sort it. "
+                      'Lines can say "tomorrow", "15 min" or "#tag".',
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.35,
+                        color: s.ink2,
+                      ),
                     ),
+                    const SizedBox(height: Gap.s6),
+                    field,
+                    if (workspaces != null) ...[
+                      const SizedBox(height: 12),
+                      workspaces,
+                    ],
+                  ] else ...[
+                    if (workspaces != null) ...[
+                      const SizedBox(height: 12),
+                      workspaces,
+                    ],
+                    const SizedBox(height: 12),
+                    field,
+                  ],
                   if (_notes.isNotEmpty && !_brainDump)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Row(
                         children: [
-                          Icon(Icons.notes_rounded, size: 16, color: s.muted),
+                          Icon(Ph.textAlignLeft, size: 16, color: s.ink3),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Note: $_notes',
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 13, color: s.muted),
+                              style: s.caption(),
                             ),
                           ),
                           IconButton(
@@ -421,7 +488,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                             visualDensity: VisualDensity.compact,
                             iconSize: 18,
                             onPressed: () => setState(() => _notes = ''),
-                            icon: const Icon(Icons.close_rounded),
+                            icon: const Icon(Ph.x),
                           ),
                         ],
                       ),
@@ -432,60 +499,18 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                       resolved: r!,
                       onIgnore: (key) => setState(() => _ignored.add(key)),
                     ),
-                  if (_brainDump)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        'Lines can include things like "tomorrow", '
-                        '"15 min" or "#tag".',
-                        style: TextStyle(fontSize: 13, color: s.muted),
-                      ),
-                    ),
                   PhiWarning(
                     text: '${_title.text}\n$_notes',
                     workspace: workspace,
                   ),
-                  if (!_brainDump) ...[
-                    section(
-                      'How long?',
-                      ChoiceGroup(
-                        values: estimatePresets,
-                        selected: estimate,
-                        mono: true,
-                        labelOf: shortMinutes,
-                        onSelected: (m) => setState(() {
-                          _estimate = m;
-                          _estimateTouched = true;
-                        }),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  // Where it goes: Personal or Work stays in view, so Work
-                  // tasks don't land in the personal account by accident.
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      if (!ref.watch(deviceWorkspacesProvider).single)
-                        SizedBox(
-                          width: 220,
-                          child: Segmented<Workspace>(
-                            values: Workspace.values,
-                            selected: workspace,
-                            inset: s.isDark,
-                            labelOf: (w) => w.label,
-                            onSelected: (w) => setState(() {
-                              _workspace = w;
-                              _workspaceTouched = true;
-                              if (_project?.workspace != w) _project = null;
-                            }),
-                          ),
-                        ),
-                      if (project case final p?)
-                        Pill(
+                  if (project case final p?)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Pill(
                           label: p.name,
-                          icon: Icons.folder_outlined,
+                          icon: Ph.folderSimple,
                           selected: true,
                           onTap: () => setState(() {
                             if (_project == p) {
@@ -496,59 +521,77 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                             }
                           }),
                         ),
-                    ],
-                  ),
-                  if (!_brainDump && !widget.dialog)
-                    Container(
-                      padding: const EdgeInsets.only(top: 8),
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        style: link,
-                        onPressed: _toggleMore,
-                        icon: Icon(
-                          _more
-                              ? Icons.expand_less_rounded
-                              : Icons.expand_more_rounded,
-                          size: 20,
+                      ),
+                    ),
+                  if (!_brainDump) ...[
+                    const SizedBox(height: Gap.s6),
+                    Semantics(
+                      label: 'How long?',
+                      container: true,
+                      child: Row(
+                        children: [
+                          for (final (i, m) in estimatePresets.indexed) ...[
+                            if (i > 0) const SizedBox(width: Gap.s3),
+                            Expanded(
+                              child: _SmallOption(
+                                label: shortMinutes(m),
+                                selected: estimate == m,
+                                sora: true,
+                                height: 42,
+                                onTap: () => setState(() {
+                                  _estimate = m;
+                                  _estimateTouched = true;
+                                }),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (!estimatePresets.contains(estimate))
+                      Padding(
+                        padding: const EdgeInsets.only(top: Gap.s3),
+                        child: Text(
+                          'Length: ${formatMinutes(estimate)}',
+                          style: s.caption(color: s.ink2),
                         ),
-                        label: Text(_more ? 'Fewer options' : 'More options'),
                       ),
-                    ),
-                  if (!_brainDump && _more) ...[
-                    section(
-                      'Priority',
-                      ChoiceGroup(
-                        values: Priority.values,
-                        selected: priority,
-                        labelOf: (p) => p.label,
-                        onSelected: (p) => setState(() {
-                          _priority = p;
-                          _priorityTouched = true;
-                        }),
-                      ),
-                    ),
-                    section(
-                      'How much do you dread it?',
-                      ChoiceGroup(
-                        values: [for (var i = 0; i < ughLabels.length; i++) i],
-                        selected: _ugh,
-                        labelOf: (i) => ughLabels[i],
-                        onSelected: (i) => setState(() => _ugh = i),
-                      ),
-                    ),
-                    // A yes/no fact of its own, kept apart from the dread scale.
-                    Padding(
-                      padding: const EdgeInsets.only(top: 18),
-                      child: Align(
+                    if (!widget.dialog)
+                      Align(
                         alignment: Alignment.centerLeft,
-                        child: Pill(
-                          label: 'Leave the house',
-                          icon: Icons.directions_car_outlined,
-                          selected: _leave,
-                          onTap: () => setState(() => _leave = !_leave),
+                        child: TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 40),
+                            textStyle: const TextStyle(
+                              fontFamily: Fonts.ui,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          onPressed: _toggleMore,
+                          icon: Icon(
+                            _more ? Ph.caretUp : Ph.caretDown,
+                            size: 16,
+                          ),
+                          label: Text(_more ? 'Fewer options' : 'More options'),
+                        ),
+                      )
+                    else
+                      const SizedBox(height: Gap.s6),
+                    if (_more)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final (i, w) in moreRows.indexed) ...[
+                              if (i > 0) const SizedBox(height: 12),
+                              w,
+                            ],
+                          ],
                         ),
                       ),
-                    ),
                   ],
                 ],
               ),
@@ -558,34 +601,146 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
           // however long the form gets.
           Padding(
             padding: EdgeInsets.fromLTRB(side, 12, side, 16),
-            child: Row(
-              children: [
-                if (!_brainDump) ...[
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _canSave ? () => _save(start: true) : null,
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 56),
-                      ),
-                      child: const Text('Add & start'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                ],
-                Expanded(
-                  child: FilledButton(
+            child: _brainDump
+                ? PrimaryButton(
+                    label: lines > 1
+                        ? 'Capture $lines tasks'
+                        : lines == 1
+                        ? 'Capture 1 task'
+                        : 'Capture all',
+                    height: 58,
                     onPressed: _canSave ? _save : null,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 56),
-                    ),
-                    child: Text(_brainDump ? 'Capture all' : 'Add'),
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: OutlineButton(
+                          label: 'Add & start',
+                          fontSize: 16,
+                          onPressed: _canSave ? () => _save(start: true) : null,
+                        ),
+                      ),
+                      const SizedBox(width: Gap.s5),
+                      Expanded(
+                        child: PrimaryButton(
+                          label: 'Add',
+                          fontSize: 16,
+                          onPressed: _canSave ? _save : null,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A compact option: lengths, priorities, dread.
+class _SmallOption extends StatelessWidget {
+  const _SmallOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.sora = false,
+    this.height = 38,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final bool sora;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    final fg = selected ? s.onStar : s.ink;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(sora ? 11 : 10),
+      side: BorderSide(color: selected ? s.star : s.line2, width: 2),
+    );
+    return Semantics(
+      selected: selected,
+      button: true,
+      inMutuallyExclusiveGroup: true,
+      child: Material(
+        color: selected ? s.star : Colors.transparent,
+        shape: shape,
+        child: InkWell(
+          customBorder: shape,
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: height),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.fade,
+                  style: sora
+                      ? s.button(14, fg)
+                      : TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: fg,
+                        ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Priority  [Critical][High][Normal][Someday]": the label beside four
+/// options, or above them (two by two) on a narrow phone.
+class _OptionLine extends StatelessWidget {
+  const _OptionLine({
+    required this.label,
+    required this.children,
+    required this.narrow,
+  });
+  final String label;
+  final List<Widget> children;
+  final bool narrow;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    final text = Text(
+      label,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: s.ink2,
+      ),
+    );
+    final big = MediaQuery.textScalerOf(context).scale(10) > 11.5;
+    if (narrow || big) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          text,
+          const SizedBox(height: Gap.s3),
+          OptionRow(children: children.sublist(0, 2)),
+          const SizedBox(height: Gap.s3),
+          OptionRow(children: children.sublist(2)),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        SizedBox(width: 62, child: text),
+        const SizedBox(width: Gap.s5),
+        Expanded(child: OptionRow(children: children)),
+      ],
     );
   }
 }
@@ -635,24 +790,23 @@ class _Understood extends StatelessWidget {
             runSpacing: 6,
             children: [
               for (final b in parsed.bits)
-                Pill(
+                _ParsedChip(
                   label:
                       project != null &&
                           b.key == qkTag(normalizeTag(project.name))
                       ? project.name
                       : b.label,
                   icon: switch (b.key) {
-                    qkDue => Icons.event_outlined,
-                    qkLength => Icons.timer_outlined,
-                    qkPriority => Icons.flag_outlined,
-                    qkWorkspace => Icons.work_outline_rounded,
+                    qkDue => Ph.calendarBlank,
+                    qkLength => Ph.timer,
+                    qkPriority => Ph.flag,
+                    qkWorkspace => Ph.briefcase,
                     _
                         when project != null &&
                             b.key == qkTag(normalizeTag(project.name)) =>
-                      Icons.folder_outlined,
-                    _ => Icons.tag_rounded,
+                      Ph.folderSimple,
+                    _ => Ph.hash,
                   },
-                  selected: true,
                   onTap: () => onIgnore(b.key),
                 ),
             ],
@@ -660,9 +814,62 @@ class _Understood extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Saving as "${parsed.title}". Tap a chip to keep it as words.',
-            style: TextStyle(fontSize: 12.5, color: s.muted, height: 1.35),
+            style: s.caption(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Something understood from the typed text: a soft gold chip.
+class _ParsedChip extends StatelessWidget {
+  const _ParsedChip({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    return Semantics(
+      button: true,
+      label: '$label. Keep as words',
+      excludeSemantics: true,
+      child: Material(
+        color: s.starSoft,
+        borderRadius: BorderRadius.circular(9),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(9),
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 32),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 15, color: s.accentText),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: s.ink,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

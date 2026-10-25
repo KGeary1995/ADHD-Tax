@@ -9,6 +9,7 @@ import '../../core/theme/app_themes.dart';
 import '../../data/models/task.dart';
 import '../../sync/sync_controller.dart';
 import '../../widgets/ui.dart';
+import '../../core/theme/ph.dart';
 
 /// Settings → Sync: one row per workspace.
 class AccountsPanel extends ConsumerWidget {
@@ -129,7 +130,7 @@ class _WorkspaceRow extends ConsumerWidget {
           PopupMenuButton<String>(
             useRootNavigator: true,
             tooltip: 'Sync options',
-            icon: Icon(Icons.more_horiz_rounded, color: s.muted),
+            icon: Icon(Ph.dotsThree, color: s.muted),
             onSelected: (v) => switch (v) {
               'sync' => ctl.syncNow(),
               'backup' => _export(context, ref),
@@ -226,12 +227,11 @@ class SyncIcon extends StatelessWidget {
     final s = context.spec;
     final (icon, color) = switch (sync.phase) {
       SyncPhase.notConfigured ||
-      SyncPhase.disconnected => (Icons.cloud_off_outlined, s.muted),
-      SyncPhase.connecting ||
-      SyncPhase.syncing => (Icons.cloud_sync_outlined, s.muted),
-      SyncPhase.synced => (Icons.cloud_done_outlined, s.primary),
-      SyncPhase.error => (Icons.cloud_queue, s.warning),
-      SyncPhase.needsReconnect => (Icons.cloud_off, s.danger),
+      SyncPhase.disconnected => (Ph.cloudSlash, s.muted),
+      SyncPhase.connecting || SyncPhase.syncing => (Ph.cloudArrowUp, s.muted),
+      SyncPhase.synced => (Ph.cloudCheck, s.primary),
+      SyncPhase.error => (Ph.cloud, s.warning),
+      SyncPhase.needsReconnect => (Ph.cloudSlash, s.danger),
     };
     return Icon(icon, color: color, size: size);
   }

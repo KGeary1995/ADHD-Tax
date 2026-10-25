@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_themes.dart';
 import '../../data/models/checklist.dart';
+import '../../core/theme/ph.dart';
 
 /// Edits a checklist string: tick, rename, remove, add. Pasting several
 /// lines into "Add a step" adds one step per line.
@@ -106,7 +107,7 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
             trailing: PopupMenuButton<String>(
               useRootNavigator: true,
               tooltip: 'Step options',
-              icon: Icon(Icons.more_vert_rounded, color: s.muted, size: 20),
+              icon: Icon(Ph.dotsSixVertical, color: s.ink3, size: 18),
               onSelected: (v) => switch (v) {
                 'up' => _move(i, -1),
                 'down' => _move(i, 1),
@@ -137,13 +138,27 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
             if (v.contains('\n')) _addTyped();
           },
           onSubmitted: (_) => _addTyped(),
+          style: TextStyle(fontSize: 16, color: s.ink),
           decoration: InputDecoration(
             hintText: widget.hint,
-            prefixIcon: const Icon(Icons.add_rounded),
-            suffixIcon: IconButton(
-              tooltip: 'Add step',
-              icon: const Icon(Icons.keyboard_return_rounded),
-              onPressed: _addTyped,
+            filled: false,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: s.star, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            prefixIcon: Icon(Ph.plus, size: 20, color: s.ink3),
+            prefixIconConstraints: const BoxConstraints(minWidth: 34),
+            suffixIcon: ListenableBuilder(
+              listenable: _add,
+              builder: (context, _) => _add.text.trim().isEmpty
+                  ? const SizedBox.shrink()
+                  : IconButton(
+                      tooltip: 'Add step',
+                      icon: const Icon(Ph.arrowElbowDownLeft),
+                      onPressed: _addTyped,
+                    ),
             ),
           ),
         ),
@@ -173,7 +188,37 @@ class ChecklistRow extends StatelessWidget {
     final s = context.spec;
     return Row(
       children: [
-        Checkbox(value: item.done, onChanged: (_) => onToggle()),
+        Semantics(
+          checked: item.done,
+          button: true,
+          label: item.text,
+          excludeSemantics: true,
+          child: InkResponse(
+            onTap: onToggle,
+            radius: 22,
+            child: SizedBox.square(
+              dimension: 40,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: item.done ? s.star : Colors.transparent,
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(
+                      color: item.done ? s.star : s.ink3,
+                      width: 2,
+                    ),
+                  ),
+                  child: item.done
+                      ? Icon(Ph.checkBold, size: 12, color: s.onStar)
+                      : null,
+                ),
+              ),
+            ),
+          ),
+        ),
         Expanded(
           child: InkWell(
             onTap: onTapText ?? onToggle,
@@ -183,10 +228,12 @@ class ChecklistRow extends StatelessWidget {
               child: Text(
                 item.text,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                   height: 1.3,
-                  color: item.done ? s.muted : s.onSurface,
+                  color: item.done ? s.ink3 : s.ink,
                   decoration: item.done ? TextDecoration.lineThrough : null,
+                  decorationColor: s.ink3,
                 ),
               ),
             ),

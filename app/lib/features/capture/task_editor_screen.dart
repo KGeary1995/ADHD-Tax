@@ -24,6 +24,7 @@ import '../tasks/checklist_editor.dart';
 import '../tasks/task_actions.dart';
 import '../tasks/tasks_controller.dart';
 import '../templates/templates_controller.dart';
+import '../../core/theme/ph.dart';
 
 /// Full task editor. `taskId == 'new'` creates a task.
 class TaskEditorScreen extends ConsumerStatefulWidget {
@@ -48,6 +49,11 @@ class TaskEditorScreen extends ConsumerStatefulWidget {
 
 class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   late Task _task;
+
+  /// A task with steps starts from its checklist, so the first-step field
+  /// is hidden. Decided once on open: adding the first step mustn't make
+  /// the section vanish under your finger.
+  late final bool _showFirstStep;
   late final bool _isNew;
   late final TextEditingController _title;
   late final TextEditingController _firstStep;
@@ -73,6 +79,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           createdAt: now,
           updatedAt: now,
         );
+    _showFirstStep = _task.steps.isEmpty || _task.firstStep.isNotEmpty;
     _title = TextEditingController(text: _task.title)
       ..addListener(() => setState(() {}));
     _firstStep = TextEditingController(text: _task.firstStep)
@@ -126,21 +133,11 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   Future<void> _delete() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete this task?'),
-        content: const Text(
-          'If it just doesn\'t matter anymore, that\'s a valid outcome.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (ctx) => ConfirmDialog(
+        title: 'Delete this task?',
+        body: "If it just doesn't matter anymore, that's a fine outcome.",
+        confirm: 'Delete',
+        danger: true,
       ),
     );
     if (ok == true && mounted) {
@@ -274,529 +271,810 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     }
   }
 
+  /// A detail's own sheet: a title, its controls, and Done. Changes apply
+  /// to the editor straight away (still only saved with Save).
+  Future<void> _detailSheet(
+    String title,
+    List<Widget> Function(BuildContext ctx, void Function(Task) set) body, {
+    String? subtitle,
+  }) => showAppSheet<void>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setSheet) {
+        void set(Task t) {
+          setState(() => _task = t);
+          setSheet(() {});
+        }
+
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: sheetPadding.add(
+              EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SheetTitle(title, subtitle: subtitle),
+                const SizedBox(height: Gap.s7),
+                ...body(ctx, set),
+                const SizedBox(height: Gap.s8),
+                PrimaryButton(
+                  label: 'Done',
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+
+  /// Options in rows of [perRow], equal width.
+  List<Widget> _options<T>(
+    List<T> values,
+    T selected,
+    String Function(T) labelOf,
+    void Function(T) onTap, {
+    int perRow = 2,
+  }) => [
+    for (var i = 0; i < values.length; i += perRow) ...[
+      if (i > 0) const SizedBox(height: Gap.s4),
+      OptionRow(
+        children: [
+          for (final v in values.skip(i).take(perRow))
+            OptionButton(
+              label: labelOf(v),
+              selected: v == selected,
+              onTap: () => onTap(v),
+            ),
+          for (var k = values.skip(i).take(perRow).length; k < perRow; k++)
+            const SizedBox.shrink(),
+        ],
+      ),
+    ],
+  ];
+
+  String get _lengthText {
+    final m = int.tryParse(_estimate.text) ?? _task.estimateMin;
+    return '${formatMinutes(m)}${_task.chunkable ? ', can be done in chunks' : ''}';
+  }
+
+  String _dateText(DateTime d) {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return '${days[d.weekday - 1]}, ${formatDate(d)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = context.spec;
     final narrow = MediaQuery.sizeOf(context).width < 420;
+    final wide = MediaQuery.sizeOf(context).width >= 1000;
+    final single = ref.watch(deviceWorkspacesProvider).single;
+    final project = ref
+        .watch(projectsProvider)
+        .where((p) => p.id == _task.projectId)
+        .firstOrNull;
+    final canSave = _title.text.trim().isNotEmpty;
 
-    Widget field(String label, Widget child, {String? help}) => Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FieldLabel(label),
-          child,
-          if (help != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              help,
-              style: TextStyle(color: s.muted, fontSize: 13, height: 1.4),
-            ),
-          ],
-        ],
-      ),
+    Widget label(String text) => Padding(
+      padding: const EdgeInsets.only(top: Gap.s9, bottom: Gap.s2),
+      child: Text(text.toUpperCase(), style: s.overline()),
     );
 
-    // On a computer: what the task is on the left, how and when on the
-    // right, instead of one long narrow column.
-    final wide = MediaQuery.sizeOf(context).width >= 1000;
-    // On a computer the settings-like fields put their label beside the
-    // choices, so the "how" and "when" panels fit without scrolling.
-    Widget row(String label, Widget child, {String? help}) => !wide
-        ? field(label, child, help: help)
-        : Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 128,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 12, right: 12),
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: s.isDark ? s.text2 : s.muted,
-                      ),
+    // A field drawn as a line, not a box: the editor reads as a page.
+    InputDecoration underline(String hint, {double width = 2}) =>
+        InputDecoration(
+          hintText: hint,
+          filled: false,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          border: UnderlineInputBorder(
+            borderSide: BorderSide(color: s.line2, width: width),
+          ),
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: s.line2, width: width),
+          ),
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: s.star, width: 2),
+          ),
+        );
+
+    final workspaceRow = single
+        ? null
+        : OptionRow(
+            children: [
+              for (final w in Workspace.values)
+                WorkspaceOption(
+                  work: w == Workspace.work,
+                  label: w.label,
+                  selected: _task.workspace == w,
+                  // Projects belong to one workspace.
+                  onTap: () => setState(
+                    () => _task = _task.copyWith(
+                      workspace: w,
+                      projectId: w == _task.workspace ? _task.projectId : '',
                     ),
                   ),
                 ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      child,
-                      if (help != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          help,
-                          style: TextStyle(
-                            color: s.muted,
-                            fontSize: 13,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            ],
           );
 
-    final whatPanel = Panel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          field(
-            'Task',
-            TextField(
-              controller: _title,
-              autofocus: _isNew,
-              decoration: const InputDecoration(hintText: 'What needs doing?'),
-            ),
-          ),
-          field(
-            'First 2-minute step',
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextField(
-                  controller: _firstStep,
-                  autofocus: widget.focusFirstStep,
-                  decoration: const InputDecoration(
-                    hintText: 'e.g. "Open the portal and log in"',
-                  ),
-                ),
-                // Stuck for a first step? A few ideas for this kind of
-                // task, built in (no AI, nothing leaves the device).
-                ListenableBuilder(
-                  listenable: Listenable.merge([_title, _firstStep]),
-                  builder: (context, _) {
-                    if (_firstStep.text.trim().isNotEmpty ||
-                        _title.text.trim().isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    final ideas = stepIdeasFor(_title.text).firstSteps;
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            'Ideas:',
-                            style: TextStyle(fontSize: 13, color: s.muted),
-                          ),
-                          for (final idea in ideas)
-                            Pill(
-                              label: idea,
-                              selected: false,
-                              icon: Icons.add_rounded,
-                              onTap: () => _firstStep.text = idea,
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            help: _task.steps.isEmpty
-                ? 'Make it so small it feels silly. This is what the '
-                      'focus screen shows instead of the whole task.'
-                : 'With a checklist, the next unticked step is shown '
-                      'instead.',
-          ),
-          field(
-            'Checklist',
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ChecklistEditor(
-                  value: _task.checklist,
-                  onChanged: (v) =>
-                      setState(() => _task = _task.copyWith(checklist: v)),
-                ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: _breakingDown ? null : _breakDown,
-                    icon: _breakingDown
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.auto_awesome_outlined),
-                    label: Text(
-                      _breakingDown
-                          ? 'Breaking it down…'
-                          : ref.watch(aiSettingsProvider).hasKey
-                          ? 'Break it down with AI'
-                          : 'Suggest steps',
+    final firstStep = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        label('First 2-minute step'),
+        TextField(
+          controller: _firstStep,
+          autofocus: widget.focusFirstStep,
+          style: TextStyle(fontSize: 17, color: s.ink),
+          decoration: underline('So small it feels silly'),
+        ),
+        // Stuck for a first step? A few ideas for this kind of task, built
+        // in (no AI, nothing leaves the device).
+        ListenableBuilder(
+          listenable: Listenable.merge([_title, _firstStep]),
+          builder: (context, _) {
+            if (_firstStep.text.trim().isNotEmpty ||
+                _title.text.trim().isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final idea in stepIdeasFor(_title.text).firstSteps)
+                    _IdeaChip(
+                      label: '+ $idea',
+                      onTap: () => _firstStep.text = idea,
                     ),
-                  ),
-                ),
-              ],
-            ),
-            help: _task.steps.isEmpty
-                ? 'Optional. Break it into steps you can tick off.'
-                : null,
-          ),
-          field(
-            'Notes',
-            TextField(
-              controller: _notes,
-              minLines: 2,
-              maxLines: 6,
-              decoration: const InputDecoration(
-                hintText: 'Links, details, context',
-              ),
-            ),
-          ),
-          PhiWarning(
-            text:
-                '${_title.text}\n${_firstStep.text}\n'
-                '${_task.checklist}\n${_notes.text}',
-            workspace: _task.workspace,
-          ),
-        ],
-      ),
-    );
-    final howPanel = Panel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!ref.watch(deviceWorkspacesProvider).single)
-            row(
-              'Workspace',
-              ChoiceGroup(
-                values: Workspace.values,
-                selected: _task.workspace,
-                labelOf: (w) => w.label,
-                // Projects belong to one workspace.
-                onSelected: (w) => setState(
-                  () => _task = _task.copyWith(
-                    workspace: w,
-                    projectId: w == _task.workspace ? _task.projectId : '',
-                  ),
-                ),
-              ),
-            ),
-          row(
-            'Project',
-            ProjectPicker(
-              workspace: _task.workspace,
-              selected: _task.projectId,
-              onSelected: (id) =>
-                  setState(() => _task = _task.copyWith(projectId: id)),
-            ),
-          ),
-          row(
-            'Tags',
-            TextField(
-              controller: _tags,
-              decoration: const InputDecoration(
-                hintText: '#billing #calls',
-                prefixIcon: Icon(Icons.tag_rounded),
-              ),
-            ),
-          ),
-          row(
-            'Estimate',
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                for (final m in estimatePresets)
-                  Pill(
-                    label: shortMinutes(m),
-                    mono: true,
-                    selected: int.tryParse(_estimate.text) == m,
-                    onTap: () => setState(() => _estimate.text = '$m'),
-                  ),
-                SizedBox(
-                  width: 120,
-                  child: TextField(
-                    controller: _estimate,
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      suffixText: 'min',
-                      isDense: true,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Can be done in chunks'),
-            subtitle: const Text(
-              'Lets "Pick for me" offer a slice of it when you have less time.',
-            ),
-            value: _task.chunkable,
-            onChanged: (v) =>
-                setState(() => _task = _task.copyWith(chunkable: v)),
-          ),
-          const SizedBox(height: 8),
-          row(
-            'Priority',
-            ChoiceGroup(
-              values: Priority.values,
-              selected: _task.priority,
-              labelOf: (p) => p.label,
-              onSelected: (p) =>
-                  setState(() => _task = _task.copyWith(priority: p)),
-            ),
-          ),
-          row(
-            'How much do you dread it?',
-            ChoiceGroup(
-              values: [for (var i = 0; i < ughLabels.length; i++) i],
-              selected: _task.ugh,
-              labelOf: (i) => ughLabels[i],
-              onSelected: (i) => setState(() => _task = _task.copyWith(ugh: i)),
-            ),
-            help: 'Dreaded tasks earn bonus XP and get suggested when your energy is up.',
-          ),
-          row(
-            'Energy it takes',
-            ChoiceGroup(
-              values: Energy.values,
-              selected: _task.energy,
-              labelOf: (e) => e.label,
-              onSelected: (e) =>
-                  setState(() => _task = _task.copyWith(energy: e)),
-            ),
-          ),
-        ],
-      ),
-    );
-    final whenPanel = Panel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Need to leave the house'),
-            value: _task.requiresLeavingHouse,
-            onChanged: (v) =>
-                setState(() => _task = _task.copyWith(requiresLeavingHouse: v)),
-          ),
-          if (_task.requiresLeavingHouse)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: TextField(
-                controller: _location,
-                decoration: const InputDecoration(
-                  hintText: 'Where? (Pharmacy, Post office…)',
-                  prefixIcon: Icon(Icons.place_outlined),
-                ),
-              ),
-            ),
-          const SizedBox(height: 8),
-          row(
-            'Due date',
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _pickDue,
-                  icon: const Icon(Icons.event_outlined),
-                  label: Text(
-                    _task.dueAt == null
-                        ? 'Pick a date'
-                        : MaterialLocalizations.of(context)
-                              .formatMediumDate(_task.dueAt!),
-                  ),
-                ),
-                if (_task.dueAt != null)
-                  TextButton(
-                    onPressed: () =>
-                        setState(() => _task = _task.copyWith(dueAt: null)),
-                    child: const Text('Clear'),
-                  ),
-              ],
-            ),
-          ),
-          if (_task.dueAt != null)
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Hard deadline'),
-              subtitle: const Text(
-                'Real consequences if missed. Ramps up sooner.',
-              ),
-              value: _task.hardDeadline,
-              onChanged: (v) =>
-                  setState(() => _task = _task.copyWith(hardDeadline: v)),
-            ),
-          const SizedBox(height: 8),
-          row(
-            'Repeats',
-            DropdownButtonFormField<Repeat>(
-              initialValue: _task.repeat,
-              isExpanded: true,
-              items: [
-                for (final r in Repeat.values)
-                  DropdownMenuItem(value: r, child: Text(r.label)),
-              ],
-              onChanged: (v) {
-                if (v != null) {
-                  setState(() => _task = _task.copyWith(repeat: v));
-                }
-              },
-            ),
-            help: _task.repeat == Repeat.none
-                ? null
-                : 'When you finish it, the next one is added '
-                      'automatically.',
-          ),
-          if (_task.repeat != Repeat.none)
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Count from when I finish it'),
-              subtitle: Text(
-                _task.repeatFromDone
-                    ? 'Like watering plants: the next one is a full '
-                          'period after you actually did it.'
-                    : 'Keeps a fixed schedule, like a report due '
-                          'every Friday.',
-              ),
-              value: _task.repeatFromDone,
-              onChanged: (v) =>
-                  setState(() => _task = _task.copyWith(repeatFromDone: v)),
-            ),
-          if (!_isNew) ...[
-            const SizedBox(height: 8),
-            row(
-              'Status',
-              DropdownButtonFormField<TaskStatus>(
-                initialValue: _task.status,
-                isExpanded: true,
-                items: [
-                  for (final st in TaskStatus.values)
-                    DropdownMenuItem(value: st, child: Text(statusLabel(st))),
                 ],
-                onChanged: (v) {
-                  if (v != null) {
-                    setState(() => _task = _task.copyWith(status: v));
-                  }
-                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
+
+    final steps = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        label('Steps'),
+        ChecklistEditor(
+          value: _task.checklist,
+          onChanged: (v) =>
+              setState(() => _task = _task.copyWith(checklist: v)),
+        ),
+        const SizedBox(height: Gap.s2),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: _breakingDown ? null : _breakDown,
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              side: BorderSide(color: s.line2, width: 2),
+              foregroundColor: s.accentText,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              textStyle: const TextStyle(
+                fontFamily: Fonts.ui,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            if (_task.status == TaskStatus.waiting) ...[
-              row(
-                'Waiting on',
-                TextField(
-                  controller: _waitingOn,
-                  decoration: const InputDecoration(
-                    hintText: 'e.g. Insurance callback, IT ticket',
-                  ),
-                ),
+            icon: _breakingDown
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Ph.sparkle, size: 16),
+            label: Text(
+              _breakingDown
+                  ? 'Breaking it down…'
+                  : ref.watch(aiSettingsProvider).hasKey
+                  ? 'Break it down with AI'
+                  : 'Suggest steps',
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final what = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_isNew) ...[
+          TextField(
+            controller: _title,
+            autofocus: true,
+            maxLines: null,
+            style: s.display(24),
+            decoration: InputDecoration(
+              hintText: 'What needs doing?',
+              hintStyle: s.display(24, color: s.ink3),
+              fillColor: Colors.transparent,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Radii.lg),
+                borderSide: BorderSide(color: s.star, width: 2),
               ),
-              row(
-                'Check back',
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: _pickFollowUp,
-                      icon: const Icon(Icons.event_outlined),
-                      label: Text(
-                        _task.followUpAt == null
-                            ? 'Pick a date'
-                            : MaterialLocalizations.of(context)
-                                  .formatMediumDate(_task.followUpAt!),
-                      ),
-                    ),
-                    if (_task.followUpAt != null)
-                      TextButton(
-                        onPressed: () => setState(
-                          () => _task = _task.copyWith(followUpAt: null),
-                        ),
-                        child: const Text('No reminder'),
-                      ),
-                  ],
+            ),
+          ),
+          if (workspaceRow != null) ...[
+            const SizedBox(height: Gap.s5),
+            workspaceRow,
+          ],
+        ] else ...[
+          Row(
+            children: [
+              WsDot(s.workspaceColor(_task.workspace == Workspace.work)),
+              const SizedBox(width: Gap.s4),
+              Flexible(
+                child: Text(
+                  [_task.workspace.label, ?project?.name].join(' · '),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: s.ink2,
+                  ),
                 ),
               ),
             ],
-          ],
+          ),
+          const SizedBox(height: Gap.s1),
+          TextField(
+            controller: _title,
+            maxLines: null,
+            style: s.display(28),
+            decoration: InputDecoration(
+              hintText: 'What needs doing?',
+              filled: false,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 6),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: s.star, width: 2),
+              ),
+            ),
+          ),
         ],
-      ),
+        if (_showFirstStep) firstStep,
+        if (!_isNew || _task.steps.isNotEmpty) steps,
+        label('Notes'),
+        TextField(
+          controller: _notes,
+          minLines: 1,
+          maxLines: 8,
+          style: TextStyle(fontSize: 16, height: 1.45, color: s.ink),
+          decoration: underline('Links, details, context', width: 2),
+        ),
+        PhiWarning(
+          text:
+              '${_title.text}\n${_firstStep.text}\n'
+              '${_task.checklist}\n${_notes.text}',
+          workspace: _task.workspace,
+        ),
+      ],
     );
 
+    final dueText = _task.dueAt == null
+        ? 'None'
+        : '${_dateText(_task.dueAt!)}${_task.hardDeadline ? ' · hard deadline' : ''}';
+    final details = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        label('Details'),
+        if (!single)
+          _DetailRow(
+            icon: Ph.briefcase,
+            label: 'Workspace',
+            value: _task.workspace.label,
+            onTap: () => _detailSheet(
+              'Workspace',
+              (ctx, set) => [
+                OptionRow(
+                  children: [
+                    for (final w in Workspace.values)
+                      OptionButton(
+                        label: w.label,
+                        dot: s.workspaceColor(w == Workspace.work),
+                        selected: _task.workspace == w,
+                        onTap: () => set(
+                          _task.copyWith(
+                            workspace: w,
+                            projectId: w == _task.workspace
+                                ? _task.projectId
+                                : '',
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        _DetailRow(
+          icon: Ph.folderSimple,
+          label: 'Project',
+          value: project?.name ?? 'None',
+          onTap: () => _detailSheet(
+            'Project',
+            (ctx, set) => [
+              Consumer(
+                builder: (ctx, ref, _) => ProjectPicker(
+                  workspace: _task.workspace,
+                  selected: _task.projectId,
+                  onSelected: (id) => set(_task.copyWith(projectId: id)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        _DetailRow(
+          icon: Ph.hash,
+          label: 'Tags',
+          value: _tags.text.trim().isEmpty ? 'None' : _tags.text.trim(),
+          onTap: () => _detailSheet(
+            'Tags',
+            subtitle: 'Words to find it by, like #billing or #calls.',
+            (ctx, set) => [
+              TextField(
+                controller: _tags,
+                autofocus: true,
+                onChanged: (_) => set(_task),
+                decoration: const InputDecoration(
+                  hintText: '#billing #calls',
+                  prefixIcon: Icon(Ph.hash),
+                ),
+              ),
+            ],
+          ),
+        ),
+        _DetailRow(
+          icon: Ph.timer,
+          label: 'Length',
+          value: _lengthText,
+          onTap: () => _detailSheet(
+            'Length',
+            (ctx, set) => [
+              Wrap(
+                spacing: Gap.s3,
+                runSpacing: Gap.s3,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  for (final m in estimatePresets)
+                    Pill(
+                      label: shortMinutes(m),
+                      mono: true,
+                      selected: int.tryParse(_estimate.text) == m,
+                      onTap: () {
+                        _estimate.text = '$m';
+                        set(_task);
+                      },
+                    ),
+                  SizedBox(
+                    width: 120,
+                    child: TextField(
+                      controller: _estimate,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => set(_task),
+                      decoration: const InputDecoration(
+                        suffixText: 'min',
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Gap.s5),
+              SwitchRow(
+                title: 'Can be done in chunks',
+                subtitle:
+                    'Lets "Pick for me" offer a slice of it when you have '
+                    'less time.',
+                value: _task.chunkable,
+                onChanged: (v) => set(_task.copyWith(chunkable: v)),
+              ),
+            ],
+          ),
+        ),
+        _DetailRow(
+          icon: Ph.flag,
+          label: 'Priority',
+          value: _task.priority.label,
+          onTap: () => _detailSheet(
+            'Priority',
+            (ctx, set) => _options(
+              Priority.values,
+              _task.priority,
+              (p) => p.label,
+              (p) => set(_task.copyWith(priority: p)),
+            ),
+          ),
+        ),
+        _DetailRow(
+          icon: Ph.smileyMeh,
+          label: 'Dread',
+          value: ughLabels[_task.ugh],
+          onTap: () => _detailSheet(
+            'How much do you dread it?',
+            subtitle:
+                'Dreaded tasks earn bonus XP and come up when your energy '
+                'is up.',
+            (ctx, set) => _options(
+              [for (var i = 0; i < ughLabels.length; i++) i],
+              _task.ugh,
+              (i) => ughLabels[i],
+              (i) => set(_task.copyWith(ugh: i)),
+            ),
+          ),
+        ),
+        _DetailRow(
+          icon: Ph.batteryHigh,
+          label: 'Energy it takes',
+          value: _task.energy.label,
+          onTap: () => _detailSheet(
+            'Energy it takes',
+            (ctx, set) => _options(
+              Energy.values,
+              _task.energy,
+              (e) => e.label,
+              (e) => set(_task.copyWith(energy: e)),
+              perRow: 3,
+            ),
+          ),
+        ),
+        _DetailRow(
+          icon: Ph.carSimple,
+          label: 'Leave the house',
+          value: !_task.requiresLeavingHouse
+              ? 'No'
+              : _location.text.trim().isEmpty
+              ? 'Yes'
+              : 'Yes: ${_location.text.trim()}',
+          onTap: () => _detailSheet(
+            'Leave the house',
+            (ctx, set) => [
+              SwitchRow(
+                title: 'Need to leave the house',
+                value: _task.requiresLeavingHouse,
+                onChanged: (v) => set(_task.copyWith(requiresLeavingHouse: v)),
+              ),
+              if (_task.requiresLeavingHouse) ...[
+                const SizedBox(height: Gap.s4),
+                TextField(
+                  controller: _location,
+                  onChanged: (_) => set(_task),
+                  decoration: const InputDecoration(
+                    hintText: 'Where? (Pharmacy, Post office…)',
+                    prefixIcon: Icon(Ph.mapPin),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        _DetailRow(
+          icon: Ph.calendarBlank,
+          label: 'Due',
+          value: dueText,
+          onTap: () => _detailSheet(
+            'Due',
+            (ctx, set) => [
+              Wrap(
+                spacing: Gap.s4,
+                runSpacing: Gap.s4,
+                children: [
+                  OutlineButton(
+                    label: _task.dueAt == null
+                        ? 'Pick a date'
+                        : _dateText(_task.dueAt!),
+                    icon: Ph.calendarBlank,
+                    height: 48,
+                    fontSize: 15,
+                    onPressed: () async {
+                      await _pickDue();
+                      set(_task);
+                    },
+                  ),
+                  if (_task.dueAt != null)
+                    OutlineButton(
+                      label: 'Clear',
+                      quiet: true,
+                      height: 48,
+                      fontSize: 15,
+                      onPressed: () => set(_task.copyWith(dueAt: null)),
+                    ),
+                ],
+              ),
+              if (_task.dueAt != null) ...[
+                const SizedBox(height: Gap.s4),
+                SwitchRow(
+                  title: 'Hard deadline',
+                  subtitle: 'Real consequences if missed. Ramps up sooner.',
+                  value: _task.hardDeadline,
+                  onChanged: (v) => set(_task.copyWith(hardDeadline: v)),
+                ),
+              ],
+            ],
+          ),
+        ),
+        _DetailRow(
+          icon: Ph.repeat,
+          label: 'Repeats',
+          value: _task.repeat == Repeat.none
+              ? "Doesn't repeat"
+              : _task.repeat.label,
+          onTap: () => _detailSheet(
+            'Repeats',
+            (ctx, set) => [
+              ..._options(
+                Repeat.values,
+                _task.repeat,
+                (r) => r == Repeat.none ? "Doesn't repeat" : r.label,
+                (r) => set(_task.copyWith(repeat: r)),
+              ),
+              if (_task.repeat != Repeat.none) ...[
+                const SizedBox(height: Gap.s5),
+                SwitchRow(
+                  title: 'Count from when I finish it',
+                  subtitle: _task.repeatFromDone
+                      ? 'Like watering plants: the next one is a full period '
+                            'after you actually did it.'
+                      : 'Keeps a fixed schedule, like a report due every '
+                            'Friday.',
+                  value: _task.repeatFromDone,
+                  onChanged: (v) => set(_task.copyWith(repeatFromDone: v)),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (!_isNew) ...[
+          _DetailRow(
+            icon: Ph.hourglassMedium,
+            label: 'Waiting on',
+            value: _task.status != TaskStatus.waiting
+                ? 'Nobody'
+                : _waitingOn.text.trim().isEmpty
+                ? 'Someone'
+                : _waitingOn.text.trim(),
+            onTap: () => _detailSheet(
+              'Waiting on someone',
+              (ctx, set) => [
+                SwitchRow(
+                  title: 'Waiting on someone',
+                  value: _task.status == TaskStatus.waiting,
+                  onChanged: (v) => set(
+                    _task.copyWith(
+                      status: v ? TaskStatus.waiting : TaskStatus.todo,
+                    ),
+                  ),
+                ),
+                if (_task.status == TaskStatus.waiting) ...[
+                  const SizedBox(height: Gap.s4),
+                  TextField(
+                    controller: _waitingOn,
+                    onChanged: (_) => set(_task),
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Insurance callback, IT ticket',
+                    ),
+                  ),
+                  const SizedBox(height: Gap.s5),
+                  Wrap(
+                    spacing: Gap.s4,
+                    runSpacing: Gap.s4,
+                    children: [
+                      OutlineButton(
+                        label: _task.followUpAt == null
+                            ? 'Check back on…'
+                            : 'Check back ${_dateText(_task.followUpAt!)}',
+                        icon: Ph.calendarBlank,
+                        height: 48,
+                        fontSize: 15,
+                        onPressed: () async {
+                          await _pickFollowUp();
+                          set(_task);
+                        },
+                      ),
+                      if (_task.followUpAt != null)
+                        OutlineButton(
+                          label: 'No reminder',
+                          quiet: true,
+                          height: 48,
+                          fontSize: 15,
+                          onPressed: () =>
+                              set(_task.copyWith(followUpAt: null)),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          _DetailRow(
+            icon: Ph.columns,
+            label: 'Status',
+            value: statusLabel(_task.status),
+            onTap: () => _detailSheet(
+              'Status',
+              (ctx, set) => _options(
+                TaskStatus.values,
+                _task.status,
+                statusLabel,
+                (st) => set(_task.copyWith(status: st)),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+
+    final linked = _isNew
+        ? const <Widget>[]
+        : [_TaskNotes(task: _task), _Related(task: _task)];
+
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Ph.caretLeft),
+          onPressed: _close,
+        ),
+        titleSpacing: 0,
         title: Text(_isNew ? 'New task' : 'Edit task'),
+        shape: Border(bottom: BorderSide(color: s.line)),
+        backgroundColor: s.bg,
         actions: [
           if (!_isNew)
             IconButton(
               tooltip: 'Save as template',
               onPressed: _saveAsTemplate,
-              icon: const Icon(Icons.bookmark_add_outlined),
+              icon: Icon(Ph.copySimple, size: 20, color: s.ink2),
             ),
           if (!_isNew)
             IconButton(
               tooltip: 'Delete',
               onPressed: _delete,
-              icon: const Icon(Icons.delete_outline),
+              icon: Icon(Ph.trash, size: 20, color: s.ink2),
             ),
           Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: FilledButton(
-              onPressed: _title.text.trim().isEmpty ? null : _save,
-              style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-              child: const Text('Save'),
+            padding: const EdgeInsets.only(left: 4, right: 16),
+            child: SizedBox(
+              width: 80,
+              child: PrimaryButton(
+                label: 'Save',
+                height: 42,
+                fontSize: 15,
+                onPressed: canSave ? _save : null,
+              ),
             ),
           ),
         ],
       ),
       body: ContentWidth(
-        maxWidth: wide ? 1180 : 760,
+        maxWidth: wide ? 1180 : 640,
         child: ListView(
           padding: EdgeInsets.fromLTRB(
-            narrow ? 12 : 20,
-            8,
-            narrow ? 12 : 20,
-            48,
+            narrow ? 20 : 24,
+            20,
+            narrow ? 20 : 24,
+            60,
           ),
           children: [
             if (wide)
               ResponsiveColumns(
-                sideWidth: 520,
-                main: [
-                  whatPanel,
-                  if (!_isNew) ...[
-                    const SizedBox(height: 16),
-                    _TaskNotes(task: _task),
-                    _Related(task: _task),
-                  ],
-                ],
-                side: [howPanel, const SizedBox(height: 16), whenPanel],
+                sideWidth: 460,
+                gap: 48,
+                main: [what, ...linked],
+                side: [details],
               )
             else ...[
-              whatPanel,
-              const SizedBox(height: 16),
-              howPanel,
-              const SizedBox(height: 16),
-              whenPanel,
-              if (!_isNew) ...[
-                const SizedBox(height: 16),
-                _TaskNotes(task: _task),
-                _Related(task: _task),
-              ],
+              what,
+              details,
+              ...linked,
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One line under Details: icon, name, the value, a caret. Opens a sheet.
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 52),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: s.line)),
+        ),
+        child: LayoutBuilder(
+          builder: (context, c) => Row(
+            children: [
+              SizedBox(width: 22, child: Icon(icon, size: 20, color: s.ink3)),
+              const SizedBox(width: Gap.s6),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(fontSize: 15, color: s.ink2),
+                ),
+              ),
+              const SizedBox(width: Gap.s4),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: c.maxWidth * 0.55),
+                child: Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: s.ink,
+                  ),
+                ),
+              ),
+              const SizedBox(width: Gap.s4),
+              Icon(Ph.caretRight, size: 14, color: s.ink3),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "+ Open whatever you need": a first-step idea.
+class _IdeaChip extends StatelessWidget {
+  const _IdeaChip({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.spec;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+      side: BorderSide(color: s.line2, width: 2),
+    );
+    return Material(
+      color: Colors.transparent,
+      shape: shape,
+      child: InkWell(
+        customBorder: shape,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 40),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: s.ink,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -815,22 +1093,32 @@ class _TaskNotes extends ConsumerWidget {
         .watch(notesProvider)
         .where((n) => n.taskId == task.id)
         .toList();
-    return Panel(
+    return Padding(
+      padding: const EdgeInsets.only(top: Gap.s9),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const FieldLabel('Notes about this task'),
+          const FieldLabel('Linked notes'),
           if (notes.isEmpty)
             Text(
               'Call outcomes, what you tried, where you left off. They '
               'stay with the task.',
-              style: TextStyle(color: s.muted, fontSize: 13, height: 1.4),
+              style: s.caption(color: s.ink2),
             ),
           for (final n in notes) NoteTile(note: n, showProject: false),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 44),
+                side: BorderSide(color: s.line2, width: 2),
+                textStyle: const TextStyle(
+                  fontFamily: Fonts.ui,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               onPressed: () => context.push(
                 Uri(
                   path: '/note/new',
@@ -841,7 +1129,7 @@ class _TaskNotes extends ConsumerWidget {
                   },
                 ).toString(),
               ),
-              icon: const Icon(Icons.add_rounded),
+              icon: const Icon(Ph.plusBold),
               label: const Text('Add a note'),
             ),
           ),
@@ -882,28 +1170,26 @@ class _Related extends ConsumerWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Panel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const FieldLabel('Related'),
-            for (final n in mentions)
-              LinkRow(
-                icon: Icons.sticky_note_2_outlined,
-                title: n.heading,
-                subtitle: 'Note that links here',
-                onTap: () => context.push('/note/${n.id}'),
-              ),
-            for (final t in tasks)
-              LinkRow(
-                icon: Icons.task_alt_rounded,
-                title: t.title,
-                subtitle: why(t),
-                onTap: () => context.push('/task/${t.id}'),
-              ),
-          ],
-        ),
+      padding: const EdgeInsets.only(top: Gap.s9),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const FieldLabel('Related'),
+          for (final n in mentions)
+            LinkRow(
+              icon: Ph.note,
+              title: n.heading,
+              subtitle: 'Note that links here',
+              onTap: () => context.push('/note/${n.id}'),
+            ),
+          for (final t in tasks)
+            LinkRow(
+              icon: Ph.checkSquare,
+              title: t.title,
+              subtitle: why(t),
+              onTap: () => context.push('/task/${t.id}'),
+            ),
+        ],
       ),
     );
   }

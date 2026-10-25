@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The medium widget's "Add a task" tile: 2dp line2 outline. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#00000000" />
+    <stroke android:width="2dp" android:color="@color/widget_line2" />
+    <corners android:radius="14dp" />
+</shape>

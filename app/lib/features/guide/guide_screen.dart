@@ -7,11 +7,15 @@ import '../../core/theme/app_themes.dart';
 import '../../widgets/ui.dart';
 import '../capture/quick_add_sheet.dart';
 import 'examples.dart';
+import '../../core/theme/ph.dart';
 
 /// Example tasks: try the app full, then clear them with one tap.
 class ExamplesButton extends ConsumerWidget {
-  const ExamplesButton({super.key, this.filled = false});
+  const ExamplesButton({super.key, this.filled = false, this.link = false});
   final bool filled;
+
+  /// A plain gold text link (Today's first run).
+  final bool link;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,6 +44,7 @@ class ExamplesButton extends ConsumerWidget {
     final label = Text(
       showing ? 'Remove example tasks' : 'Try with example tasks',
     );
+    if (link) return TextButton(onPressed: onTap, child: label);
     return filled && !showing
         ? FilledButton(onPressed: onTap, child: label)
         : OutlinedButton(onPressed: onTap, child: label);
@@ -65,7 +70,7 @@ class GuideScreen extends StatelessWidget {
 
     final sections = <_Section>[
       _Section(
-        Icons.adjust_rounded,
+        Ph.target,
         'Today: one task, picked for you',
         'Gumption chooses one task from the time you have, whether you can go '
             'out, your energy, and how urgent, important, old and dreaded '
@@ -86,7 +91,7 @@ class GuideScreen extends StatelessWidget {
         () => go('/'),
       ),
       _Section(
-        Icons.add_rounded,
+        Ph.plusBold,
         'Adding tasks in five seconds',
         'Only a title is needed. Type extra details right into it and they '
             'fill themselves in.',
@@ -103,7 +108,7 @@ class GuideScreen extends StatelessWidget {
         () => showQuickAdd(context),
       ),
       _Section(
-        Icons.timer_outlined,
+        Ph.timer,
         'The focus timer',
         'After you tap Start you see only the next step and a ring that '
             'shrinks as time passes.',
@@ -119,7 +124,7 @@ class GuideScreen extends StatelessWidget {
         () => go('/'),
       ),
       _Section(
-        Icons.format_list_bulleted_rounded,
+        Ph.listBullets,
         'Tasks, projects and the board',
         'Every task lives in the Tasks tab, as a list or a board.',
         [
@@ -135,7 +140,7 @@ class GuideScreen extends StatelessWidget {
         () => go('/tasks'),
       ),
       _Section(
-        Icons.sticky_note_2_outlined,
+        Ph.note,
         'Notes',
         'Thoughts, call outcomes and meeting notes, next to your tasks.',
         [
@@ -147,7 +152,7 @@ class GuideScreen extends StatelessWidget {
         () => go('/notes'),
       ),
       _Section(
-        Icons.bar_chart_rounded,
+        Ph.chartBar,
         'Progress and rewards',
         'You earn XP for starting, more for finishing, and bonuses for '
             'dreaded and long-ignored tasks.',
@@ -160,7 +165,7 @@ class GuideScreen extends StatelessWidget {
         () => go('/progress'),
       ),
       _Section(
-        Icons.event_repeat_rounded,
+        Ph.repeat,
         'Weekly reset, errand runs and wrap-up',
         'Today offers these at the right moments.',
         [
@@ -176,7 +181,7 @@ class GuideScreen extends StatelessWidget {
         () => push('/reset'),
       ),
       _Section(
-        Icons.tune_rounded,
+        Ph.slidersHorizontal,
         'Settings, sync and backups',
         'Personal and Work stay apart. Each can sync to its own Google '
             'account, or neither.',
@@ -196,7 +201,7 @@ class GuideScreen extends StatelessWidget {
       ),
       if (android)
         _Section(
-          Icons.widgets_outlined,
+          Ph.squaresFour,
           'Outside the app',
           'Gumption can help without being open.',
           [
@@ -209,7 +214,7 @@ class GuideScreen extends StatelessWidget {
         ),
       if (desktop)
         _Section(
-          Icons.keyboard_outlined,
+          Ph.keyboard,
           'Keyboard shortcuts',
           'Faster on a computer.',
           [
@@ -224,7 +229,7 @@ class GuideScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('How Gumption works')),
+      appBar: topBar(context, close: true, overline: 'HOW GUMPTION WORKS'),
       body: ContentWidth(
         maxWidth: 760,
         child: ListView(
@@ -280,16 +285,16 @@ class GuideScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            width: 26,
-                            height: 26,
+                            width: 28,
+                            height: 28,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: s.accent,
-                              shape: BoxShape.circle,
+                              borderRadius: BorderRadius.circular(Radii.sm),
+                              border: Border.all(color: s.star, width: 2),
                             ),
                             child: Text(
                               '${i + 1}',
-                              style: s.mono(13, color: s.onAccent),
+                              style: s.button(13, s.accentText),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -398,7 +403,7 @@ class _SectionView extends StatelessWidget {
             const SizedBox(height: 10),
             TextButton.icon(
               onPressed: sec.onAction,
-              icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+              icon: const Icon(Ph.arrowRight, size: 18),
               label: Text(sec.action!),
             ),
           ],
