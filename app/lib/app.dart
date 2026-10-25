@@ -21,6 +21,7 @@ import 'features/outside/outside_bootstrap.dart';
 import 'features/picker/dashboard_screen.dart';
 import 'features/reminders/reminder_bootstrap.dart';
 import 'features/settings/settings_controller.dart';
+import 'features/settings/settings_button.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/tasks/task_list_screen.dart';
 import 'features/tasks/weekly_reset_screen.dart';
@@ -57,8 +58,13 @@ Widget _sky(Widget child) => SkyBackground(child: child);
 GoRouter buildRouter() => GoRouter(
   routes: [
     ShellRoute(
-      builder: (context, state, child) =>
-          _sky(AppShell(location: state.uri.path, child: child)),
+      builder: (context, state, child) => _sky(
+        AppShell(
+          location: state.uri.path,
+          from: state.uri.queryParameters['from'],
+          child: child,
+        ),
+      ),
       routes: [
         GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
         GoRoute(path: '/tasks', builder: (_, _) => const TaskListScreen()),
@@ -174,18 +180,26 @@ class GumptionApp extends ConsumerWidget {
 
 /// The tab bar on phones, a sidebar on wide screens. Both carry the Add
 /// button. Also owns the keyboard shortcuts and Android back. Settings
-/// lives in the shell too (the sidebar lists it); on a phone it hides the
-/// tab bar and is reached from the gear on Progress.
+/// lives in the shell too: the sidebar lists it, and on a phone each tab
+/// has a gear at the top right; the tab bar stays, with no tab lit.
 class AppShell extends ConsumerWidget {
-  const AppShell({super.key, required this.location, required this.child});
+  const AppShell({
+    super.key,
+    required this.location,
+    this.from,
+    required this.child,
+  });
   final String location;
+
+  /// On Settings: the tab it was opened from (see `goToSettings`).
+  final String? from;
   final Widget child;
 
   bool get _onSettings => location.startsWith('/settings');
 
-  /// The tab to light up. Settings belongs to Progress.
+  /// The tab to light up; none on Settings.
   int get _index {
-    if (_onSettings) return 3;
+    if (_onSettings) return -1;
     final i = _destinations.indexWhere(
       (d) => d.path != '/' && location.startsWith(d.path),
     );
@@ -216,7 +230,7 @@ class AppShell extends ConsumerWidget {
               child: Row(
                 children: [
                   _Sidebar(
-                    index: _onSettings ? -1 : _index,
+                    index: _index,
                     settings: _onSettings,
                     onSelect: go,
                     onAdd: add,
@@ -232,14 +246,12 @@ class AppShell extends ConsumerWidget {
             // The bar sits over the content; screens pad their bottom by
             // MediaQuery.padding, which then includes the bar.
             extendBody: true,
-            bottomNavigationBar: _onSettings
-                ? null
-                : _TabBar(
-                    index: _index,
-                    onSelect: go,
-                    onAdd: add,
-                    addLabel: addLabel,
-                  ),
+            bottomNavigationBar: _TabBar(
+              index: _index,
+              onSelect: go,
+              onAdd: add,
+              addLabel: addLabel,
+            ),
             // Progress draws its night sky under the status bar itself.
             body: SafeArea(
               top: !location.startsWith('/progress'),
@@ -261,17 +273,18 @@ class AppShell extends ConsumerWidget {
         const SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
             go(3),
         const SingleActivator(LogicalKeyboardKey.comma, control: true): () =>
-            context.go('/settings'),
+            goToSettings(context),
         const SingleActivator(LogicalKeyboardKey.comma, meta: true): () =>
-            context.go('/settings'),
+            goToSettings(context),
       },
       // Tabs replace each other rather than stacking, so Android's back
       // button would otherwise close the app from any tab. Back goes Home
-      // first (from Settings, back to Progress), and only exits from there.
+      // first (from Settings, back to the tab it was opened from), and only
+      // exits from there.
       child: PopScope(
         canPop: location == '/',
         onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) context.go(_onSettings ? '/progress' : '/');
+          if (!didPop) context.go(_onSettings ? settingsReturn(from) : '/');
         },
         child: Focus(autofocus: true, child: scaffold),
       ),
@@ -556,7 +569,7 @@ class _Sidebar extends StatelessWidget {
             Ph.gearSix,
             Ph.gearSixFill,
             settings,
-            () => context.go('/settings'),
+            () => goToSettings(context),
           ),
           const Align(alignment: Alignment.centerLeft, child: SyncBadge()),
         ],

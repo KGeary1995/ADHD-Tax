@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../settings/device_workspaces.dart';
+import '../settings/settings_button.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -232,10 +233,19 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         children: [
           PageHeader(
             'Notes',
-            trailing: SquareIconButton(
-              icon: Ph.notePencil,
-              tooltip: 'New note',
-              onPressed: () => openNewNote(context, ref),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SquareIconButton(
+                  icon: Ph.notePencil,
+                  tooltip: 'New note',
+                  onPressed: () => openNewNote(context, ref),
+                ),
+                if (hasSettingsButton(context)) ...[
+                  const SizedBox(width: Gap.s4),
+                  const SettingsButton(),
+                ],
+              ],
             ),
           ),
           const SizedBox(height: Gap.s6),

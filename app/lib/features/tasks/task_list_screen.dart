@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../settings/device_workspaces.dart';
+import '../settings/settings_button.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -185,6 +186,10 @@ class TaskListScreen extends ConsumerWidget {
                 selected: filter != null || project != null,
                 onPressed: () => _showFilterSheet(context),
               ),
+              if (hasSettingsButton(context)) ...[
+                const SizedBox(width: Gap.s4),
+                const SettingsButton(),
+              ],
             ],
           ),
         ),
