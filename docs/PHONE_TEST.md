@@ -9,7 +9,7 @@ To report: reply with the step numbers that failed and a screenshot of each. "Al
 ## 1. After the update (1 min)
 1.1 The icon is a **gold four-point star on night blue**, and the name under it says **Gumption**. If your phone uses themed icons (Android 13+, Wallpaper & style → Themed icons), the star takes the theme colour.
 1.2 The app opens on the night-sky look (or the cream **Dawn** look if your phone is in light mode).
-1.3 Progress → the gear (top right) → Settings → Sync: Personal still shows as connected, with no "Reconnect". (Give it up to a minute; it retries by itself.) In the work-profile copy, Work is still connected.
+1.3 The gear (top right on any tab) → Settings → Sync: Personal still shows as connected, with no "Reconnect". (Give it up to a minute; it retries by itself.) In the work-profile copy, Work is still connected.
 1.4 Your tasks are still there.
 
 ## 2. Start the timer first, so it runs while you test (1 min)
