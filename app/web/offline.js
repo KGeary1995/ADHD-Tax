@@ -11,8 +11,12 @@ self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) {
-    return; // Google sign-in and Drive calls go straight to the network.
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== self.location.origin ||
+      url.pathname.includes('/auth/')) {
+    // Sign-in and Drive calls go straight to the network; a sign-in reply
+    // (it carries a one-time code) is never kept in the offline copy.
+    return;
   }
   event.respondWith(respond(req));
 });

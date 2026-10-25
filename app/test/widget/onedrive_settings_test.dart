@@ -125,6 +125,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sync Personal with…'), findsNothing);
     expect(ms.connected, [Workspace.personal]);
+    // The note under the rows describes OneDrive, not Google.
+    expect(find.textContaining('Apps/Gumption folder'), findsOneWidget);
+    expect(find.textContaining('Google'), findsNothing);
     await c.read(syncProvider(Workspace.personal).notifier).disconnect();
     await tester.pumpAndSettle();
   });

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Gumption sign-in</title>
+  <link rel="stylesheet" href="../../legal.css">
+</head>
+<body>
+<main>
+  <h1>Signed in</h1>
+  <p>You can close this window and go back to Gumption.</p>
+</main>
+<script>
+  // Microsoft sends the sign-in pop-up back here. Hand the address (with
+  // its one-time code) to the Gumption tab that opened it, by every route
+  // a browser might allow: Microsoft's pages can cut the link to the
+  // opener, and iPhone home-screen apps open pop-ups in a separate view.
+  // The code is useless without the secret the app kept in memory.
+  (function () {
+    var msg = { type: 'gumption-ms-auth', url: location.href };
+    try { if (window.opener) window.opener.postMessage(msg, location.origin); } catch (e) {}
+    try { var bc = new BroadcastChannel('gumption-ms-auth'); bc.postMessage(msg); bc.close(); } catch (e) {}
+    try { localStorage.setItem('gumption.ms.auth', JSON.stringify(msg)); } catch (e) {}
+    history.replaceState(null, '', location.pathname);
+    setTimeout(function () { window.close(); }, 400);
+  })();
+</script>
+</body>
+</html>

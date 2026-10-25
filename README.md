@@ -218,7 +218,7 @@ OneDrive sync needs one free app registration with Microsoft. Do this on a compu
 
 **Work or school Microsoft accounts:** many organizations only let staff approve apps from verified publishers, so connecting may say it needs an admin's approval. The admin can approve Gumption in their Entra admin center (Enterprise applications → Admin consent requests, or by its client ID). Personal accounts work either way. Verifying the publisher (a free Microsoft partner ID linked to the registration) removes the "unverified" label; worth doing before the App Store release.
 
-**Not on the web yet:** the web app offers Google only for now.
+**Web app (one more step):** in the app registration, **Authentication → Add a platform → Single-page application**, redirect URI `https://unstuck-4o8.pages.dev/auth/microsoft/` (the trailing slash matters). Add `http://localhost:8080/auth/microsoft/` too if you run the web app locally. Without it, connecting OneDrive in the web app fails with AADSTS50011 or AADSTS9002326. The web sign-in opens in a pop-up (allow pop-ups for the site if the browser blocks it) and lasts 24 hours, after which the row shows **Reconnect**: Microsoft's limit for browsers.
 
 ### Keyboard shortcuts (desktop / web)
 

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../data/models/task.dart';
 import '../sync/account_auth.dart';
 
-/// The web build: OneDrive sync isn't offered there yet.
+/// Neither a device nor a browser (never in practice): no OneDrive sync.
 AccountAuth createMicrosoftAuth() => const _Unsupported();
 
 class _Unsupported implements AccountAuth {
