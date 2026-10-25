@@ -2,7 +2,7 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## 1.1 "Night sky" — not built yet (Android, web; iPhone and Mac when asked)
+## Build 112 / iPhone 113 — 2026-10-25 (bcf59aa): 1.1 "Night sky" (Android, web, iPhone TestFlight)
 - **A whole new look**, from the design you commissioned. Gold stars on a deep night sky (**Night**), or on warm cream (**Dawn**); it follows the phone unless you pick one in Settings → Appearance. New fonts and icons throughout.
 - **Today shows one task and its next step**, with a big Start and 5 min, and three quiet choices: Not this one, Smaller, Later. **Smaller** lets you shrink the step on the spot; **Later** brings the task back in 3 hours. "Right now" (time, staying in or going out, energy, which tasks) is one button at the top.
 - **Starting lights a star:** pressing Start shows a short "A new star." moment (tap to skip; off if Celebrations are Off), then the focus timer.
@@ -14,7 +14,7 @@ What changed in each build, newest first. Build number = CI run number (= Androi
 - **Home-screen widgets** match the new look and follow your phone's light or dark setting. The 4×2 widget shows the step you're on, the next one, Start, 5 min, Add a task and your streak.
 - Fixed: in the task editor, adding the first checklist step no longer makes the page jump.
 
-## Next build — 2026-10-24 (Android, web, iPhone)
+## Build 112 — 2026-10-25 (bcf59aa): iPhone sync fixes (Android, web; iPhone 113)
 - **iPhone: Personal and Work can both sync now.** Signing in to Work used to hang on "Waiting for Google sign-in…", and could make Personal sync through the Work account. iPhone now signs in to each one separately in a Safari sheet, like the Mac app does. **After updating, tap Reconnect on Personal once.**
 - **Sync never writes into the wrong Google account:** if a device finds a different account signed in than the one a workspace syncs with, it stops and asks you to reconnect instead of syncing.
 - **Cancel** next to "Waiting for Google sign-in…", and a sign-in that's left open gives up after 5 minutes instead of spinning forever.
