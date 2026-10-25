@@ -204,7 +204,7 @@ For a build on your own computer, put the same three values in `app/google_oauth
 
 OneDrive sync needs one free app registration with Microsoft. Do this on a computer.
 
-1. Go to **entra.microsoft.com** and sign in with your personal Microsoft account (Outlook.com, Hotmail…). If it says your account has no directory or tenant, first create a free one: sign up at **azure.microsoft.com/free** with the same account (it may ask for a card to verify you; app registrations are free), then come back.
+1. A personal Microsoft account (Outlook.com, Hotmail, Live) can't register apps on its own: entra.microsoft.com refuses it with **AADSTS50020 … does not exist in tenant 'Microsoft Services'**. Give it a directory first: go to **azure.microsoft.com/free → Start free** and sign up with the same account. It asks for a phone number and a card to verify you; nothing is charged unless you later choose to upgrade, and app registrations are free. When it finishes, go to **portal.azure.com**; if it still shows the error, use your account menu (top right) → **Switch directory** → **Default Directory**. Then open **Microsoft Entra ID** from the search bar.
 2. **Identity → Applications → App registrations → New registration**:
    - **Name:** `Gumption`, exactly. OneDrive names the app's folder after it (**Apps/Gumption**).
    - **Supported account types:** *Accounts in any organizational directory and personal Microsoft accounts*.
