@@ -7,9 +7,10 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 /**
- * Hands the app two kinds of outside requests over the "unstuck/android"
- * channel: text shared from another app ("Share → Gumption"), and taps on the
- * home-screen widget (open a route). Also lets the app refresh the widget.
+ * Hands the app outside requests over the "unstuck/android" channel: text
+ * shared from another app ("Share → Gumption"), taps on the home-screen
+ * widget (open a route), and the browser returning from a Microsoft sign-in
+ * (gumption://auth). Also lets the app refresh the widget.
  */
 class MainActivity : FlutterActivity() {
     private var channel: MethodChannel? = null
@@ -68,6 +69,12 @@ class MainActivity : FlutterActivity() {
             PickWidget.ACTION_OPEN -> {
                 val route = intent.getStringExtra(PickWidget.EXTRA_ROUTE) ?: "/"
                 mapOf("type" to "route", "route" to route)
+            }
+            Intent.ACTION_VIEW -> {
+                val data = intent.data ?: return null
+                if (data.scheme == "gumption" && data.host == "auth") {
+                    mapOf("type" to "auth", "url" to data.toString())
+                } else null
             }
             else -> null
         }

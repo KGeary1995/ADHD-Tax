@@ -176,6 +176,7 @@ ProviderContainer device(
   FakeAuth auth, {
   KeyValueStore? store,
   FakeICloud? iCloud,
+  FakeAuth? microsoft,
 }) {
   final c = ProviderContainer(
     overrides: [
@@ -186,6 +187,12 @@ ProviderContainer device(
       ),
       iCloudSupportedProvider.overrideWithValue(iCloud != null),
       iCloudStoreProvider.overrideWithValue((ws) => _ICloudRemote(iCloud!, ws)),
+      if (microsoft != null) ...[
+        microsoftAuthProvider.overrideWithValue(microsoft),
+        oneDriveFactoryProvider.overrideWithValue(
+          (client) => _AccountRemote((client as _TaggedClient).account),
+        ),
+      ],
     ],
   );
   addTearDown(c.dispose);
@@ -687,5 +694,136 @@ void main() {
         expect(ctl.service, SyncService.google);
       },
     );
+  });
+
+  group('OneDrive', () {
+    late FakeAccount outlook;
+    setUp(() => outlook = FakeAccount('kyle@outlook.com'));
+
+    FakeAuth microsoft() =>
+        FakeAuth({Workspace.personal: outlook, Workspace.work: outlook});
+
+    test('connects through Microsoft and syncs between devices, with no '
+        'Google sign-in', () async {
+      final google = FakeAuth(accounts());
+      final ms = microsoft();
+      final phone = device(google, microsoft: ms);
+      final laptop = device(google, microsoft: ms);
+      for (final d in [phone, laptop]) {
+        await d
+            .read(syncProvider(Workspace.personal).notifier)
+            .connect(via: SyncService.onedrive);
+      }
+      final ctl = phone.read(syncProvider(Workspace.personal).notifier);
+      expect(ctl.service, SyncService.onedrive);
+      expect(phone.read(syncProvider(Workspace.personal)).email, outlook.email);
+      expect(google.connected, isEmpty, reason: 'Google was never asked');
+
+      phone.read(tasksProvider.notifier).create(title: 'Renew passport');
+      await ctl.syncNow();
+      await laptop.read(syncProvider(Workspace.personal).notifier).syncNow();
+      expect(laptop.read(tasksProvider).map((t) => t.title), [
+        'Renew passport',
+      ]);
+      expect(personal.drive.files, isEmpty);
+    });
+
+    test('Personal on OneDrive and Work on Google stay apart', () async {
+      final phone = device(FakeAuth(accounts()), microsoft: microsoft());
+      await phone
+          .read(syncProvider(Workspace.personal).notifier)
+          .connect(via: SyncService.onedrive);
+      await phone
+          .read(syncProvider(Workspace.work).notifier)
+          .connect(via: SyncService.google);
+      phone
+          .read(tasksProvider.notifier)
+          .create(title: 'Report', workspace: Workspace.work);
+      await syncAll(phone);
+      expect(work.drive.files, isNotEmpty);
+      expect(
+        outlook.drive.files.values.map((f) => f.$1),
+        everyElement(startsWith('state.personal.')),
+      );
+    });
+
+    test('a restart restores the Microsoft sign-in silently', () async {
+      final store = MemoryStore();
+      final ms = microsoft();
+      final first = device(FakeAuth(accounts()), store: store, microsoft: ms);
+      await first
+          .read(syncProvider(Workspace.personal).notifier)
+          .connect(via: SyncService.onedrive);
+      first.dispose();
+      final again = device(FakeAuth(accounts()), store: store, microsoft: ms);
+      await again.read(syncProvider(Workspace.personal).notifier).syncNow();
+      expect(
+        again.read(syncProvider(Workspace.personal)).phase,
+        SyncPhase.synced,
+      );
+    });
+
+    test('Microsoft signing the device out asks to reconnect', () async {
+      final phone = device(FakeAuth(accounts()), microsoft: microsoft());
+      final ctl = phone.read(syncProvider(Workspace.personal).notifier);
+      await ctl.connect(via: SyncService.onedrive);
+      outlook.reject = true;
+      await ctl.syncNow();
+      expect(
+        phone.read(syncProvider(Workspace.personal)).phase,
+        SyncPhase.needsReconnect,
+      );
+    });
+
+    test('disconnect signs out of Microsoft, not Google, and forgets the '
+        'choice', () async {
+      final google = FakeAuth(accounts());
+      final ms = microsoft();
+      final phone = device(google, microsoft: ms);
+      await phone
+          .read(syncProvider(Workspace.work).notifier)
+          .connect(via: SyncService.google);
+      final ctl = phone.read(syncProvider(Workspace.personal).notifier);
+      await ctl.connect(via: SyncService.onedrive);
+      await ctl.disconnect();
+      expect(ms.connected, isEmpty);
+      expect(google.connected, {Workspace.work});
+      expect(ctl.service, SyncService.google);
+    });
+
+    test('moving a workspace to OneDrive uploads everything there, even with '
+        'the same email as before', () async {
+      // The same address can be both a Google and a Microsoft account.
+      final same = FakeAccount('kyle@gmail.com');
+      final phone = device(
+        FakeAuth(accounts()),
+        microsoft: FakeAuth({Workspace.personal: same, Workspace.work: same}),
+      );
+      final ctl = phone.read(syncProvider(Workspace.personal).notifier);
+      phone.read(tasksProvider.notifier).create(title: 'Call the bank');
+      await ctl.connect(via: SyncService.google);
+      await ctl.disconnect();
+      await ctl.connect(via: SyncService.onedrive);
+      expect(same.drive.files, hasLength(1));
+      expect(same.drive.text(same.drive.files.keys.single), contains('bank'));
+    });
+
+    test('a Work workspace on an Outlook.com address is flagged as '
+        'personal', () {
+      expect(
+        const WorkspaceSync(
+          SyncPhase.synced,
+          email: 'kyle@outlook.com',
+        ).looksLikePersonalAccount,
+        isTrue,
+      );
+      expect(
+        const WorkspaceSync(
+          SyncPhase.synced,
+          email: 'kyle@example.org',
+        ).looksLikePersonalAccount,
+        isFalse,
+      );
+    });
   });
 }

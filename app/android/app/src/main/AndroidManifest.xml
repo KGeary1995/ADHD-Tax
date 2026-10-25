@@ -44,6 +44,14 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:mimeType="text/plain"/>
             </intent-filter>
+            <!-- The browser returns here after Microsoft (OneDrive) sign-in:
+                 gumption://auth?code=…, passed to Dart by MainActivity. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="gumption" android:host="auth"/>
+            </intent-filter>
             <!-- Shares and widget taps are handled in Dart over a method
                  channel, not by Flutter's deep-link routing. -->
             <meta-data

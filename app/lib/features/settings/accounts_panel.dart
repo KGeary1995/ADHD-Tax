@@ -18,14 +18,13 @@ class AccountsPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.spec;
-    final google = ref.watch(googleAuthProvider).isConfigured;
-    final iCloud = ref.watch(iCloudSupportedProvider);
-    if (!google && !iCloud) {
+    final services = ref.watch(availableSyncServicesProvider);
+    if (services.isEmpty) {
       return const Group(
         label: 'Sync',
         children: [
           GroupRow(
-            title: 'Google sync isn\'t set up in this build',
+            title: 'Sync isn\'t set up in this build',
             subtitle:
                 'Tasks are saved on this device only, so save a backup '
                 'file below now and then. To sync your phone and computer, '
@@ -47,14 +46,14 @@ class AccountsPanel extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
           child: Text(
-            iCloud
-                ? 'Each workspace syncs to the place you choose: iCloud (for '
-                      'iPhone, iPad and Mac only) or a Google account (for '
-                      'any device). Either way it\'s a hidden folder only '
-                      'Gumption uses, and it can\'t see anything else.'
-                : 'Each workspace syncs to its own Google account, in a '
+            services.length == 1
+                ? 'Each workspace syncs to its own Google account, in a '
                       'hidden app folder in that account\'s Drive. Gumption '
-                      'can\'t see anything else in your Drive.',
+                      'can\'t see anything else in your Drive.'
+                : 'Each workspace syncs to the place you choose. Gumption '
+                      'only uses its own folder there: hidden in Google '
+                      'Drive and iCloud, and Apps/Gumption in OneDrive. It '
+                      'can\'t see anything else.',
             style: TextStyle(color: s.muted, fontSize: 12, height: 1.4),
           ),
         ),
@@ -74,23 +73,22 @@ class _WorkspaceRow extends ConsumerWidget {
     final ctl = ref.read(syncProvider(workspace).notifier);
     final busy =
         sync.phase == SyncPhase.connecting || sync.phase == SyncPhase.syncing;
+    final services = ref.watch(availableSyncServicesProvider);
+    final service = ctl.service;
+    // With more than one service on offer, say which one this row uses.
+    final account = sync.isICloud || services.length < 2
+        ? sync.accountLabel
+        : '${service.storeName} · ${sync.accountLabel}';
 
     final subtitle = switch (sync.phase) {
-      SyncPhase.notConfigured || SyncPhase.disconnected =>
-        ref.watch(iCloudSupportedProvider)
-            ? 'Not connected. Sync with iCloud or a Google account.'
-            : workspace == Workspace.work
-            ? 'Not connected. Use the Google account you use for work. A '
-                  'company account may need its admin to allow the app.'
-            : 'Not connected. Use your personal Google account.',
-      SyncPhase.connecting => 'Waiting for Google sign-in…',
-      SyncPhase.syncing => '${sync.accountLabel} · syncing…',
-      SyncPhase.synced =>
-        '${sync.accountLabel} · ${_lastSynced(sync.lastSyncedAt)}',
-      SyncPhase.error =>
-        '${sync.accountLabel} · ${sync.message ?? 'sync failed'}',
+      SyncPhase.notConfigured ||
+      SyncPhase.disconnected => _notConnected(services),
+      SyncPhase.connecting => 'Waiting for ${service.signInName} sign-in…',
+      SyncPhase.syncing => '$account · syncing…',
+      SyncPhase.synced => '$account · ${_lastSynced(sync.lastSyncedAt)}',
+      SyncPhase.error => '$account · ${sync.message ?? 'sync failed'}',
       SyncPhase.needsReconnect =>
-        '${sync.accountLabel} · ${sync.message ?? 'sign in again'}',
+        '$account · ${sync.message ?? 'sign in again'}',
     };
     final personalOnWork =
         workspace == Workspace.work &&
@@ -152,9 +150,13 @@ class _WorkspaceRow extends ConsumerWidget {
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'sync', child: Text('Sync now')),
               if (!sync.isICloud)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'backup',
-                  child: Text('Back up to Drive'),
+                  child: Text(
+                    service == SyncService.onedrive
+                        ? 'Back up to OneDrive'
+                        : 'Back up to Drive',
+                  ),
                 ),
               const PopupMenuItem(
                 value: 'disconnect',
@@ -178,9 +180,9 @@ class _WorkspaceRow extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
             child: Text(
-              'This looks like a personal Gmail account. If your workplace '
-              'has its own Google account, Work tasks belong there, under '
-              'its policies.',
+              'This looks like a personal account. If your workplace has its '
+              'own Google or Microsoft account, Work tasks belong there, '
+              'under its policies.',
               style: TextStyle(color: s.warning, fontSize: 13, height: 1.35),
             ),
           ),
@@ -189,7 +191,8 @@ class _WorkspaceRow extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
             child: Text(
               'Work tasks sync to your personal iCloud. If your workplace has '
-              'rules about where work data goes, use its Google account.',
+              'rules about where work data goes, use its Google or Microsoft '
+              'account.',
               style: TextStyle(color: s.ink2, fontSize: 13, height: 1.35),
             ),
           ),
@@ -197,14 +200,33 @@ class _WorkspaceRow extends ConsumerWidget {
     );
   }
 
-  /// First connection: where should this workspace sync? On iPhone and
-  /// iPad that's iCloud or Google; elsewhere only Google is offered.
+  String _notConnected(List<SyncService> services) {
+    if (services.length == 1 && services.single == SyncService.google) {
+      return workspace == Workspace.work
+          ? 'Not connected. Use the Google account you use for work. A '
+                'company account may need its admin to allow the app.'
+          : 'Not connected. Use your personal Google account.';
+    }
+    final names = [
+      for (final s in services)
+        switch (s) {
+          SyncService.icloud => 'iCloud',
+          SyncService.google => 'a Google account',
+          SyncService.onedrive => 'a Microsoft account',
+        },
+    ];
+    final list = names.length == 1
+        ? names.single
+        : '${names.sublist(0, names.length - 1).join(', ')} or ${names.last}';
+    return 'Not connected. Sync with $list.';
+  }
+
+  /// First connection: where should this workspace sync? Only the services
+  /// this device has are offered; with just one, it goes straight there.
   Future<void> _chooseAndConnect(BuildContext context, WidgetRef ref) async {
     final ctl = ref.read(syncProvider(workspace).notifier);
-    final google = ref.read(googleAuthProvider).isConfigured;
-    final iCloud = ref.read(iCloudSupportedProvider);
-    if (!iCloud) return ctl.connect(via: SyncService.google);
-    if (!google) return ctl.connect(via: SyncService.icloud);
+    final services = ref.read(availableSyncServicesProvider);
+    if (services.length == 1) return ctl.connect(via: services.single);
     final pick = await showAppSheet<SyncService>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -219,22 +241,33 @@ class _WorkspaceRow extends ConsumerWidget {
                     'Use the same choice on every device you want this '
                     'workspace on.',
               ),
-              const SizedBox(height: Gap.s7),
-              SheetChoice(
-                title: 'iCloud',
-                subtitle:
-                    'iPhone, iPad and Mac only. Uses the Apple ID this '
-                    'device is signed in to; nothing to sign in to.',
-                onTap: () => Navigator.pop(ctx, SyncService.icloud),
-              ),
-              const SizedBox(height: Gap.s4),
-              SheetChoice(
-                title: 'Google account',
-                subtitle:
-                    'Any device, including Android, Windows and the web. '
-                    'Signs in to Google.',
-                onTap: () => Navigator.pop(ctx, SyncService.google),
-              ),
+              for (final service in services) ...[
+                SizedBox(height: service == services.first ? Gap.s7 : Gap.s4),
+                switch (service) {
+                  SyncService.icloud => SheetChoice(
+                    title: 'iCloud',
+                    subtitle:
+                        'iPhone, iPad and Mac only. Uses the Apple ID this '
+                        'device is signed in to; nothing to sign in to.',
+                    onTap: () => Navigator.pop(ctx, SyncService.icloud),
+                  ),
+                  SyncService.google => SheetChoice(
+                    title: 'Google account',
+                    subtitle:
+                        'Any device, including Android, Windows and the '
+                        'web. Signs in to Google.',
+                    onTap: () => Navigator.pop(ctx, SyncService.google),
+                  ),
+                  SyncService.onedrive => SheetChoice(
+                    title: 'Microsoft account (OneDrive)',
+                    subtitle:
+                        'Android, iPhone, iPad, Mac and Windows. A personal '
+                        'account or one from work or school. Signs in to '
+                        'Microsoft.',
+                    onTap: () => Navigator.pop(ctx, SyncService.onedrive),
+                  ),
+                },
+              ],
             ],
           ),
         ),
@@ -251,7 +284,12 @@ class _WorkspaceRow extends ConsumerWidget {
           .exportBackup();
       messenger.showSnackBar(
         SnackBar(
-          content: const Text('Backup saved to your Google Drive.'),
+          content: Text(
+            ref.read(syncProvider(workspace).notifier).service ==
+                    SyncService.onedrive
+                ? 'Backup saved to OneDrive, in Apps/Gumption/Backups.'
+                : 'Backup saved to your Google Drive.',
+          ),
           action: link == null
               ? null
               : SnackBarAction(
@@ -272,7 +310,7 @@ class _WorkspaceRow extends ConsumerWidget {
         title: Text('Disconnect ${workspace.label}?'),
         content: Text(
           'Syncing stops on this device. Your tasks stay here, and the copy '
-          'in ${ref.read(syncProvider(workspace)).isICloud ? 'iCloud' : 'Google Drive'} '
+          'in ${ref.read(syncProvider(workspace).notifier).service.storeName} '
           'stays for your other devices.',
         ),
         actions: [
