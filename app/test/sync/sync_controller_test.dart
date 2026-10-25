@@ -137,7 +137,46 @@ class _TaggedClient extends http.BaseClient {
       throw UnimplementedError();
 }
 
-ProviderContainer device(FakeAuth auth, {KeyValueStore? store}) {
+/// One Apple ID's iCloud: a folder per workspace, plus the identity iCloud
+/// reports. Devices signed in to the same Apple ID share one of these.
+class FakeICloud {
+  String? identity = 'a1b2c3';
+  final folders = {for (final ws in Workspace.values) ws: FakeRemote()};
+}
+
+class _ICloudRemote implements AccountRemoteStore {
+  _ICloudRemote(this.cloud, this.ws);
+  final FakeICloud cloud;
+  final Workspace ws;
+
+  @override
+  Future<String?> accountEmail() async {
+    final id = cloud.identity;
+    if (id == null) throw const NeedsReconnect('iCloud isn\'t available.');
+    return 'icloud:$id';
+  }
+
+  @override
+  Future<String?> exportBackup(String name, List<int> bytes) =>
+      throw UnsupportedError('not on iCloud');
+  @override
+  Future<List<RemoteFile>> list(String prefix) =>
+      cloud.folders[ws]!.list(prefix);
+  @override
+  Future<List<int>> read(String id) => cloud.folders[ws]!.read(id);
+  @override
+  Future<String> create(String name, List<int> bytes) =>
+      cloud.folders[ws]!.create(name, bytes);
+  @override
+  Future<void> update(String id, List<int> bytes) =>
+      cloud.folders[ws]!.update(id, bytes);
+}
+
+ProviderContainer device(
+  FakeAuth auth, {
+  KeyValueStore? store,
+  FakeICloud? iCloud,
+}) {
   final c = ProviderContainer(
     overrides: [
       keyValueStoreProvider.overrideWithValue(store ?? MemoryStore()),
@@ -145,6 +184,8 @@ ProviderContainer device(FakeAuth auth, {KeyValueStore? store}) {
       remoteFactoryProvider.overrideWithValue(
         (client) => _AccountRemote((client as _TaggedClient).account),
       ),
+      iCloudSupportedProvider.overrideWithValue(iCloud != null),
+      iCloudStoreProvider.overrideWithValue((ws) => _ICloudRemote(iCloud!, ws)),
     ],
   );
   addTearDown(c.dispose);
@@ -542,6 +583,109 @@ void main() {
     expect(
       pc.read(replicasProvider)[Workspace.personal].lastLocalWrite,
       isNotNull,
+    );
+  });
+
+  group('iCloud', () {
+    test('syncs between devices on the same Apple ID, with no Google '
+        'sign-in', () async {
+      final cloud = FakeICloud();
+      final auth = FakeAuth(accounts());
+      final iphone = device(auth, iCloud: cloud);
+      final ipad = device(auth, iCloud: cloud);
+      for (final d in [iphone, ipad]) {
+        await d
+            .read(syncProvider(Workspace.personal).notifier)
+            .connect(via: SyncService.icloud);
+      }
+      final s = iphone.read(syncProvider(Workspace.personal));
+      expect(s.phase, SyncPhase.synced);
+      expect(s.isICloud, isTrue);
+      expect(s.accountLabel, 'iCloud');
+      expect(auth.connected, isEmpty, reason: 'Google was never asked');
+
+      iphone.read(tasksProvider.notifier).create(title: 'Water plants');
+      await iphone.read(syncProvider(Workspace.personal).notifier).syncNow();
+      await ipad.read(syncProvider(Workspace.personal).notifier).syncNow();
+      expect(ipad.read(tasksProvider).map((t) => t.title), ['Water plants']);
+      // Nothing went to the Google account.
+      expect(personal.drive.files, isEmpty);
+    });
+
+    test('each workspace keeps its own service: Personal on iCloud, Work on '
+        'Google', () async {
+      final cloud = FakeICloud();
+      final phone = device(FakeAuth(accounts()), iCloud: cloud);
+      await phone
+          .read(syncProvider(Workspace.personal).notifier)
+          .connect(via: SyncService.icloud);
+      await phone
+          .read(syncProvider(Workspace.work).notifier)
+          .connect(via: SyncService.google);
+      phone
+          .read(tasksProvider.notifier)
+          .create(title: 'Report', workspace: Workspace.work);
+      await syncAll(phone);
+      expect(phone.read(syncProvider(Workspace.work)).email, 'kyle@clinic.org');
+      expect(work.drive.files, isNotEmpty);
+      expect(cloud.folders[Workspace.work]!.files, isEmpty);
+      expect(cloud.folders[Workspace.personal]!.files, isNotEmpty);
+    });
+
+    test('a restart carries on with iCloud silently', () async {
+      final cloud = FakeICloud();
+      final store = MemoryStore();
+      final first = device(FakeAuth(accounts()), store: store, iCloud: cloud);
+      await first
+          .read(syncProvider(Workspace.personal).notifier)
+          .connect(via: SyncService.icloud);
+      first.dispose();
+      final again = device(FakeAuth(accounts()), store: store, iCloud: cloud);
+      await again.read(syncProvider(Workspace.personal).notifier).syncNow();
+      expect(
+        again.read(syncProvider(Workspace.personal)).phase,
+        SyncPhase.synced,
+      );
+    });
+
+    test('a different Apple ID stops syncing and asks to reconnect', () async {
+      final cloud = FakeICloud();
+      final phone = device(FakeAuth(accounts()), iCloud: cloud);
+      final ctl = phone.read(syncProvider(Workspace.personal).notifier);
+      await ctl.connect(via: SyncService.icloud);
+      final files = cloud.folders[Workspace.personal]!.files.length;
+
+      cloud.identity = 'ffeedd';
+      phone.read(tasksProvider.notifier).create(title: 'Private');
+      await ctl.syncNow();
+      final s = phone.read(syncProvider(Workspace.personal));
+      expect(s.phase, SyncPhase.needsReconnect);
+      expect(s.message, contains('different iCloud account'));
+      expect(cloud.folders[Workspace.personal]!.files.length, files);
+    });
+
+    test('iCloud turned off: connecting says how to fix it', () async {
+      final cloud = FakeICloud()..identity = null;
+      final phone = device(FakeAuth(accounts()), iCloud: cloud);
+      await phone
+          .read(syncProvider(Workspace.personal).notifier)
+          .connect(via: SyncService.icloud);
+      final s = phone.read(syncProvider(Workspace.personal));
+      expect(s.phase, SyncPhase.disconnected);
+      expect(s.message, contains('iCloud'));
+    });
+
+    test(
+      'disconnect forgets the choice, so the next connect asks again',
+      () async {
+        final cloud = FakeICloud();
+        final phone = device(FakeAuth(accounts()), iCloud: cloud);
+        final ctl = phone.read(syncProvider(Workspace.personal).notifier);
+        await ctl.connect(via: SyncService.icloud);
+        expect(ctl.service, SyncService.icloud);
+        await ctl.disconnect();
+        expect(ctl.service, SyncService.google);
+      },
     );
   });
 }
