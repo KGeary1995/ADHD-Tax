@@ -205,7 +205,7 @@ Every bottom sheet goes through `showAppSheet` (`widgets/ui.dart`): a modal bott
 
 - **Quick add** (bottom sheet): a title, How long? and Personal/Work; on a phone Priority, dread and Leave the house sit behind **More options** (open/closed remembered as `quickadd.more`), and typed extras fill them in anyway. The computer window always shows everything. A mic button (`voice_input.dart`, `speech_to_text`) dictates into the title, or new lines in Brain dump; it works on Android, Mac and in Chrome/Safari, and says so elsewhere. Its buttons are pinned above the keyboard and the nav bar. **Brain dump** creates one task per line. **Full task form** opens the editor with the draft.
 - **Task editor**: every field, plus repeat settings and status.
-- The PHI warning appears for Work tasks that look like patient info.
+- The sensitive info check (`PhiWarning`, Settings → Sensitive info check, off unless turned on) warns on Work tasks that look like someone's personal details. The AI helper refuses such Work text regardless of the switch.
 
 ## Theming (`core/theme/app_themes.dart`)
 
@@ -230,7 +230,7 @@ Navigation (`app.dart`): phones get the divider-tab bar (2 px `line2` rule, four
 
 | Folder | What |
 |---|---|
-| `core/`, `data/`, `features/` | Pure logic: HLC, Task JSON, picker scoring, XP, achievements fold, quotes, PHI guard, recurrence, nudge/follow-up/wrap-up planning, estimate calibration, share-to-task parsing |
+| `core/`, `data/`, `features/` | Pure logic: HLC, Task JSON, picker scoring, XP, achievements fold, quotes, sensitive info check (`phi_guard.dart`), recurrence, nudge/follow-up/wrap-up planning, estimate calibration, share-to-task parsing |
 | `sync/` | Replica merge laws, sync engine against `FakeRemote` (multi-device convergence, ping-pong, offline edits, corrupt files), sync controller with a fake auth |
 | `widget/` | Full-app flows (`pumpApp`), waiting → check back, wrap-up pin, share/widget requests with a fake bridge (`new_features_test.dart`), light/dark/system on a phone, settings migration, phone-width overflow at 1.0×/1.3× text, back navigation, Quick add → full form, reminders with `FakeReminders`, Mark done/Delete with Undo, startup error screen |
 

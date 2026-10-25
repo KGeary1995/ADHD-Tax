@@ -113,7 +113,8 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 
 ## Rules
 
-- **No PHI anywhere**: no patient names, dates of birth or MRNs in code, tests, fixtures, docs, commit messages or screenshots. Demo data uses generic tasks. The in-app PHI guard (`features/safety/phi_guard.dart`) is a warning, not a control.
+- **No PHI anywhere**: no patient names, dates of birth or MRNs in code, tests, fixtures, docs, commit messages or screenshots. Demo data uses generic tasks. The in-app Sensitive info check (`features/safety/phi_guard.dart`, off unless turned on) is a warning, not a control.
+- **Written for everyone.** The owner works in a clinic, but the app is for anyone: no medical, clinic or insurance wording in user-facing text, examples, templates, store screenshots or the web pages (docs/DECISIONS.md, 2026-10-25). Keep the dry, kind voice of the quotes and asides; never shaming.
 - **New synced collections or fields:** JSON scalars only (a list or map field compares by identity and gets re-stamped on every save; see `Note.tags`).
 - **Keep the sync data model backward compatible.** Devices run different builds. New `Task` fields must have defaults in `Task.fromJson`; never rename or reuse a field. Never rewrite or delete XP events: revoke one by tombstoning it (`ProgressController.revoke`).
 - **Pure logic stays pure Dart** (no Flutter imports): `picker_engine.dart`, `recurrence.dart`, `nudge_plan.dart`, `xp_rules.dart`, `achievements.dart`, `progress_event.dart`, `phi_guard.dart`, `quote_service.dart`, `hlc.dart`, `replica.dart`, `sync_engine.dart`, `estimate_calibration.dart`, `backup_file.dart`, `note.dart`, `checklist.dart`, `reward.dart`, `template.dart`, `quick_parse.dart`, `weekly_reset.dart`, `errand_run.dart`, `breakdown.dart` (HTTP through an injected `http.Client`), `first_steps.dart`, `links.dart`. Test them with plain unit tests.

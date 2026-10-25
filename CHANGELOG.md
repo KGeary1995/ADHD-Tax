@@ -2,6 +2,12 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
+## Next build — 2026-10-25 (Android, web)
+- **For everyone, not just clinics:** the app no longer talks about patients, clinics or insurance. Sync asks for "the Google account you use for work", typing hints say things like "Call the bank tomorrow 2pm", and the example templates are **Start the workday**, **Meeting notes** and **Weekly reset**. The privacy policy and terms say "sensitive personal information" instead of "patient information".
+- **Sensitive info check** (was "Patient-info guard"): same warning, neutral wording, and **off for new installs**. Your devices keep it on if it was on; check Settings → Look and feel on each one you use for clinic work. The AI helper still never sends a Work task that looks like it holds someone's personal details.
+- **The dry wit is back:** a quote under the focus timer again, Today shows funny ones more often and in brighter text, the Finished card has a one-liner ("Another one bites the dust."), two rerolls get "Rerolling feels productive, but it's the dread talking.", and 12 new lines ("Reorganising the list is not doing the list.").
+- New App Store screenshots with everyday and office examples (a quarterly report, a launch date, an expense sign-off).
+
 ## Build 112 / iPhone 113 — 2026-10-25 (bcf59aa): 1.1 "Night sky" (Android, web, iPhone TestFlight)
 - **A whole new look**, from the design you commissioned. Gold stars on a deep night sky (**Night**), or on warm cream (**Dawn**); it follows the phone unless you pick one in Settings → Appearance. New fonts and icons throughout.
 - **Today shows one task and its next step**, with a big Start and 5 min, and three quiet choices: Not this one, Smaller, Later. **Smaller** lets you shrink the step on the spot; **Later** brings the task back in 3 hours. "Right now" (time, staying in or going out, energy, which tasks) is one button at the top.
