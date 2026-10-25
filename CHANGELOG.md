@@ -2,6 +2,10 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
+## Next build — 2026-10-25 (web): OneDrive in the web app
+- **OneDrive works in the web app too:** Settings → Sync → Connect → Microsoft account opens Microsoft's sign-in in a small window (allow pop-ups if the browser asks). Microsoft keeps a browser signed in for 24 hours; after that the row shows **Reconnect**.
+- Fixed: with only OneDrive available, the note under the Sync rows talked about Google Drive.
+
 ## Build 127 / iPhone 127 — 2026-10-25: Microsoft OneDrive sync
 - **Sync with a Microsoft account:** Settings → Sync → Connect now also offers **Microsoft account (OneDrive)**, for a personal account (Outlook.com, Hotmail) or one from work or school. Works on Android, iPhone, iPad, Mac and Windows; not in the web app yet. Mix as you like: Personal on iCloud, Work on Microsoft 365, and so on.
 - The files go in **Apps/Gumption** in that OneDrive (visible there; please leave them be). "Back up to OneDrive" saves a readable copy in Apps/Gumption/Backups.
