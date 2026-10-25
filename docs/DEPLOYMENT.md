@@ -49,6 +49,7 @@ Every build job first writes `app/google_oauth.json` from secrets and builds wit
 | `CLOUDFLARE_API_TOKEN` | secret | `web-publish` | Cloudflare → My Profile → API Tokens → custom token, permission *Account · Cloudflare Pages · Edit* |
 | `CLOUDFLARE_ACCOUNT_ID` | secret | `web-publish` | Cloudflare → Workers & Pages (right sidebar) |
 | `CLOUDFLARE_PROJECT` | variable (optional) | `web-publish` | Defaults to `unstuck` |
+| `IOS_DEV_CERT_P12`, `IOS_DEV_CERT_PASSWORD` | secret | `ios` | One **Apple Development** certificate exported from Keychain Access as a .p12 (base64) and its password. The iOS job imports it so automatic signing reuses it; without it each build creates a new development certificate until Apple's limit is reached (docs/TROUBLESHOOTING.md) |
 | `MACOS_CERT_P12`, `MACOS_CERT_PASSWORD` | secret | `macos` | The owner's **Developer ID Application** certificate exported from Keychain Access as a .p12 (base64) and its export password. With them the Mac app is re-signed (hardened runtime) and notarized with the `ASC_*` API key; without them it stays ad-hoc signed |
 | `UPLOAD_KEYSTORE_BASE64`, `UPLOAD_STORE_PASSWORD`, `UPLOAD_KEY_ALIAS`, `UPLOAD_KEY_PASSWORD` | secret | `play` | The Play upload key, generated 2026-10-22 and sent to the owner as a file (never committed). Alias `upload`, PKCS12, store and key password the same. SHA-1 `1D:05:72:5F:78:9E:F9:29:CA:9C:4A:08:B2:89:99:7F:01:04:37:4F` |
 

@@ -434,6 +434,8 @@ jobs:
       ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+      IOS_DEV_CERT_P12: ${{ secrets.IOS_DEV_CERT_P12 }}
+      IOS_DEV_CERT_PASSWORD: ${{ secrets.IOS_DEV_CERT_PASSWORD }}
     defaults:
       run:
         working-directory: app
@@ -478,6 +480,26 @@ jobs:
           mkdir -p ~/.appstoreconnect/private_keys
           key=~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
           printf '%s' "$ASC_KEY_P8" > "$key"
+          # Reuse one saved Apple Development certificate. Without it, every
+          # fresh runner has Xcode create a new one and throw its key away,
+          # until Apple's per-account limit is full and signing fails with
+          # "Your account has reached the maximum number of certificates"
+          # (2026-10-25, run 124).
+          if [ -n "$IOS_DEV_CERT_P12" ]; then
+            kc="$RUNNER_TEMP/ios-signing.keychain-db"
+            kcpass=$(uuidgen)
+            security create-keychain -p "$kcpass" "$kc"
+            security set-keychain-settings -lut 21600 "$kc"
+            security unlock-keychain -p "$kcpass" "$kc"
+            printf '%s' "$IOS_DEV_CERT_P12" | base64 --decode > "$RUNNER_TEMP/dev.p12"
+            security import "$RUNNER_TEMP/dev.p12" -P "$IOS_DEV_CERT_PASSWORD" -f pkcs12 -k "$kc" -T /usr/bin/codesign
+            rm -f "$RUNNER_TEMP/dev.p12"
+            security set-key-partition-list -S apple-tool:,apple: -s -k "$kcpass" "$kc" >/dev/null
+            security list-keychains -d user -s "$kc" $(security list-keychains -d user | tr -d '"')
+            security find-identity -v -p codesigning "$kc"
+          else
+            echo "::warning::No IOS_DEV_CERT_P12: Xcode makes a new development certificate for this build. Apple allows only a few; see docs/TROUBLESHOOTING.md (maximum number of certificates)."
+          fi
           auth=(-allowProvisioningUpdates
                 -authenticationKeyPath "$key"
                 -authenticationKeyID "$ASC_KEY_ID"
