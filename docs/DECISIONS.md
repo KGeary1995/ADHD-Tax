@@ -2,6 +2,9 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-25 — More sync services: iCloud first, then Microsoft; not Samsung
+Google-only sync shut out people who live in Apple's or Microsoft's world. The owner chose **iCloud first** (iPhone users first), **Microsoft OneDrive next** (every platform, the same "hidden app folder" model as Google). **Samsung isn't possible**: Samsung Cloud has no API for other apps' data; Samsung phones are Android, so Google or Microsoft covers them. iCloud uses an **iCloud Drive container** (files), not CloudKit: the engine's one-file-per-device model maps onto it directly, there's no CloudKit schema to deploy to production, and devices never write the same file, so iCloud never has conflicts to resolve. Trade-off, stated in the app: an iCloud workspace can't reach Android, Windows or the web. Each workspace picks one service per device; Personal on iCloud and Work on Google is fine.
+
 ### 2026-10-25 — Written for everyone, not for a clinic
 Before the App Store listing goes wider, the owner judged that copy about patients, clinics, insurance and "your clinic's Google Workspace account" told everyone else the app wasn't for them. User-facing text, example templates, the screenshot demo data and the privacy/terms pages are now neutral (work, home, a quarterly report). The owner's own clinic setup notes stay in README, and the "No PHI anywhere" rule for this repo stands.
 
