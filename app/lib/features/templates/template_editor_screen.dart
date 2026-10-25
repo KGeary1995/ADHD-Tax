@@ -168,8 +168,8 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
                       textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
                         hintText: isTask
-                            ? 'e.g. Opening checklist'
-                            : 'e.g. Huddle notes',
+                            ? 'e.g. Start the workday'
+                            : 'e.g. Meeting notes',
                       ),
                     ),
                   ),
@@ -190,7 +190,9 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
                       controller: _title,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
-                        hintText: isTask ? 'Same as the name' : 'Huddle {date}',
+                        hintText: isTask
+                            ? 'Same as the name'
+                            : 'Meeting {date}',
                       ),
                     ),
                     help: '{date} becomes the day you use it, e.g. "Oct 19".',

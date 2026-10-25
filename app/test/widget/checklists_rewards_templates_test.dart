@@ -209,21 +209,21 @@ void main() {
     c.read(routerProvider).push('/templates');
     await tester.pumpAndSettle();
     expect(find.text('START FROM AN EXAMPLE'), findsOneWidget);
-    await tester.tap(find.text('Add').first); // Opening checklist
+    await tester.tap(find.text('Add').first); // Start the workday
     await tester.pumpAndSettle();
     expect(find.text('START FROM AN EXAMPLE'), findsNothing);
     expect(c.read(templatesProvider).single.stepCount, 5);
 
     // Use it: the editor opens with everything filled in, unsaved.
-    await tester.tap(find.text('Opening checklist'));
+    await tester.tap(find.text('Start the workday'));
     await tester.pumpAndSettle();
     expect(find.text('New task'), findsOneWidget);
-    expect(find.text('Unlock the doors'), findsOneWidget);
+    expect(find.text('Fill a water bottle'), findsOneWidget);
     expect(c.read(tasksProvider), isEmpty);
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
     final opened = c.read(tasksProvider).single;
-    expect(opened.title, 'Open up');
+    expect(opened.title, 'Start the day');
     expect(opened.workspace, Workspace.work);
     expect(opened.steps, hasLength(5));
 

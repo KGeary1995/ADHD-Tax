@@ -60,18 +60,18 @@ const T = (id, title, o = {}) => ({
   actualMin: null, skipCount: 0, lastSkippedAt: null, repeat: 'none', repeatFromDone: false, ...o,
 });
 const tasks = [
-  T('1', 'Draft front-desk triage cheat sheet', { workspace: 'work', projectId: 'pw1', estimateMin: 60, priority: 'p1', chunkable: true,
-    dueAt: iso(now + 0.8 * day), hardDeadline: true, firstStep: "Open last year's version and skim it", energy: 'high',
-    checklist: "[x] Open last year's version and skim it\n[ ] List the five calls we get most\n[ ] Write who to route each one to\n[ ] Ask a senior to check it",
-    tags: 'training' }),
-  T('2', 'Reply to Dr. Patel about Thursday template', { workspace: 'work', priority: 'p2', firstStep: 'Open the template doc' }),
+  T('1', 'Draft the quarterly report', { workspace: 'work', projectId: 'pw1', estimateMin: 60, priority: 'p1', chunkable: true,
+    dueAt: iso(now + 0.8 * day), hardDeadline: true, firstStep: "Open last quarter's report and skim it", energy: 'high',
+    checklist: "[x] Open last quarter's report and skim it\n[ ] List the three numbers that matter\n[ ] Write a paragraph for each\n[ ] Ask Alex to read it over",
+    tags: 'planning' }),
+  T('2', 'Reply to Jordan about the launch date', { workspace: 'work', priority: 'p2', firstStep: 'Open the email thread' }),
   T('3', 'Schedule dentist appointment', { estimateMin: 5, ugh: 2, firstStep: 'Find the number in contacts', createdAt: iso(now - 9 * day) }),
   T('4', 'Renew car registration', { projectId: 'pp1', requiresLeavingHouse: true, location: 'DMV', estimateMin: 30, priority: 'p2', ugh: 2, dueAt: iso(now + 3 * day) }),
   T('5', 'Laundry', { estimateMin: 30, energy: 'low', repeat: 'weekly' }),
   T('6', 'Pick up prescription', { requiresLeavingHouse: true, location: 'Pharmacy' }),
-  T('7', 'Weekly huddle notes', { workspace: 'work', tags: 'training', repeat: 'weekly', dueAt: iso(now + 6 * day), scheduledStart: iso(now + 4 * day) }),
-  T('8', 'Prior auth for Thursday clinic', { workspace: 'work', status: 'waiting', waitingOn: 'Insurance callback', followUpAt: iso(now - 36e5) }),
-  T('9', 'Order new label printer', { workspace: 'work', status: 'waiting', waitingOn: 'IT ticket', followUpAt: iso(now + 3 * day) }),
+  T('7', 'Weekly team notes', { workspace: 'work', tags: 'planning', repeat: 'weekly', dueAt: iso(now + 6 * day), scheduledStart: iso(now + 4 * day) }),
+  T('8', 'Get the expense report approved', { workspace: 'work', status: 'waiting', waitingOn: 'Sign-off from Priya', followUpAt: iso(now - 36e5) }),
+  T('9', 'Order a new monitor', { workspace: 'work', status: 'waiting', waitingOn: 'IT ticket', followUpAt: iso(now + 3 * day) }),
   // Finished with the timer, so "How long things really take" has data.
   ...[20, 25, 30, 18, 40, 22].map((a, i) => T(`d${i}`, `Timed task ${i + 1}`, {
     status: 'done', estimateMin: 15, actualMin: a, completedAt: iso(now - (i + 1) * day), createdAt: iso(now - (i + 2) * day) })),
@@ -104,19 +104,19 @@ for (let d = 0; d < 56; d++) {
 }
 const replicas = {
   work: replica({
-    projects: { pw1: rec({ name: 'Front desk training', workspace: 'work', color: 0, createdAt: iso(now - 9 * day) }),
-      pw2: rec({ name: 'Phones & scheduling', workspace: 'work', color: 2, createdAt: iso(now - 9 * day) }) },
+    projects: { pw1: rec({ name: 'Q4 planning', workspace: 'work', color: 0, createdAt: iso(now - 9 * day) }),
+      pw2: rec({ name: 'Client work', workspace: 'work', color: 2, createdAt: iso(now - 9 * day) }) },
     templates: {
-      tw1: rec({ kind: 'task', name: 'Opening checklist', workspace: 'work', title: 'Open up', estimateMin: 15, body: '', tags: '',
-        checklist: '[ ] Lights, computers and equipment on\n[ ] Check voicemail and the message inbox\n[ ] Restock the front desk\n[ ] Unlock the doors',
+      tw1: rec({ kind: 'task', name: 'Start the workday', workspace: 'work', title: 'Start the day', estimateMin: 15, body: '', tags: '',
+        checklist: "[ ] Check email and messages\n[ ] Look over today's calendar\n[ ] Pick the one thing that matters most today\n[ ] Clear the desk",
         createdAt: iso(now - 5 * day) }),
-      tw2: rec({ kind: 'note', name: 'Huddle notes', workspace: 'work', title: 'Huddle {date}', estimateMin: 15, checklist: '', tags: '',
-        body: 'Schedule today:\n\nStaffing:\n\nWatch out for:\n\nTo do:\n- ', createdAt: iso(now - 5 * day) }),
+      tw2: rec({ kind: 'note', name: 'Meeting notes', workspace: 'work', title: 'Meeting {date}', estimateMin: 15, checklist: '', tags: '',
+        body: 'Who:\n\nDecisions:\n\nQuestions:\n\nTo do:\n- ', createdAt: iso(now - 5 * day) }),
     },
     notes: Object.fromEntries([
-      N('n1', 'work', 'Insurance callback script', 'Confirm the plan name first\nRead back the reference number #phones #billing\nUsed for [[Prior auth for Thursday clinic]]', { pinned: true, projectId: 'pw2', ago: 3 }),
-      N('n2', 'work', 'Huddle: new-hire onboarding', '- Shadow a full Monday\n- Cheat sheet by Friday: [[Draft front-desk triage cheat sheet]]\n- Pair with a senior for callbacks #training\n- Book the [[Training room]]', { projectId: 'pw1', taskId: '1' }),
-      N('n3', 'work', '', 'Label printer keeps jamming on the thick stock. IT ticket opened. #equipment', { ago: 1 }),
+      N('n1', 'work', 'Launch call prep', 'Confirm the budget first\nRepeat back the next steps #clients\nFor [[Reply to Jordan about the launch date]]', { pinned: true, projectId: 'pw2', ago: 3 }),
+      N('n2', 'work', 'Kickoff: new teammate onboarding', '- Shadow a full Monday\n- Report draft by Friday: [[Draft the quarterly report]]\n- Pair up for client calls #onboarding\n- Book the [[Big meeting room]]', { projectId: 'pw1', taskId: '1' }),
+      N('n3', 'work', '', 'Monitor flickers on the left side. IT ticket opened. #equipment', { ago: 1 }),
     ]),
   }),
   personal: replica({
@@ -136,7 +136,7 @@ const replicas = {
     ]),
   }),
 };
-const settings = { appearance: opt('--appearance', 'dark'), celebration: opt('--celebration', 'normal'), quoteSeconds: 60, phiGuard: true,
+const settings = { appearance: opt('--appearance', 'dark'), celebration: opt('--celebration', 'normal'), quoteSeconds: 60, phiGuard: false,
   timerBlocks: flag('--blocks') };
 
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;

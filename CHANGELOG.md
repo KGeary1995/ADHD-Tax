@@ -2,7 +2,13 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## 1.1 "Night sky" — not built yet (Android, web; iPhone and Mac when asked)
+## Next build — 2026-10-25 (Android, web)
+- **For everyone, not just clinics:** the app no longer talks about patients, clinics or insurance. Sync asks for "the Google account you use for work", typing hints say things like "Call the bank tomorrow 2pm", and the example templates are **Start the workday**, **Meeting notes** and **Weekly reset**. The privacy policy and terms say "sensitive personal information" instead of "patient information".
+- **Sensitive info check** (was "Patient-info guard"): same warning, neutral wording, and **off for new installs**. Your devices keep it on if it was on; check Settings → Look and feel on each one you use for clinic work. The AI helper still never sends a Work task that looks like it holds someone's personal details.
+- **The dry wit is back:** a quote under the focus timer again, Today shows funny ones more often and in brighter text, the Finished card has a one-liner ("Another one bites the dust."), two rerolls get "Rerolling feels productive, but it's the dread talking.", and 12 new lines ("Reorganising the list is not doing the list.").
+- New App Store screenshots with everyday and office examples (a quarterly report, a launch date, an expense sign-off).
+
+## Build 112 / iPhone 113 — 2026-10-25 (bcf59aa): 1.1 "Night sky" (Android, web, iPhone TestFlight)
 - **A whole new look**, from the design you commissioned. Gold stars on a deep night sky (**Night**), or on warm cream (**Dawn**); it follows the phone unless you pick one in Settings → Appearance. New fonts and icons throughout.
 - **Today shows one task and its next step**, with a big Start and 5 min, and three quiet choices: Not this one, Smaller, Later. **Smaller** lets you shrink the step on the spot; **Later** brings the task back in 3 hours. "Right now" (time, staying in or going out, energy, which tasks) is one button at the top.
 - **Starting lights a star:** pressing Start shows a short "A new star." moment (tap to skip; off if Celebrations are Off), then the focus timer.
@@ -14,7 +20,7 @@ What changed in each build, newest first. Build number = CI run number (= Androi
 - **Home-screen widgets** match the new look and follow your phone's light or dark setting. The 4×2 widget shows the step you're on, the next one, Start, 5 min, Add a task and your streak.
 - Fixed: in the task editor, adding the first checklist step no longer makes the page jump.
 
-## Next build — 2026-10-24 (Android, web, iPhone)
+## Build 112 — 2026-10-25 (bcf59aa): iPhone sync fixes (Android, web; iPhone 113)
 - **iPhone: Personal and Work can both sync now.** Signing in to Work used to hang on "Waiting for Google sign-in…", and could make Personal sync through the Work account. iPhone now signs in to each one separately in a Safari sheet, like the Mac app does. **After updating, tap Reconnect on Personal once.**
 - **Sync never writes into the wrong Google account:** if a device finds a different account signed in than the one a workspace syncs with, it stops and asks you to reconnect instead of syncing.
 - **Cancel** next to "Waiting for Google sign-in…", and a sign-in that's left open gives up after 5 minutes instead of spinning forever.

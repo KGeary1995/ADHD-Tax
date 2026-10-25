@@ -21,7 +21,7 @@ const _lastSavedKey = 'backup.lastSavedAt';
 ///
 /// Left out on purpose: "Show on this device" (a work-profile copy restored
 /// from a personal backup would switch to Personal), "Use AI on Work
-/// tasks" (needs its patient-details confirmation each time), and every
+/// tasks" (needs its personal-details confirmation each time), and every
 /// secret (API key, Google tokens), since backup files get emailed and
 /// left in Drive.
 const backupSettingKeys = [

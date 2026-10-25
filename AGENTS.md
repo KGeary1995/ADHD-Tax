@@ -17,7 +17,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 |---|---|---|
 | Phase 1: offline app (picker, focus, XP, themes, quotes) | Done | Android: yes (Build 9+) |
 | Redesign: one look, light + dark, bundled fonts, floating nav | Replaced by 1.1 (below) | — |
-| **1.1 "Night sky" redesign** (docs/design/handoff-1.1.md): Night/Dawn tokens, Sora + Manrope, Phosphor icons, divider-tab nav, Today as one task, Started screen, orbit/blocks timer, celebration cards, every screen restyled; new app icon (iOS dark/tinted, Android adaptive + monochrome); widgets restyled and follow the phone's appearance; Mac/iPad Tasks list + detail pane; new store screenshots | Done, not yet pushed or merged (to ship after Apple approves 1.0) | Not yet (tests, and web screenshots against the handoff at 390×844, 360×640, 1440×900 and 1194×834). Native widgets and the iOS icon set are only compiled by CI |
+| **1.1 "Night sky" redesign** (docs/design/handoff-1.1.md): Night/Dawn tokens, Sora + Manrope, Phosphor icons, divider-tab nav, Today as one task, Started screen, orbit/blocks timer, celebration cards, every screen restyled; new app icon (iOS dark/tinted, Android adaptive + monochrome); widgets restyled and follow the phone's appearance; Mac/iPad Tasks list + detail pane; new store screenshots | Done; merged to `main` 2026-10-25 (PR #7). Android and web on Build 112+; **iPhone 1.1.0 (113) uploaded to TestFlight** for testing. Not submitted to the App Store: that waits until Apple approves 1.0 | Not yet on a device (tests, and web screenshots against the handoff at 390×844, 360×640, 1440×900 and 1194×834). CI compiled the Android widgets and adaptive icon (Build 112) and the iPhone widget and dark/tinted icon set (Build 113) |
 | Phase 2: Google sign-in + Drive sync | Code done; Google Cloud keys (web, Android, desktop clients) added as secrets 2026-10-19; iOS client added 2026-10-22 | **Yes (Android, 2026-10-19):** Personal connected in the personal profile; Work connected from a second install in the Android **work profile** (the personal-profile app can't see work-profile accounts). **2026-10-22:** sync survives an app update since the silent sign-in retry (Build 77). **2026-10-23:** Google sign-in works in the iPhone build (TestFlight Build 103, run on the owner's Mac). **Two-device sync passes (2026-10-23):** a task added on the Mac (TestFlight iPhone build) appeared on Android, and marking it done on Android showed on the Mac. **2026-10-24, real iPhone (Build 108):** Personal syncs; Work hung on "Waiting for Google sign-in…" because `google_sign_in` on iOS holds one account. **Fixed and verified (real iPhone, Build 110, 2026-10-24):** browser sign-in per workspace; Personal (personal Gmail) and Work (clinic Workspace account) both connect and sync on the same iPhone |
 | Phone layout fixes, full task form, back button | Done | Android: reported working |
 | Repeating tasks, Mark done + Undo, Android reminders | Done | **Partly (Build 91):** Mark done + Undo and the focus timer's "Time's up" alert (screen off) pass; repeating tasks not yet tested |
@@ -37,7 +37,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Built-in first-step ideas and Suggest steps (no AI key), "Hold me to it" share from the focus screen | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (idea chips, Suggest steps, Hold me to it share sheet) |
 | Phase 3+ (Calendar, table/timeline views) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-25 (1.1 redesign implemented locally; Build 110: Personal and Work both sync on a real iPhone).
+Last updated: 2026-10-25 (1.1 redesign merged; TestFlight 1.1.0 (113) uploaded).
 
 ## Toolchain
 
@@ -97,7 +97,7 @@ app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks
 
 ## How a change ships
 
-1. `main` is the stable copy (PR #1 merged 2026-10-22). Work on a feature branch made from the latest `main` and open a new PR into `main` for each batch; the owner decides when to merge. A merged PR is finished: follow-up work goes on a fresh branch from `main`, never on top of the merged history.
+1. `main` is the stable copy (PR #1 merged 2026-10-22; PR #7, the iPhone sync fix and the 1.1 redesign, 2026-10-25). Work on a feature branch made from the latest `main` and open a new PR into `main` for each batch; the owner decides when to merge. A merged PR is finished: follow-up work goes on a fresh branch from `main`, never on top of the merged history.
 2. `./tool/check.sh` must pass.
 3. Push. CI runs once per commit (push only; docs-only commits, i.e. `*.md` and `docs/`, skip CI entirely): `test` (format, analyze, test, web build), then in parallel:
    - **Android**: builds the APK and replaces the `android-latest` release asset. The phone download link never changes.
@@ -113,7 +113,8 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 
 ## Rules
 
-- **No PHI anywhere**: no patient names, dates of birth or MRNs in code, tests, fixtures, docs, commit messages or screenshots. Demo data uses generic tasks. The in-app PHI guard (`features/safety/phi_guard.dart`) is a warning, not a control.
+- **No PHI anywhere**: no patient names, dates of birth or MRNs in code, tests, fixtures, docs, commit messages or screenshots. Demo data uses generic tasks. The in-app Sensitive info check (`features/safety/phi_guard.dart`, off unless turned on) is a warning, not a control.
+- **Written for everyone.** The owner works in a clinic, but the app is for anyone: no medical, clinic or insurance wording in user-facing text, examples, templates, store screenshots or the web pages (docs/DECISIONS.md, 2026-10-25). Keep the dry, kind voice of the quotes and asides; never shaming.
 - **New synced collections or fields:** JSON scalars only (a list or map field compares by identity and gets re-stamped on every save; see `Note.tags`).
 - **Keep the sync data model backward compatible.** Devices run different builds. New `Task` fields must have defaults in `Task.fromJson`; never rename or reuse a field. Never rewrite or delete XP events: revoke one by tombstoning it (`ProgressController.revoke`).
 - **Pure logic stays pure Dart** (no Flutter imports): `picker_engine.dart`, `recurrence.dart`, `nudge_plan.dart`, `xp_rules.dart`, `achievements.dart`, `progress_event.dart`, `phi_guard.dart`, `quote_service.dart`, `hlc.dart`, `replica.dart`, `sync_engine.dart`, `estimate_calibration.dart`, `backup_file.dart`, `note.dart`, `checklist.dart`, `reward.dart`, `template.dart`, `quick_parse.dart`, `weekly_reset.dart`, `errand_run.dart`, `breakdown.dart` (HTTP through an injected `http.Client`), `first_steps.dart`, `links.dart`. Test them with plain unit tests.

@@ -182,18 +182,36 @@ void main() {
     expect(round.appearance, Appearance.light);
   });
 
-  testWidgets('PHI guard warns on Work tasks only', (tester) async {
-    await pumpApp(tester);
-    await tester.tap(find.text('Add a task').first);
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Call pt John Smith');
-    await tester.pump();
-    expect(find.textContaining('Looks like patient info'), findsNothing);
+  testWidgets('sensitive info check: off by default; when on, warns on '
+      'Work tasks only', (tester) async {
+    final c = await pumpApp(tester);
+    const warning = "Looks like someone's personal details";
+    Future<void> type() async {
+      await tester.tap(find.text('Add a task').first);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Call pt John Smith');
+      await tester.pump();
+    }
 
-    await tester.tap(
-      find.descendant(of: find.byType(Dialog), matching: find.text('Work')),
-    );
-    await tester.pump();
-    expect(find.textContaining('Looks like patient info'), findsOneWidget);
+    Future<void> chooseWork() async {
+      await tester.tap(
+        find.descendant(of: find.byType(Dialog), matching: find.text('Work')),
+      );
+      await tester.pump();
+    }
+
+    // A new install doesn't warn, even on Work.
+    expect(c.read(settingsProvider).phiGuard, isFalse);
+    await type();
+    await chooseWork();
+    expect(find.textContaining(warning), findsNothing);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    c.read(settingsProvider.notifier).update((s) => s.copyWith(phiGuard: true));
+    await type();
+    expect(find.textContaining(warning), findsNothing);
+    await chooseWork();
+    expect(find.textContaining(warning), findsOneWidget);
   });
 }

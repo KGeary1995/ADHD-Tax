@@ -18,14 +18,14 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **Overwhelmed button** | Hides everything and gives you one easy task for 5 minutes. |
 | **Focus screen** | Shows only the *first step*, a Time-Timer style shrinking disc, and a rotating quote. **Just 5 minutes** mode asks "keep going?" when the 5 minutes are up. |
 | **5-second capture** | Quick add (Ctrl+N) needs only a title. **Brain dump** turns a pasted list into tasks, one per line. "Add & start now" skips the list entirely. **Full task form** opens the complete editor (first step, due date, notes, energy) with what you've typed so far. |
-| **Type it the way you'd say it** | "Call insurance tomorrow 2pm 15 min #billing" fills in the due date and time, length and tag. Also weekdays, "tonight", "in 3 days", "4/15", "at 5", "1h 30m", "urgent" or `!!`, `#work`/`#personal`, and a `#tag` matching a project files it there. What it understood shows as chips; tap one to keep those words in the title. Offline, rule-based, no AI. |
+| **Type it the way you'd say it** | "Call the bank tomorrow 2pm 15 min #money" fills in the due date and time, length and tag. Also weekdays, "tonight", "in 3 days", "4/15", "at 5", "1h 30m", "urgent" or `!!`, `#work`/`#personal`, and a `#tag` matching a project files it there. What it understood shows as chips; tap one to keep those words in the title. Offline, rule-based, no AI. |
 | **Checklists** | Steps inside a task. The next unticked step is the first step on Home and the focus screen (with **Step done**). Repeating tasks come back unticked. |
 | **Weekly reset** | On weekends Home offers to sort tasks that have sat untouched for a week, one at a time: Keep it, Make it smaller, Not this week, or Let it go. +20 XP. Also on the Tasks tab any day. |
 | **Errand run** | With "Can go out" on, Home suggests the errands that fit your time, grouped by place, as one trip to tick off. |
 | **Company while you work** | Headphones on the focus screen: background sound (brown noise, rain, fan) and an optional buddy line, like someone working at the next desk. |
 | **Quick add from anywhere (Mac, Windows)** | Ctrl+Shift+Space (⌃⇧Space on a Mac) in any app brings Gumption forward with Quick add open. |
 | **Break it down with AI (optional)** | In a task's editor: Claude splits the task into 3–7 small steps for the checklist. Uses your own Anthropic API key (Settings → AI helper), kept on the device. Off for Work tasks unless you turn it on; Work tasks that look like they contain patient details are never sent. |
-| **Templates** | Reusable checklists and notes (Settings → Templates; **Template** in Quick add; **From a template** on Notes). One-tap examples: Opening checklist, Huddle notes, Weekly reset. Save any task or note as one. `{date}` becomes today's date. |
+| **Templates** | Reusable checklists and notes (Settings → Templates; **Template** in Quick add; **From a template** on Notes). One-tap examples: Start the workday, Meeting notes, Weekly reset. Save any task or note as one. `{date}` becomes today's date. |
 | **XP, levels, achievements** | XP for *starting*, more for finishing, bonuses for dreaded tasks, old tasks, beating your estimate and errands. 18 achievements, ranks every 5 levels, and coins to spend in the **reward shop** (Progress tab) on treats you define, like "Fancy coffee out = 25". Streaks include 2 grace days a week and never reset to zero. |
 | **Celebrations** | Confetti plus an XP breakdown card when you finish, and a small toast when you start (it never covers the screen at that moment). Intensity runs Off / Subtle / Normal / Party. |
 | **Motivational quotes** | 114 bundled quotes in five categories. The category depends on the moment: dread-busting for a task you rated "Ugh", self-compassion after a skip, momentum during focus. |
@@ -43,13 +43,13 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **Backup file** | Settings → **Save a backup file** puts every task, note, all your XP and your settings in one file you keep (Files, Drive, email…). Not your API key or Google sign-in, on purpose. **Restore from a backup file** adds it back in; anything newer on the device is kept, so restoring an old file never undoes work. No Google account needed. |
 | **Ideas when you're stuck** | An empty first step offers three ideas for that kind of task (calls, emails, forms, bills, cleaning, errands…), and **Suggest steps** fills in a checklist, with no AI key needed. **Hold me to it** on the focus screen texts a friend that you've started (Work tasks never include the title). |
 | **Guide and example tasks** | **How Gumption works** (Settings → Help, or the empty Today screen) walks through every feature with buttons to each screen. **Try with example tasks** fills the app with samples to look around; **Remove example tasks** takes away only those. |
-| **Patient-info guard** | Work tasks that look like PHI (DOB, MRN, "pt Jane Doe") show a warning to use initials or a ticket number instead. |
+| **Sensitive info check** (off unless turned on in Settings) | Work tasks that look like someone's personal details (a birth date, a record or account number, "pt Jane Doe") show a warning to use initials or a reference number instead. Turn it on on your own devices for clinic work. |
 
 ### Sync between devices (Phase 2)
 
 | Feature | What it does |
 |---|---|
-| **Two Google accounts** | The Personal workspace syncs to your personal Google account. Work syncs to your clinic's Google Workspace account. Their data never mixes, and moving a task to Work scrubs its text from the Personal account. |
+| **Two Google accounts** | The Personal workspace syncs to your personal Google account. Work syncs to the Google account you use for work (for you, the clinic's Workspace account). Their data never mixes, and moving a task to Work scrubs its text from the Personal account. |
 | **Private Drive folder** | Sync uses Drive's hidden app-data folder, which only this app can read. The app asks only for Google's non-sensitive Drive permissions, so it can't see anything else in your Drive. |
 | **Works offline** | Everything saves on the device first. It syncs on start, a few seconds after you edit something, every 3 minutes while the app is open, and when you come back to the app. |
 | **No conflicts** | Edits made offline on two devices merge field by field, so editing the title on your phone and the priority on your PC keeps both changes. XP is recorded as events, so points earned on each device add up instead of overwriting each other. |
@@ -225,7 +225,7 @@ app/lib/
     gamification/  XP rules, levels, streaks, achievements, celebrations
     motivation/    quote service + rotator
     reminders/     focus timer notifications, check-in nudges
-    safety/        PHI guard
+    safety/        sensitive info check (phi_guard.dart)
     settings/      appearance, reminders, sync, celebration intensity
 app/test/          129 unit, widget, phone-layout and multi-device sync tests
 docs/PLAN.md       full product plan and roadmap
@@ -245,6 +245,6 @@ The decision logic (`picker_engine.dart`, `xp_rules.dart`, `achievements.dart`, 
 
 ## Before using it for clinic work
 
-- **No PHI in tasks.** Use initials or ticket numbers. The PHI guard catches common slips but is not a compliance control.
+- **No PHI in tasks.** Use initials or ticket numbers. Turn on **Settings → Sensitive info check** on each device you use for clinic work (it's off by default since 1.1): it catches common slips but is not a compliance control.
 - Work tasks sync only to the **work** Google Workspace account you connect, and never to a server we run. Your clinic's Workspace admin may need to approve the app's OAuth client (Admin console → Security → API controls).
 - Check with your compliance officer before relying on it for anything patient-adjacent.

@@ -345,7 +345,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       decoration: InputDecoration(
         hintText: _brainDump
             ? "Everything in your head, one per line.\nDon't sort it."
-            : 'e.g. Call insurance tomorrow 2pm…',
+            : 'e.g. Call the bank tomorrow 2pm…',
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(Radii.lg),
           borderSide: BorderSide(color: s.star, width: 2),

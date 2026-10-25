@@ -16,6 +16,8 @@ import '../settings/settings_controller.dart';
 import '../tasks/tasks_controller.dart';
 import 'company.dart';
 import 'company_widgets.dart';
+import '../motivation/quote_rotator.dart';
+import '../motivation/quote_service.dart';
 import 'hold_me.dart';
 import 'started_view.dart';
 import 'timers.dart';
@@ -599,6 +601,16 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
               child: BuddyLine(elapsed: _elapsed),
+            ),
+          // A dry line to keep you company; left out when space is short.
+          if (!small && !(_check && hasDrawer))
+            Padding(
+              padding: const EdgeInsets.fromLTRB(32, 22, 32, 0),
+              child: QuoteRotator(
+                context: QuoteContext.focus,
+                footnote: true,
+                align: TextAlign.center,
+              ),
             ),
           const Spacer(),
           if (hasDrawer)

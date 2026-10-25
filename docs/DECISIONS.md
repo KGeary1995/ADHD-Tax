@@ -2,6 +2,15 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-25 — Written for everyone, not for a clinic
+Before the App Store listing goes wider, the owner judged that copy about patients, clinics, insurance and "your clinic's Google Workspace account" told everyone else the app wasn't for them. User-facing text, example templates, the screenshot demo data and the privacy/terms pages are now neutral (work, home, a quarterly report). The owner's own clinic setup notes stay in README, and the "No PHI anywhere" rule for this repo stands.
+
+### 2026-10-25 — Sensitive info check: neutral, and off unless turned on
+The patient-info guard became the **Sensitive info check**: the same patterns, labelled without medical terms ("Someone's name", "Record or account number"), and off for new installs so the app never implies it's for clinics. Saved settings keep their value (the key is still `phiGuard`, so existing devices that had it on stay on). The AI helper's refusal to send Work text that looks like personal details doesn't depend on the switch. Revisit if users ask for it on by default.
+
+### 2026-10-25 — Bring the dry wit back
+The 1.1 redesign moved quotes to one grey line at the foot of Today and replaced several of the app's own lines with plainer copy; the owner missed the voice. Quotes are back under the focus timer, Today weights humor as much as "starting" lines, footnote quotes use `ink2`, the Finished card carries one dry aside, and the commit sheet keeps "it's the dread talking". The voice: dry, on the user's side, never shaming (see No shame mechanics).
+
 ### 2026-10-25 — 1.1 "Night sky" redesign, built from the owner's handoff
 The owner commissioned a full high-fidelity redesign (Claude Design) and handed it over as two zips: an HTML prototype, 68 phone states in Night and Dawn, widgets, Mac/iPad, icon and store screenshots, and a spec (kept as docs/design/handoff-1.1.md). The idea: Today shows one task and one next step, and Start lights a star; Progress is a sky of the stars you've lit. It replaces the teal 2026-10-18 look entirely: Sora + Manrope, Phosphor icons, gold on deep navy (Night) or on cream (Dawn). Implemented as tokens on the existing `ThemeSpec` (old token names kept as getters) so features didn't need rewriting, only restyling. Ships as 1.1 after Apple approves 1.0, so the version under review isn't changed under it.
 

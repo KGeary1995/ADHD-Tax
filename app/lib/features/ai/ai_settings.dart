@@ -50,7 +50,7 @@ class AiSettings {
   final String? key;
 
   /// Work tasks go to Claude only if the user turned this on, after
-  /// confirming they keep patient details out of them.
+  /// confirming they keep other people's personal details out of them.
   final bool allowWork;
 
   bool get hasKey => key != null && key!.isNotEmpty;
@@ -123,8 +123,8 @@ String? aiBlockReason({
           'Settings → AI helper.';
     }
     if (scanForPhi(text).isNotEmpty) {
-      return 'This looks like it has patient details, so it wasn\'t sent. '
-          'Use initials or a ticket number instead.';
+      return 'This looks like it has someone\'s personal details, so it '
+          'wasn\'t sent. Use initials or a reference number instead.';
     }
   }
   return null;

@@ -122,7 +122,7 @@ class TemplatesScreen extends ConsumerWidget {
           ),
           children: [
             Text(
-              'Things you do again and again: an opening checklist, a '
+              'Things you do again and again: a start-of-day checklist, a '
               'meeting note layout. Use one and everything is filled in.',
               style: TextStyle(color: s.muted, height: 1.4),
             ),

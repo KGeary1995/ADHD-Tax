@@ -72,8 +72,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         SwitchRow(
           leading: const Icon(Ph.shieldCheck),
-          title: 'Patient-info guard',
-          subtitle: 'Warn on Work tasks that look like PHI',
+          title: 'Sensitive info check',
+          subtitle:
+              "Warn when a Work task looks like it has someone's personal "
+              'details',
           value: settings.phiGuard,
           onChanged: (v) => ctl.update((x) => x.copyWith(phiGuard: v)),
         ),
@@ -172,7 +174,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       (
         Ph.palette,
         'Look and feel',
-        'Light or dark, celebrations, quotes and the patient-info guard.',
+        'Light or dark, celebrations, quotes and the sensitive info check.',
         [appearance, gap, feel],
       ),
       (

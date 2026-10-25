@@ -11,7 +11,7 @@ enum CelebrationLevel {
   off('Off', 'No animation. Just the XP.'),
   subtle('Subtle', 'A small card, no confetti.'),
   normal('Normal', 'Stars and a summary card.'),
-  party('Party', 'The whole sky lights up.');
+  party('Party', 'The whole sky lights up. Maximum confetti.');
 
   const CelebrationLevel(this.label, this.description);
   final String label;
@@ -23,7 +23,7 @@ class AppSettings {
     this.appearance = Appearance.system,
     this.celebration = CelebrationLevel.normal,
     this.quoteSeconds = 20,
-    this.phiGuard = true,
+    this.phiGuard = false,
     this.timerAlerts = true,
     this.nudges = true,
     this.nudgeTimes = const [8 * 60 + 45, 13 * 60 + 15],
@@ -40,7 +40,8 @@ class AppSettings {
   final CelebrationLevel celebration;
   final int quoteSeconds;
 
-  /// Warn when Work tasks look like they contain patient info.
+  /// Sensitive info check: warn when Work tasks look like they contain
+  /// someone's personal details. Off unless turned on.
   final bool phiGuard;
 
   /// Countdown in the notification shade and a "time's up" alert during
@@ -148,7 +149,9 @@ class AppSettings {
         CelebrationLevel.values.asNameMap()[j['celebration']] ??
         CelebrationLevel.normal,
     quoteSeconds: j['quoteSeconds'] as int? ?? 20,
-    phiGuard: j['phiGuard'] as bool? ?? true,
+    // Off unless turned on (it was on by default before 1.1; saved
+    // settings keep their value).
+    phiGuard: j['phiGuard'] as bool? ?? false,
     timerAlerts: j['timerAlerts'] as bool? ?? true,
     nudges: j['nudges'] as bool? ?? true,
     nudgeTimes: j['nudgeTimes'] is List

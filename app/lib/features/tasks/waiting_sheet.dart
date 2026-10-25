@@ -120,7 +120,7 @@ class _WaitingSheetState extends ConsumerState<_WaitingSheet> {
                 controller: _who,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
-                  hintText: 'Who or what? e.g. Insurance callback',
+                  hintText: 'Who or what? e.g. Quote from the plumber',
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(Radii.lg),
                     borderSide: BorderSide(color: s.star, width: 2),
