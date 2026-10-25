@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../settings/device_workspaces.dart';
+import '../settings/settings_button.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -136,7 +137,10 @@ class DashboardScreen extends ConsumerWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const SyncAlert(),
-                              LevelPill(compact: compact),
+                              // With the gear beside it, the streak only
+                              // fits on a big phone; Progress always has it.
+                              LevelPill(compact: compact || c.maxWidth < 420),
+                              const SettingsButton(quiet: true),
                             ],
                           ),
                         ],
@@ -722,11 +726,9 @@ class _Pick extends ConsumerWidget {
           ],
         ),
         SizedBox(height: compact ? Gap.s3 : 12),
+        // On a small phone Wrap up and Overwhelmed? sit in the top row
+        // (_Reminders), not here too.
         _QuietActions(task: t, compact: compact),
-        if (compact) ...[
-          const SizedBox(height: Gap.s2),
-          const Center(child: _WrapAndOverwhelmed()),
-        ],
       ],
     );
   }

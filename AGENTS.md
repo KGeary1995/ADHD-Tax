@@ -35,10 +35,11 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Desktop layout: Notes/Settings sidebars, Tasks list + detail pane (1.1), desktop Today / Progress / editor / wrap-up, pop-ups and Quick add as windows | Done | Not yet (tests and 1440×900 web screenshots; the owner's Mac screenshots predate it) |
 | In-app guide ("How Gumption works") and example tasks | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (guide and Go to buttons; example tasks not tested) |
 | Built-in first-step ideas and Suggest steps (no AI key), "Hold me to it" share from the focus screen | Done | **Yes (Android, Build 91, 2026-10-22):** docs/PHONE_TEST.md all passed (idea chips, Suggest steps, Hold me to it share sheet) |
-| **Sync services: iCloud** (1.2): per-workspace choice of iCloud (iPhone/iPad) or Google | Code done locally 2026-10-25, not pushed: waits for the iCloud container on the App ID (README → iCloud sync setup) and for PR #8 to merge. **Microsoft OneDrive** next; Samsung isn't possible (docs/DECISIONS.md) | Not yet (tests with a fake iCloud only; the native side is compiled by CI's iOS job) |
+| **Sync services: iCloud** (1.2): per-workspace choice of iCloud (iPhone/iPad) or Google | Done; merged to `main` 2026-10-25 (PR #9) after the owner added the iCloud container to the App ID. **Microsoft OneDrive** next; Samsung isn't possible (docs/DECISIONS.md) | **Yes (TestFlight build 117, 2026-10-25):** the owner reports it "works great" |
+| Settings from any tab (phone): a gear at the top right of Today, Tasks, Notes and Progress; tab bar stays on Settings; back returns to the tab it came from | Done | Not yet (tests and web screenshots at 360 and 390 wide) |
 | Phase 3+ (Calendar, table/timeline views) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-25 (1.1 redesign merged; TestFlight 1.1.0 (113) uploaded).
+Last updated: 2026-10-25 (PRs #8 and #9 merged: wording for everyone, iCloud sync; Settings from any tab).
 
 ## Toolchain
 
@@ -56,7 +57,7 @@ Last updated: 2026-10-25 (1.1 redesign merged; TestFlight 1.1.0 (113) uploaded).
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 252 tests, ~60 s
+flutter test                         # 267 tests, ~65 s
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
@@ -98,7 +99,7 @@ app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks
 
 ## How a change ships
 
-1. `main` is the stable copy (PR #1 merged 2026-10-22; PR #7, the iPhone sync fix and the 1.1 redesign, 2026-10-25). Work on a feature branch made from the latest `main` and open a new PR into `main` for each batch; the owner decides when to merge. A merged PR is finished: follow-up work goes on a fresh branch from `main`, never on top of the merged history.
+1. `main` is the stable copy (PR #1 merged 2026-10-22; PR #7, the iPhone sync fix and the 1.1 redesign, 2026-10-25; PR #8, wording for everyone, and PR #9, iCloud sync, 2026-10-25). Work on a feature branch made from the latest `main` and open a new PR into `main` for each batch; the owner decides when to merge. A merged PR is finished: follow-up work goes on a fresh branch from `main`, never on top of the merged history.
 2. `./tool/check.sh` must pass.
 3. Push. CI runs once per commit (push only; docs-only commits, i.e. `*.md` and `docs/`, skip CI entirely): `test` (format, analyze, test, web build), then in parallel:
    - **Android**: builds the APK and replaces the `android-latest` release asset. The phone download link never changes.

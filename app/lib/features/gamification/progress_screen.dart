@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
@@ -14,6 +13,7 @@ import '../picker/picker_controller.dart';
 import 'achievements.dart';
 import 'constellation.dart';
 import 'progress_controller.dart';
+import '../settings/settings_button.dart';
 import 'reward_shop.dart';
 import 'xp_rules.dart';
 import '../../core/theme/ph.dart';
@@ -260,13 +260,9 @@ class ProgressScreen extends ConsumerWidget {
                 builder: (context) => Constellation(
                   startsByDay: p.startsByDay,
                   now: now,
-                  trailing: wide
-                      ? null
-                      : SquareIconButton(
-                          icon: Ph.gearSix,
-                          tooltip: 'Settings',
-                          onPressed: () => context.go('/settings'),
-                        ),
+                  trailing: hasSettingsButton(context)
+                      ? const SettingsButton()
+                      : null,
                 ),
               ),
             ),

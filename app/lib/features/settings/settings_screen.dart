@@ -16,6 +16,7 @@ import 'accounts_panel.dart';
 import 'backup_group.dart';
 import 'device_workspaces.dart';
 import 'reminders_panel.dart';
+import 'settings_button.dart';
 import 'settings_controller.dart';
 import '../../core/theme/ph.dart';
 
@@ -261,7 +262,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           );
         }
-        // A phone: reached from the gear on Progress, with a way back.
+        // A phone: reached from the gear on any tab, with a way back to it.
         return ListView(
           padding: EdgeInsets.fromLTRB(
             Gap.listSide,
@@ -277,7 +278,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: IconButton(
                     tooltip: 'Back',
                     icon: Icon(Ph.caretLeft, color: s.ink),
-                    onPressed: () => context.go('/progress'),
+                    onPressed: () => context.go(
+                      settingsReturn(
+                        GoRouterState.of(context).uri.queryParameters['from'],
+                      ),
+                    ),
                   ),
                 ),
                 Text('Settings', style: s.display(20)),

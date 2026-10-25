@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../data/models/task.dart';
 import '../features/settings/accounts_panel.dart';
+import '../features/settings/settings_button.dart';
 import 'sync_controller.dart';
 
 /// Compact sync status for the app chrome; tap to open Settings. Shows the
@@ -36,7 +36,7 @@ class SyncBadge extends ConsumerWidget {
     ].join('\n');
     return IconButton(
       tooltip: tip,
-      onPressed: () => context.go('/settings'),
+      onPressed: () => goToSettings(context),
       icon: SyncIcon(sync: shown),
     );
   }
@@ -57,7 +57,7 @@ class SyncAlert extends ConsumerWidget {
     if (troubled.isEmpty) return const SizedBox.shrink();
     return IconButton(
       tooltip: 'Sync needs attention',
-      onPressed: () => context.go('/settings'),
+      onPressed: () => goToSettings(context),
       icon: SyncIcon(sync: troubled.first, size: 22),
     );
   }
