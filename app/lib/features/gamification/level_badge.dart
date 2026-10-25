@@ -6,10 +6,13 @@ import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
 import 'progress_controller.dart';
 import 'xp_rules.dart';
+import '../../core/theme/ph.dart';
 
-/// "LV 4 · 6 DAYS": level and streak in one outlined pill. Opens Progress.
+/// "✦ Level 6 · 13 days": level and streak. Opens Progress. [compact]
+/// leaves out the streak.
 class LevelPill extends ConsumerWidget {
-  const LevelPill({super.key});
+  const LevelPill({super.key, this.compact = false});
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -17,35 +20,43 @@ class LevelPill extends ConsumerWidget {
     final p = ref.watch(progressProvider);
     final now = ref.read(clockProvider)();
     final streak = streakWithGrace(p.activeDays, now);
-    final text = streak > 0
-        ? 'LV ${p.level} · $streak ${streak == 1 ? 'DAY' : 'DAYS'}'
-        : 'LV ${p.level}';
     return Semantics(
       label:
           'Level ${p.level}${streak > 0 ? ', $streak-day streak' : ''}. '
           'Open progress',
       button: true,
       excludeSemantics: true,
-      child: Material(
-        color: Colors.transparent,
-        shape: StadiumBorder(side: BorderSide(color: s.outline)),
-        child: InkWell(
-          customBorder: const StadiumBorder(),
-          onTap: () => context.go('/progress'),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 44),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radii.md),
+        onTap: () => context.go('/progress'),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 42),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.bolt_rounded, size: 16, color: s.primary),
-                const SizedBox(width: 6),
+                Icon(Ph.starFourFill, size: 13, color: s.star),
+                const SizedBox(width: Gap.s3),
                 Flexible(
-                  child: Text(
-                    text,
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'Level ${p.level}',
+                      children: [
+                        if (streak > 0 && !compact) ...[
+                          TextSpan(
+                            text: ' · ',
+                            style: TextStyle(color: s.ink3),
+                          ),
+                          TextSpan(
+                            text: '$streak ${streak == 1 ? 'day' : 'days'}',
+                          ),
+                        ],
+                      ],
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: s.mono(13, color: s.text2, weight: FontWeight.w500),
+                    style: s.button(14, s.ink2),
                   ),
                 ),
               ],

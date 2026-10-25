@@ -17,7 +17,8 @@ import android.widget.RemoteViews
  * compute anything themselves.
  *
  * This class is the original 4×2 card, so widgets placed with earlier builds
- * keep working.
+ * keep working. The 1.1 look follows the phone's dark mode through
+ * values/ and values-night/widget_colors.xml.
  */
 open class PickWidget : AppWidgetProvider() {
     open val layout: Int get() = R.layout.pick_widget
@@ -63,32 +64,51 @@ open class PickWidget : AppWidgetProvider() {
         // Views a layout doesn't have are skipped by RemoteViews.
         private fun render(context: Context, layout: Int): RemoteViews {
             val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            fun get(key: String): String = p.getString(key, null) ?: ""
             val title = p.getString("title", null)
             val views = RemoteViews(context.packageName, layout)
+            // Data saved by a build before 1.1 has no "header": fall back to
+            // its meta line so the widget still reads sensibly.
+            val header = get("header").ifBlank { get("meta") }
+            views.setImageViewResource(
+                R.id.widget_dot,
+                if (get("work") == "1") R.drawable.widget_dot_work else R.drawable.widget_dot_personal,
+            )
             if (title.isNullOrBlank()) {
-                views.setTextViewText(R.id.widget_meta, "Gumption")
+                views.setTextViewText(R.id.widget_header, "Gumption")
                 views.setTextViewText(R.id.widget_title, "Nothing picked yet")
-                views.setTextViewText(
-                    R.id.widget_step,
-                    p.getString("empty", null) ?: "Open Gumption and it picks one thing for you.",
+                views.setTextViewText(R.id.widget_length, "")
+                line(
+                    views, R.id.widget_line1_row, R.id.widget_line1, R.id.widget_line1_check,
+                    get("empty").ifBlank { "Open Gumption and it picks one thing for you." },
+                    check = false,
                 )
-                views.setViewVisibility(R.id.widget_step, View.VISIBLE)
+                line(views, R.id.widget_line2_row, R.id.widget_line2, R.id.widget_line2_check, "")
                 views.setViewVisibility(R.id.widget_start, View.GONE)
+                views.setViewVisibility(R.id.widget_five, View.GONE)
             } else {
-                views.setTextViewText(R.id.widget_meta, p.getString("meta", "") ?: "")
+                views.setTextViewText(R.id.widget_header, header)
                 views.setTextViewText(R.id.widget_title, title)
-                val step = p.getString("step", "") ?: ""
-                views.setTextViewText(R.id.widget_step, step)
-                views.setViewVisibility(
-                    R.id.widget_step,
-                    if (step.isBlank()) View.GONE else View.VISIBLE,
-                )
+                views.setTextViewText(R.id.widget_length, get("length"))
+                val first = get("line1").ifBlank { get("step").removePrefix("First: ") }
+                line(views, R.id.widget_line1_row, R.id.widget_line1, R.id.widget_line1_check, first)
+                line(views, R.id.widget_line2_row, R.id.widget_line2, R.id.widget_line2_check, get("line2"))
                 views.setViewVisibility(R.id.widget_start, View.VISIBLE)
                 views.setOnClickPendingIntent(
                     R.id.widget_start,
-                    open(context, 1, p.getString("startRoute", "/") ?: "/"),
+                    open(context, 1, get("startRoute").ifBlank { "/" }),
                 )
+                val five = get("fiveRoute")
+                views.setViewVisibility(
+                    R.id.widget_five,
+                    if (five.isBlank()) View.GONE else View.VISIBLE,
+                )
+                if (five.isNotBlank()) {
+                    views.setOnClickPendingIntent(R.id.widget_five, open(context, 5, five))
+                }
             }
+            val streak = get("streak")
+            views.setTextViewText(R.id.widget_streak, if (streak.isBlank()) "" else "✦ $streak")
             views.setOnClickPendingIntent(R.id.widget_root, open(context, 0, "/"))
             views.setOnClickPendingIntent(R.id.widget_add, open(context, 2, "/add"))
 
@@ -122,6 +142,20 @@ open class PickWidget : AppWidgetProvider() {
             return views
         }
 
+        /** One checklist line: hidden when empty; [check] shows its box. */
+        private fun line(
+            views: RemoteViews,
+            row: Int,
+            text: Int,
+            box: Int,
+            value: String,
+            check: Boolean = true,
+        ) {
+            views.setViewVisibility(row, if (value.isBlank()) View.GONE else View.VISIBLE)
+            views.setTextViewText(text, value)
+            views.setViewVisibility(box, if (check) View.VISIBLE else View.GONE)
+        }
+
         private fun open(context: Context, code: Int, route: String): PendingIntent {
             val intent = Intent(context, MainActivity::class.java).apply {
                 action = ACTION_OPEN
@@ -143,12 +177,12 @@ class PickWidgetSmall : PickWidget() {
     override val layout: Int get() = R.layout.pick_widget_small
 }
 
-/** 2×2: the task with Start and +. */
+/** 2×2: the length, the task, the step you're on, and Start. */
 class PickWidgetSquare : PickWidget() {
     override val layout: Int get() = R.layout.pick_widget_square
 }
 
-/** 4×3: the card plus two more that fit right now. */
+/** 4×3: the card, then two more that fit right now. */
 class PickWidgetLarge : PickWidget() {
     override val layout: Int get() = R.layout.pick_widget_large
 }

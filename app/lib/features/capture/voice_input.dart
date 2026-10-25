@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../core/theme/app_themes.dart';
+import '../../core/theme/ph.dart';
 
 /// One recognizer for the whole app, as the plugin expects.
 SpeechToText? _speech;
@@ -96,8 +97,8 @@ class _VoiceButtonState extends State<VoiceButton> {
       tooltip: _listening ? 'Stop listening' : 'Say it',
       onPressed: _toggle,
       isSelected: _listening,
-      selectedIcon: Icon(Icons.stop_circle_rounded, color: s.danger),
-      icon: Icon(Icons.mic_none_rounded, color: s.muted),
+      selectedIcon: Icon(Ph.stop, color: s.danger),
+      icon: Icon(Ph.microphone, color: s.muted),
     );
   }
 }

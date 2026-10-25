@@ -12,6 +12,13 @@ class NeedsReconnect implements Exception {
   String toString() => reason;
 }
 
+/// Google handed back a different account than this workspace syncs with.
+/// Never retried quietly: syncing would put one workspace's tasks in the
+/// other account's Drive.
+class WrongAccount extends NeedsReconnect {
+  const WrongAccount(super.reason);
+}
+
 /// Signs a workspace into a Google account and hands back an HTTP client
 /// that authenticates Drive calls. Each workspace has its own account.
 abstract class GoogleAuth {
@@ -20,6 +27,12 @@ abstract class GoogleAuth {
 
   /// Reconnects without any UI. Null means the user has to click Connect.
   Future<http.Client?> restore(Workspace ws, {String? email});
+
+  /// Whether an empty [restore] can come right by itself a little later
+  /// (Android's sign-in sometimes isn't ready just after an app update).
+  /// When false, an empty restore means no saved sign-in, so the row shows
+  /// Reconnect at once instead of retrying quietly for a minute and a half.
+  bool get restoreMayRecover;
 
   /// Interactive sign-in. [email] pre-selects an account on reconnect.
   Future<http.Client> connect(Workspace ws, {String? email});

@@ -85,6 +85,8 @@ class ProgressStats {
 
   int completedOn(DateTime day) => completionsByDay[dayKey(day)] ?? 0;
 
+  int startedOn(DateTime day) => startsByDay[dayKey(day)] ?? 0;
+
   ProgressStats copyWith({
     int? xp,
     int? coins,

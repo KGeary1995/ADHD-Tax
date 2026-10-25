@@ -7,12 +7,13 @@ import 'package:adhd_tax/features/gamification/progress_event.dart';
 import 'package:adhd_tax/features/gamification/rewards_controller.dart';
 import 'package:adhd_tax/features/notes/notes_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
+import 'package:adhd_tax/features/tasks/checklist_editor.dart';
 import 'package:adhd_tax/features/templates/templates_controller.dart';
 import 'package:adhd_tax/sync/replicas_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'app_flow_test.dart' show pumpApp;
+import 'app_flow_test.dart' show pastStarted, pumpApp;
 
 const _phone = Size(390, 844);
 
@@ -45,14 +46,18 @@ void main() {
     c.read(routerProvider).push('/task/${t.id}');
     await tester.pumpAndSettle();
 
-    final add = find.widgetWithText(TextField, 'Add a step');
+    final add = find
+        .descendant(
+          of: find.byType(ChecklistEditor),
+          matching: find.byType(TextField),
+        )
+        .last;
     await scrollTo(tester, add);
     await tester.enterText(add, 'Unlock doors');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     // Pasting several lines adds one step each.
     await tester.enterText(add, 'Lights on\nBoot the PCs');
-    await tester.tap(find.byTooltip('Add step'));
     await tester.pumpAndSettle();
     expect(find.text('Boot the PCs'), findsOneWidget);
     await tester.tap(find.text('Save'));
@@ -68,13 +73,12 @@ void main() {
     expect(find.textContaining('Step 1 of 3'), findsOneWidget);
 
     c.read(routerProvider).push('/focus/${t.id}?min=15');
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('Step 1 of 3'), findsOneWidget);
+    await pastStarted(tester);
+    expect(find.text('STEP 1 OF 3'), findsOneWidget);
     expect(find.text('Unlock doors'), findsOneWidget);
     await tester.tap(find.text('Step done'));
     await tester.pump();
-    expect(find.text('Step 2 of 3'), findsOneWidget);
+    expect(find.text('STEP 2 OF 3'), findsOneWidget);
     expect(find.text('Lights on'), findsOneWidget);
     expect(c.read(tasksProvider.notifier).byId(t.id)!.steps.first.done, true);
   });
@@ -114,14 +118,18 @@ void main() {
     await tester.tap(find.text('Redeem'));
     await tester.pumpAndSettle();
     expect(c.read(progressProvider).coins, 5);
-    expect(find.textContaining('Enjoy it: Fancy coffee out'), findsOneWidget);
+    expect(find.text('Enjoy it.'), findsOneWidget);
+    expect(
+      find.textContaining('Fancy coffee out. You earned it'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Last treat: Fancy coffee out'), findsOneWidget);
     expect(c.read(redemptionsProvider), hasLength(1));
     // Spending doesn't show as XP or affect level.
     expect(c.read(progressProvider).xp, 300);
 
     // Can't afford it twice.
-    expect(find.text('25 coins · 20 to go'), findsOneWidget);
+    expect(find.text('20 to go'), findsOneWidget);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(c.read(progressProvider).coins, 30);
@@ -200,10 +208,10 @@ void main() {
     );
     c.read(routerProvider).push('/templates');
     await tester.pumpAndSettle();
-    expect(find.text('Start from an example'), findsOneWidget);
+    expect(find.text('START FROM AN EXAMPLE'), findsOneWidget);
     await tester.tap(find.text('Add').first); // Opening checklist
     await tester.pumpAndSettle();
-    expect(find.text('Start from an example'), findsNothing);
+    expect(find.text('START FROM AN EXAMPLE'), findsNothing);
     expect(c.read(templatesProvider).single.stepCount, 5);
 
     // Use it: the editor opens with everything filled in, unsaved.
@@ -233,6 +241,8 @@ void main() {
           ),
         );
     c.read(routerProvider).go('/notes');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tags'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('From a template'));
     await tester.pumpAndSettle();

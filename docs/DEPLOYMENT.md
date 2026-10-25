@@ -40,8 +40,8 @@ Every build job first writes `app/google_oauth.json` from secrets and builds wit
 | Name | Kind | Used by | Where to get it |
 |---|---|---|---|
 | `GOOGLE_WEB_CLIENT_ID` | secret | all builds | Google Auth Platform → Clients → Web application |
-| `GOOGLE_DESKTOP_CLIENT_ID` | secret | all builds (used by Mac/Windows) | Clients → Desktop app |
-| `GOOGLE_DESKTOP_CLIENT_SECRET` | secret | all builds (used by Mac/Windows) | Clients → Desktop app |
+| `GOOGLE_DESKTOP_CLIENT_ID` | secret | all builds (used by Mac/Windows and, since 2026-10-24, the iPhone app) | Clients → Desktop app |
+| `GOOGLE_DESKTOP_CLIENT_SECRET` | secret | all builds (used by Mac/Windows and, since 2026-10-24, the iPhone app) | Clients → Desktop app |
 | `GOOGLE_IOS_CLIENT_ID` | secret | all builds (used by iOS) | Clients → iOS, bundle id `com.adhdtax.adhdTax` |
 | `APPLE_TEAM_ID` | secret | `ios` | developer.apple.com → Membership details |
 | `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` | secret | `ios` | App Store Connect → Users and Access → Integrations → Team Keys, **Admin** access; `ASC_KEY_P8` is the whole `.p8` file |

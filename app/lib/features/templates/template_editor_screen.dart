@@ -13,6 +13,7 @@ import '../safety/phi_warning.dart';
 import '../settings/device_workspaces.dart';
 import '../tasks/checklist_editor.dart';
 import 'templates_controller.dart';
+import '../../core/theme/ph.dart';
 
 /// Edits a template. `templateId == 'new'` makes one of [kind].
 class TemplateEditorScreen extends ConsumerStatefulWidget {
@@ -116,15 +117,20 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isNew ? 'New template' : 'Edit template'),
+      appBar: topBar(
+        context,
+        title: _isNew ? 'New template' : 'Edit template',
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: FilledButton(
-              onPressed: _canSave ? _save : null,
-              style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-              child: const Text('Save'),
+            padding: const EdgeInsets.only(right: 16),
+            child: SizedBox(
+              width: 80,
+              child: PrimaryButton(
+                label: 'Save',
+                height: 42,
+                fontSize: 15,
+                onPressed: _canSave ? _save : null,
+              ),
             ),
           ),
         ],
@@ -216,7 +222,7 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
                         controller: _tags,
                         decoration: const InputDecoration(
                           hintText: '#opening #frontdesk',
-                          prefixIcon: Icon(Icons.tag_rounded),
+                          prefixIcon: Icon(Ph.hash),
                         ),
                       ),
                     ),

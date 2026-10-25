@@ -2,7 +2,25 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-23 (Android, web)
+## 1.1 "Night sky" — not built yet (Android, web; iPhone and Mac when asked)
+- **A whole new look**, from the design you commissioned. Gold stars on a deep night sky (**Night**), or on warm cream (**Dawn**); it follows the phone unless you pick one in Settings → Appearance. New fonts and icons throughout.
+- **Today shows one task and its next step**, with a big Start and 5 min, and three quiet choices: Not this one, Smaller, Later. **Smaller** lets you shrink the step on the spot; **Later** brings the task back in 3 hours. "Right now" (time, staying in or going out, energy, which tasks) is one button at the top.
+- **Starting lights a star:** pressing Start shows a short "A new star." moment (tap to skip; off if Celebrations are Off), then the focus timer.
+- **Focus timer:** a star travels round an orbit, or pick one block per minute in Settings → Focus timer. Pause, +5 and Done; the checklist sits at the bottom.
+- **Celebrations are cards:** Finished, then Level up, then any achievement, each with one button.
+- **Tasks, notes, the editor, Progress, Settings, Wrap up, the guide:** all restyled. The task editor's details (length, priority, due date…) are rows that each open a small sheet. Settings now opens from the gear on Progress.
+- **On a Mac or an iPad in landscape, Tasks shows the selected task beside the list:** tick its steps, Start it or open it to edit, without leaving the list. The filters are pills above the list.
+- **New app icon:** a gold star on night blue. On iPhone it has dark and tinted versions; on Android it's an adaptive icon and works with themed icons.
+- **Home-screen widgets** match the new look and follow your phone's light or dark setting. The 4×2 widget shows the step you're on, the next one, Start, 5 min, Add a task and your streak.
+- Fixed: in the task editor, adding the first checklist step no longer makes the page jump.
+
+## Next build — 2026-10-24 (Android, web, iPhone)
+- **iPhone: Personal and Work can both sync now.** Signing in to Work used to hang on "Waiting for Google sign-in…", and could make Personal sync through the Work account. iPhone now signs in to each one separately in a Safari sheet, like the Mac app does. **After updating, tap Reconnect on Personal once.**
+- **Sync never writes into the wrong Google account:** if a device finds a different account signed in than the one a workspace syncs with, it stops and asks you to reconnect instead of syncing.
+- **Cancel** next to "Waiting for Google sign-in…", and a sign-in that's left open gives up after 5 minutes instead of spinning forever.
+- **Reconnect shows straight away** on iPhone, Mac and the web when there's no saved sign-in, instead of after a minute and a half of "Reconnecting to Google…". Android still retries quietly, because its sign-in can lag just after an update.
+
+## Build 107 — 2026-10-23 (dd313b1) (Android, web; iPhone Build 108)
 - **Link notes to tasks and to each other:** type `[[` in a note (or tap the new link button at the top) and pick a task or note from the bar above the keyboard. Links show in green, and a **Links** list under the note opens each one. A link to something that doesn't exist yet offers **Make task**. A note with a title also lists the notes that link to it.
 - **Related, on every task:** the notes that link to it, and unfinished tasks that share a #tag or its project. Tasks with no connections look the same as before.
 - **Your sky, on Progress:** every task you start becomes a star, and each week's days in a row join into a constellation. Missed days just leave a gap.

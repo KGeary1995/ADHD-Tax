@@ -1,135 +1,132 @@
 """Draws the Gumption icon and writes every size each platform needs.
 
-A tangled loop that straightens into an arrow: stuck, then moving. Teal on
-deep teal. Run from app/:  python3 tool/make_icons.py   (needs Pillow)
+A four-point star with curved sides on a night-sky radial: the star you
+light when you start something. The design is docs/DECISIONS.md's 1.1
+handoff (design/icon/*.svg); the shapes and colours here match it.
+Run from app/:  python3 tool/make_icons.py   (needs Pillow and numpy)
 """
-import math
-
+import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 S = 4096  # draw big, scale down for smooth edges
-BG_TOP, BG_BOTTOM = (18, 52, 64), (8, 18, 26)
-STROKE_TOP, STROKE_BOTTOM = (140, 255, 210), (60, 200, 230)
-GLOW = (90, 240, 200)
+K = S / 1024  # the handoff's SVGs are 1024 units across
+
+STAR = (0xF4, 0xC7, 0x6A)
+SKY_IN, SKY_OUT = (0x1E, 0x2A, 0x52), (0x0A, 0x0F, 0x1F)  # default
+
+# The star: four cubic curves in the SVG's 1024 space, 52% of the width.
+CURVES = [
+    ((512, 246), (534, 438), (586, 490), (778, 512)),
+    ((778, 512), (586, 534), (534, 586), (512, 778)),
+    ((512, 778), (490, 586), (438, 534), (246, 512)),
+    ((246, 512), (438, 490), (490, 438), (512, 246)),
+]
 
 
-def gradient(size, top, bottom):
-    img = Image.new("RGB", (1, size))
-    for y in range(size):
-        t = y / (size - 1)
-        img.putpixel((0, y), tuple(round(a + (b - a) * t) for a, b in zip(top, bottom)))
-    return img.resize((size, size))
-
-
-def mark(scale: float) -> Image.Image:
-    """The tangle → arrow stroke as a mask, centred, `scale` of full size."""
-    m = Image.new("L", (S, S), 0)
-    d = ImageDraw.Draw(m)
-    w = S * 0.075 * scale
-
-    def at(x, y):  # design coordinates (0..1) → canvas, scaled about centre
-        return (S / 2 + (x - 0.5) * S * scale, S / 2 + (y - 0.5) * S * scale)
-
-    # One cursive loop on the left, then a straight run up and to the right.
+def star_mask(scale: float = 1.0) -> Image.Image:
+    """The star as an L mask, centred, `scale` times the handoff's size."""
     pts = []
-    for i in range(3001):
-        t = i / 3000
-        if t < 0.62:
-            u = t / 0.62 * 2 * math.pi
-            x = 0.26 + 0.13 * math.sin(u) + 0.22 * (t / 0.62)
-            y = 0.58 - 0.16 * (1 - math.cos(u)) * 0.9
-        else:
-            v = (t - 0.62) / 0.38
-            x = 0.48 + (0.80 - 0.48) * v
-            y = 0.58 + (0.34 - 0.58) * v
-        pts.append(at(x, y))
-
-    def dot(x, y):
-        d.ellipse((x - w / 2, y - w / 2, x + w / 2, y + w / 2), fill=255)
-
-    for p in pts:  # round brush stamps: smooth stroke, round joins and caps
-        dot(*p)
-    ex, ey = pts[-1]
-    px, py = pts[-120]
-    ang = math.atan2(ey - py, ex - px)
-    head = S * 0.15 * scale
-    for sgn in (1, -1):
-        bx = ex - head * math.cos(ang + sgn * 0.62)
-        by = ey - head * math.sin(ang + sgn * 0.62)
-        steps = 200
-        for k in range(steps + 1):
-            dot(ex + (bx - ex) * k / steps, ey + (by - ey) * k / steps)
-    # Centre the drawing and size it to 68% of the width (of the scaled
-    # area), measured from its actual pixels rather than guessed.
-    left, top, right, bottom = m.getbbox()
-    k = (S * 0.68 * scale) / (right - left)
-    cx, cy = (left + right) / 2, (top + bottom) / 2
-    # Output pixel (x, y) samples input (cx + (x - S/2)/k, cy + (y - S/2)/k).
-    return m.transform(
-        m.size,
-        Image.AFFINE,
-        (1 / k, 0, cx - S / 2 / k, 0, 1 / k, cy - S / 2 / k),
-        resample=Image.BICUBIC,
-    )
+    for p0, p1, p2, p3 in CURVES:
+        for i in range(400):
+            t = i / 400
+            u = 1 - t
+            x = u**3 * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t**3 * p3[0]
+            y = u**3 * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t**3 * p3[1]
+            pts.append((S / 2 + (x - 512) * K * scale, S / 2 + (y - 512) * K * scale))
+    m = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(m).polygon(pts, fill=255)
+    return m
 
 
-def art(full_bleed: bool, margin: float = 0.0, radius: float = 0.225):
-    """Icon on a transparent canvas. full_bleed: square background to the
-    edges (iOS and maskable icons, which the OS crops itself)."""
-    canvas = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    m = int(S * margin)
-    side = S - 2 * m
-    bg = gradient(side, BG_TOP, BG_BOTTOM).convert("RGBA")
-    shape = Image.new("L", (side, side), 0)
-    sd = ImageDraw.Draw(shape)
-    if full_bleed:
-        sd.rectangle((0, 0, side, side), fill=255)
-    else:
-        sd.rounded_rectangle((0, 0, side - 1, side - 1), radius=int(side * radius), fill=255)
-    canvas.paste(bg, (m, m), shape)
+def radial(inner, outer) -> Image.Image:
+    """SVG radialGradient cx=50% cy=30% r=90% on a square."""
+    yy, xx = np.mgrid[0:S, 0:S].astype(np.float32)
+    d = np.sqrt((xx - 0.5 * S) ** 2 + (yy - 0.3 * S) ** 2) / (0.9 * S)
+    t = np.clip(d, 0, 1)[..., None]
+    rgb = np.array(inner, np.float32) * (1 - t) + np.array(outer, np.float32) * t
+    return Image.fromarray(rgb.round().astype(np.uint8), "RGB").convert("RGBA")
 
-    # Full-bleed icons get cropped (maskable safe zone is the middle 80%).
-    stroke = mark((side / S) * (0.80 if full_bleed else 1.0))
-    halo = Image.new("RGBA", (S, S), GLOW + (0,))
-    halo.putalpha(stroke.filter(ImageFilter.GaussianBlur(S * 0.025)).point(lambda v: int(v * 0.55)))
-    canvas.alpha_composite(halo)
-    canvas.paste(gradient(S, STROKE_TOP, STROKE_BOTTOM).convert("RGBA"), (0, 0), stroke)
+
+def lit_star(canvas: Image.Image, mask: Image.Image, color, glow: float):
+    """The star with its glow: a 36-unit Gaussian blur at `glow` opacity
+    under the shape (feGaussianBlur + feFuncA slope)."""
+    if glow > 0:
+        halo = Image.new("RGBA", (S, S), color + (0,))
+        halo.putalpha(mask.filter(ImageFilter.GaussianBlur(36 * K)).point(lambda v: int(v * glow)))
+        canvas.alpha_composite(halo)
+    canvas.paste(Image.new("RGBA", (S, S), color + (255,)), (0, 0), mask)
     return canvas
 
 
-def save(img, size, path, flatten=False):
+def icon(bg=(SKY_IN, SKY_OUT), color=STAR, glow=0.8, scale=1.0):
+    canvas = radial(*bg) if bg else Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    return lit_star(canvas, star_mask(scale), color, glow)
+
+
+def rounded(img: Image.Image, margin: float = 0.0, radius: float = 0.225):
+    """`img` as a rounded square inside a transparent margin (web, Mac,
+    legacy Android): those platforms don't round the corners themselves."""
+    side = round(S * (1 - 2 * margin))
+    shape = Image.new("L", (side, side), 0)
+    ImageDraw.Draw(shape).rounded_rectangle((0, 0, side - 1, side - 1), radius=int(side * radius), fill=255)
+    out = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    m = (S - side) // 2
+    out.paste(img.resize((side, side), Image.LANCZOS), (m, m), shape)
+    return out
+
+
+def save(img, size, path, flatten=None):
     out = img.resize((size, size), Image.LANCZOS)
-    if flatten:  # iOS shows transparency as black; make it explicit
-        bg = Image.new("RGB", out.size, BG_BOTTOM)
+    if flatten:  # opaque: iOS and the stores reject or blacken transparency
+        bg = Image.new("RGB", out.size, flatten)
         bg.paste(out, (0, 0), out)
         out = bg
     out.save(path)
 
 
-rounded = art(False)
-mac = art(False, margin=0.098)  # macOS icons sit inside a margin
-bleed = art(True)
+default = icon()
+dark = icon(bg=((0, 0, 0), (0, 0, 0)), glow=0.6)
+tinted = icon(bg=None, color=(0xD9, 0xD9, 0xD9), glow=0)
 
+# Web: rounded for browsers, full-bleed for maskable (the OS crops the
+# middle 80%, which the star sits well inside).
 for n in (192, 512):
-    save(rounded, n, f"web/icons/Icon-{n}.png")
-    save(bleed, n, f"web/icons/Icon-maskable-{n}.png")
-save(bleed, 180, "web/icons/apple-touch-icon.png", flatten=True)
-save(rounded, 64, "web/favicon.png")
+    save(rounded(default), n, f"web/icons/Icon-{n}.png")
+    save(default, n, f"web/icons/Icon-maskable-{n}.png")
+save(default, 180, "web/icons/apple-touch-icon.png", flatten=SKY_OUT)
+save(rounded(default), 64, "web/favicon.png")
 
+mac = rounded(default, margin=0.098)  # macOS icons sit inside a margin
 for n in (16, 32, 64, 128, 256, 512, 1024):
     save(mac, n, f"macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_{n}.png")
 
-# iPhone/iPad: full-bleed and opaque (the App Store rejects transparency);
-# iOS rounds the corners itself.
+# iPhone/iPad: one 1024 image per appearance (Contents.json lists them);
+# iOS scales and rounds them itself. Default and dark are opaque; tinted
+# keeps its transparency, as Apple's template expects.
 ios_set = "ios/Runner/Assets.xcassets/AppIcon.appiconset"
-for size, scale in (
-    (20, 1), (20, 2), (20, 3), (29, 1), (29, 2), (29, 3), (40, 1), (40, 2),
-    (40, 3), (60, 2), (60, 3), (76, 1), (76, 2), (83.5, 2), (1024, 1),
-):
-    label = f"{size:g}x{size:g}"
-    save(bleed, round(size * scale), f"{ios_set}/Icon-App-{label}@{scale}x.png", flatten=True)
+save(default, 1024, f"{ios_set}/Icon-App-1024.png", flatten=SKY_OUT)
+save(dark, 1024, f"{ios_set}/Icon-App-1024-dark.png", flatten=(0, 0, 0))
+save(tinted, 1024, f"{ios_set}/Icon-App-1024-tinted.png")
 
-android = art(False, margin=0.06)
+# Android: legacy square icons for old launchers, plus adaptive layers
+# (108dp, of which the launcher shows the middle 72dp) for Android 8+.
+legacy = rounded(default, margin=0.06)
+adaptive_scale = 72 / 108  # same apparent star size as the iOS icon
+fg = icon(bg=None, scale=adaptive_scale)
+mono = icon(bg=None, color=(255, 255, 255), glow=0, scale=adaptive_scale)
+res = "android/app/src/main/res"
 for folder, n in (("mdpi", 48), ("hdpi", 72), ("xhdpi", 96), ("xxhdpi", 144), ("xxxhdpi", 192)):
-    save(android, n, f"android/app/src/main/res/mipmap-{folder}/ic_launcher.png")
+    save(legacy, n, f"{res}/mipmap-{folder}/ic_launcher.png")
+    layer = round(n * 108 / 48)
+    save(radial(SKY_IN, SKY_OUT), layer, f"{res}/mipmap-{folder}/ic_launcher_background.png")
+    save(fg, layer, f"{res}/mipmap-{folder}/ic_launcher_foreground.png")
+    save(mono, layer, f"{res}/mipmap-{folder}/ic_launcher_monochrome.png")
+
+# Windows.
+rounded(default).resize((256, 256), Image.LANCZOS).save(
+    "windows/runner/resources/app_icon.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
+)
+
+# Store listing: Google Play wants a 512² opaque icon.
+save(default, 512, "../docs/store/icon-512.png", flatten=SKY_OUT)
 print("icons written")

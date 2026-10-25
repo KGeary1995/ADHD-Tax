@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home-screen widget colours, Night (dark). Widgets follow the phone's
+     appearance; the values match core/theme/app_themes.dart. -->
+<resources>
+    <color name="widget_bg_top">#151C33</color>
+    <color name="widget_bg">#0A0F1F</color>
+    <color name="widget_ink">#EEF0F8</color>
+    <color name="widget_ink2">#A3AAC2</color>
+    <color name="widget_ink3">#717894</color>
+    <color name="widget_line2">#323B58</color>
+    <color name="widget_star">#F4C76A</color>
+    <color name="widget_star_deep">#A8782A</color>
+    <color name="widget_accent">#F4C76A</color>
+    <color name="widget_personal">#F29E7A</color>
+    <color name="widget_work">#8DB4FF</color>
+    <color name="widget_on_star">#1A1406</color>
+</resources>

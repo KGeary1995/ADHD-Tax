@@ -53,9 +53,9 @@ Future<void> _start() async {
 
 Stream<LicenseEntry> _fontLicenses() async* {
   for (final (package, file) in [
-    ('Bricolage Grotesque', 'OFL-BricolageGrotesque.txt'),
-    ('Geist', 'OFL-Geist.txt'),
-    ('Geist Mono', 'OFL-GeistMono.txt'),
+    ('Sora', 'OFL-Sora.txt'),
+    ('Manrope', 'OFL-Manrope.txt'),
+    ('Phosphor Icons', 'LICENSE-Phosphor.txt'),
   ]) {
     final text = await rootBundle.loadString('assets/fonts/$file');
     yield LicenseEntryWithLineBreaks([package], text);

@@ -17,9 +17,10 @@ import '../notes/notes_controller.dart';
 import '../notes/project_widgets.dart';
 import 'task_actions.dart';
 import 'task_board.dart';
+import 'task_detail_pane.dart';
 import 'tasks_controller.dart';
-import 'weekly_reset.dart';
 import 'waiting_sheet.dart';
+import '../../core/theme/ph.dart';
 
 final _workspaceFilterProvider = NotifierProvider<_WorkspaceFilter, Workspace?>(
   _WorkspaceFilter.new,
@@ -125,7 +126,6 @@ class TaskListScreen extends ConsumerWidget {
 
     final totalMin = [...doing, ...next].fold(0, (a, t) => a + t.estimateMin);
 
-    final stale = staleTasks(ref.watch(tasksProvider), now);
     final viewSwitch = Segmented<TaskView>(
       values: TaskView.values,
       selected: view,
@@ -140,140 +140,210 @@ class TaskListScreen extends ConsumerWidget {
       if (view == TaskView.board) 'Board',
     ].join(' · ');
 
-    return SidebarLayout(
-      maxWidth: view == TaskView.board ? 1680 : 1240,
-      narrowMaxWidth: view == TaskView.board ? 1400 : 640,
-      sidebar: _TaskSidebar(
-        filter: filter,
-        projects: projects,
-        selected: project,
-        stale: stale.length,
+    // Mac and iPad, list view: the selected task shows in a pane beside
+    // the list (the first open one until you pick another).
+    final selectedId = ref.watch(selectedTaskProvider);
+    final selected =
+        all.where((t) => t.id == selectedId).firstOrNull ??
+        [...doing, ...next, ...checkBack, ...waiting, ...comingUp].firstOrNull;
+
+    Widget list(bool wide, {bool pane = false}) => ListView(
+      padding: EdgeInsets.fromLTRB(
+        wide ? 32 : 22,
+        wide ? 40 : 24,
+        wide ? 32 : 22,
+        navClearance(context),
       ),
-      builder: (context, wide) => ListView(
-        padding: EdgeInsets.fromLTRB(
-          wide ? 12 : 22,
-          wide ? 40 : 24,
-          22,
-          navClearance(context),
-        ),
-        children: [
-          PageHeader(
-            project?.name ?? 'Tasks',
-            subtitle:
-                '${doing.length + next.length} open · about '
-                '${shortMinutes(totalMin)}',
-            // Wide: the filters are in the sidebar, so the view switch and
-            // the project's menu sit up here.
-            trailing: wide
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ?(project == null
-                          ? null
-                          : _ProjectMenu(project: project)),
-                      const SizedBox(width: 8),
-                      SizedBox(width: 200, child: viewSwitch),
-                    ],
-                  )
-                : OutlinedButton(
-                    onPressed: () => showQuickAdd(context, brainDump: true),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 44),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      textStyle: const TextStyle(
-                        fontFamily: Fonts.ui,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    child: const Text('Brain dump'),
-                  ),
-          ),
-          const SizedBox(height: 20),
-          // Phone: one row instead of four. The workspace, project and
-          // list/board choices live in a sheet behind one button.
-          if (!wide) ...[
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Pill(
-                  label: filterLabel.isEmpty ? 'All tasks' : filterLabel,
-                  icon: Icons.filter_list_rounded,
-                  selected: filter != null || project != null,
-                  onTap: () => _showFilterSheet(context),
-                ),
-                if (stale.isNotEmpty)
-                  Pill(
-                    label: 'Weekly reset · ${stale.length}',
-                    icon: Icons.cleaning_services_outlined,
-                    selected: false,
-                    onTap: () => context.push('/reset'),
-                  ),
-                if (project case final p?) _ProjectMenu(project: p),
+      children: [
+        PageHeader(
+          project?.name ?? 'Tasks',
+          subtitle:
+              '${doing.length + next.length} open · about '
+              '${shortMinutes(totalMin)}',
+          // Wide: the filters show as pills below, so the board's view
+          // switch and the project's menu sit up here.
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (wide && project != null) ...[
+                _ProjectMenu(project: project),
+                const SizedBox(width: Gap.s4),
               ],
-            ),
-            const SizedBox(height: 22),
-          ],
-          if (view == TaskView.board && all.isNotEmpty)
-            TaskBoard(tasks: all, showProject: project == null)
-          else ...[
-            if (all.isEmpty)
-              Panel(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Nothing here yet.', style: s.display(24)),
-                    const SizedBox(height: 14),
-                    FilledButton(
-                      onPressed: () => showQuickAdd(context),
-                      child: const Text('Add a task'),
-                    ),
-                  ],
-                ),
+              if (wide && view == TaskView.board) ...[
+                SizedBox(width: 200, child: viewSwitch),
+                const SizedBox(width: Gap.s4),
+              ],
+              SquareIconButton(
+                icon: Ph.lightning,
+                tooltip: 'Brain dump',
+                onPressed: () => showQuickAdd(context, brainDump: true),
               ),
-            if (checkBack.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 22),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SectionTitle('Check back', count: checkBack.length),
-                    for (final t in checkBack) _CheckBackRow(task: t),
-                  ],
-                ),
+              const SizedBox(width: Gap.s4),
+              SquareIconButton(
+                icon: Ph.funnelSimple,
+                tooltip: 'Show tasks',
+                selected: filter != null || project != null,
+                onPressed: () => _showFilterSheet(context),
               ),
-            _Section(title: 'In progress', tasks: doing, compact: !wide),
-            _Section(title: 'Up next', tasks: next, compact: !wide),
-            _Section(
-              title: 'Waiting on someone',
-              tasks: waiting,
-              compact: !wide,
-            ),
-            _Section(
-              title: 'Coming up',
-              tasks: comingUp,
-              quiet: true,
-              compact: !wide,
-            ),
-            if (done.isNotEmpty)
-              Theme(
-                data: Theme.of(context)
-                    .copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  shape: const Border(),
-                  collapsedShape: const Border(),
-                  iconColor: s.muted,
-                  collapsedIconColor: s.muted,
-                  title: SectionTitle('Done', count: done.length),
-                  children: [for (final t in done.take(50)) _TaskTile(task: t)],
+            ],
+          ),
+        ),
+        const SizedBox(height: Gap.s7),
+        // Wide: All · Personal · Work and Projects as pills, as in the
+        // design's Mac/iPad Tasks.
+        if (wide) ...[
+          Wrap(
+            spacing: Gap.s3,
+            runSpacing: Gap.s3,
+            children: [
+              if (!device.single) ...[
+                Pill(
+                  label: 'All',
+                  dot: s.star,
+                  selected: filter == null,
+                  solid: filter == null,
+                  onTap: () =>
+                      ref.read(_workspaceFilterProvider.notifier).set(null),
                 ),
+                for (final w in Workspace.values)
+                  Pill(
+                    label: w.label,
+                    dot: s.workspaceColor(w == Workspace.work),
+                    selected: filter == w,
+                    solid: filter == w,
+                    onTap: () =>
+                        ref.read(_workspaceFilterProvider.notifier).set(w),
+                  ),
+              ],
+              Pill(
+                label: project?.name ?? 'Projects',
+                dot: project == null ? null : s.projectColor(project.color),
+                selected: project != null,
+                solid: project != null,
+                onTap: () => _showFilterSheet(context),
               ),
-          ],
+            ],
+          ),
+          const SizedBox(height: Gap.s7),
         ],
-      ),
+        // Phone: the workspace, project and list/board choices live in a
+        // sheet behind the filter button. What's chosen shows here.
+        if (!wide &&
+            filterLabel.isNotEmpty &&
+            (filter != null || project != null)) ...[
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Pill(
+                label: filterLabel,
+                icon: Ph.funnelSimple,
+                selected: true,
+                solid: true,
+                onTap: () => _showFilterSheet(context),
+              ),
+              if (project case final p?) _ProjectMenu(project: p),
+            ],
+          ),
+          const SizedBox(height: Gap.s7),
+        ],
+        if (view == TaskView.board && all.isNotEmpty)
+          TaskBoard(tasks: all, showProject: project == null)
+        else ...[
+          if (all.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: Gap.s8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Nothing here yet.', style: s.display(24)),
+                  const SizedBox(height: Gap.s6),
+                  SizedBox(
+                    width: 180,
+                    child: PrimaryButton(
+                      label: 'Add a task',
+                      onPressed: () => showQuickAdd(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (checkBack.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [for (final t in checkBack) _CheckBackRow(task: t)],
+              ),
+            ),
+          for (final (title, tasks, quiet) in [
+            ('In progress', doing, false),
+            ('Up next', next, false),
+            ('Waiting on someone', waiting, false),
+            ('Coming up', comingUp, true),
+          ])
+            _Section(
+              title: title,
+              tasks: tasks,
+              quiet: quiet,
+              compact: !wide || pane,
+              selectedId: pane ? selected?.id : null,
+              onSelect: pane
+                  ? (t) => ref.read(selectedTaskProvider.notifier).set(t.id)
+                  : null,
+            ),
+          if (done.isNotEmpty)
+            Theme(
+              data: Theme.of(context)
+                  .copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                shape: const Border(),
+                collapsedShape: const Border(),
+                iconColor: s.ink3,
+                collapsedIconColor: s.ink3,
+                title: SectionTitle('Done', count: done.length),
+                children: [for (final t in done.take(50)) _TaskTile(task: t)],
+              ),
+            ),
+        ],
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        // Lower than other screens' sidebar breakpoint, so an iPad in
+        // landscape (about 970 beside the app's sidebar) gets the pane.
+        if (c.maxWidth < 880) {
+          return ContentWidth(
+            maxWidth: view == TaskView.board ? 1400 : 640,
+            child: list(false),
+          );
+        }
+        if (view == TaskView.board) {
+          return ContentWidth(maxWidth: 1680, child: list(true));
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: (c.maxWidth * 0.5).clamp(420.0, 600.0),
+              child: list(true, pane: true),
+            ),
+            VerticalDivider(width: 1, thickness: 1, color: s.line),
+            Expanded(
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: TaskDetailPane(task: selected),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -284,10 +354,9 @@ Future<void> _showFilterSheet(BuildContext context) => showAppSheet<void>(
   context: context,
   builder: (ctx) => SafeArea(
     child: SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: sheetPadding,
       child: Consumer(
         builder: (ctx, ref, _) {
-          final s = ctx.spec;
           final device = ref.watch(deviceWorkspacesProvider);
           final filter = ref.watch(_workspaceFilterProvider);
           final projects = ref
@@ -296,23 +365,21 @@ Future<void> _showFilterSheet(BuildContext context) => showAppSheet<void>(
               .toList();
           final projectId = ref.watch(taskProjectFilterProvider);
           final project = projects.where((p) => p.id == projectId).firstOrNull;
+          final view = ref.watch(taskViewProvider);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Show tasks', style: s.display(26)),
-              const SizedBox(height: 18),
+              const SheetTitle('Show tasks'),
+              const SizedBox(height: Gap.s7),
               // A one-workspace device has nothing to choose between.
               if (!device.single) ...[
-                const FieldLabel('Which side'),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                const OptionLabel('Which side'),
+                OptionRow(
                   children: [
                     for (final w in [null, ...Workspace.values])
-                      Pill(
+                      OptionButton(
                         label: w?.label ?? 'Everything',
                         selected: filter == w,
-                        solid: true,
                         onTap: () {
                           ref.read(_workspaceFilterProvider.notifier).set(w);
                           if (w != null &&
@@ -326,28 +393,29 @@ Future<void> _showFilterSheet(BuildContext context) => showAppSheet<void>(
                       ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: Gap.s7),
               ],
-              const FieldLabel('Project'),
+              const OptionLabel('Project'),
               _ProjectBar(
                 projects: projects,
                 selected: project,
                 workspace: device.single ? device.primary : filter,
               ),
-              const SizedBox(height: 18),
-              const FieldLabel('View'),
-              Segmented<TaskView>(
-                values: TaskView.values,
-                selected: ref.watch(taskViewProvider),
-                inset: s.isDark,
-                labelOf: (v) => v == TaskView.list ? 'List' : 'Board',
-                onSelected: ref.read(taskViewProvider.notifier).set,
+              const SizedBox(height: Gap.s7),
+              const OptionLabel('View'),
+              OptionRow(
+                children: [
+                  for (final v in TaskView.values)
+                    OptionButton(
+                      label: v == TaskView.list ? 'List' : 'Board',
+                      icon: v == TaskView.list ? Ph.listBullets : Ph.kanban,
+                      selected: view == v,
+                      onTap: () => ref.read(taskViewProvider.notifier).set(v),
+                    ),
+                ],
               ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Done'),
-              ),
+              const SizedBox(height: Gap.s8),
+              PrimaryButton(label: 'Done', onPressed: () => Navigator.pop(ctx)),
             ],
           );
         },
@@ -395,7 +463,7 @@ class _ProjectMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => PopupMenuButton<String>(
     useRootNavigator: true,
     tooltip: 'Project options',
-    icon: const Icon(Icons.more_horiz_rounded),
+    icon: const Icon(Ph.dotsThree),
     onSelected: (v) async {
       if (v == 'rename') await showRenameProjectDialog(context, ref, project);
       if (v == 'delete' &&
@@ -439,121 +507,15 @@ class _ProjectBar extends ConsumerWidget {
         for (final p in projects)
           Pill(
             label: p.name,
-            icon: Icons.circle,
-            iconColor: context.spec.projectColor(p.color),
+            dot: context.spec.projectColor(p.color),
             selected: selected?.id == p.id,
             onTap: () => set(selected?.id == p.id ? null : p.id),
           ),
-        Pill(
-          label: projects.isEmpty ? 'New project' : 'Project',
-          icon: Icons.add_rounded,
-          selected: false,
+        _DashedPill(
+          label: projects.isEmpty ? '+ New project' : '+ Project',
           onTap: () => _addProject(context, ref, workspace),
         ),
         if (selected case final p?) _ProjectMenu(project: p),
-      ],
-    );
-  }
-}
-
-/// Desktop: the same filters as a sidebar, with counts.
-class _TaskSidebar extends ConsumerWidget {
-  const _TaskSidebar({
-    required this.filter,
-    required this.projects,
-    required this.selected,
-    required this.stale,
-  });
-  final Workspace? filter;
-  final List<Project> projects;
-  final Project? selected;
-  final int stale;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = context.spec;
-    final device = ref.watch(deviceWorkspacesProvider);
-    final open = ref.watch(tasksProvider).where((t) => t.isOpen).toList();
-    int count(bool Function(Task) f) => open.where(f).length;
-    final setProject = ref.read(taskProjectFilterProvider.notifier).set;
-    void setWs(Workspace? w) {
-      ref.read(_workspaceFilterProvider.notifier).set(w);
-      if (w != null && selected != null && selected!.workspace != w) {
-        setProject(null);
-      }
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (!device.single)
-          SideSection(
-            label: 'Show',
-            children: [
-              SideItem(
-                label: 'Everything',
-                icon: Icons.all_inclusive_rounded,
-                count: count((_) => true),
-                selected: filter == null,
-                onTap: () => setWs(null),
-              ),
-              for (final w in Workspace.values)
-                SideItem(
-                  label: w.label,
-                  icon: w == Workspace.work
-                      ? Icons.work_outline_rounded
-                      : Icons.home_outlined,
-                  count: count((t) => t.workspace == w),
-                  selected: filter == w,
-                  onTap: () => setWs(w),
-                ),
-            ],
-          ),
-        SideSection(
-          label: 'Projects',
-          children: [
-            SideItem(
-              label: 'All projects',
-              icon: Icons.folder_open_outlined,
-              count: count((t) => filter == null || t.workspace == filter),
-              selected: selected == null,
-              onTap: () => setProject(null),
-            ),
-            for (final p in projects)
-              SideItem(
-                label: p.name,
-                dot: s.projectColor(p.color),
-                count: count((t) => t.projectId == p.id),
-                selected: selected?.id == p.id,
-                onTap: () => setProject(selected?.id == p.id ? null : p.id),
-              ),
-            SideItem(
-              label: 'New project',
-              icon: Icons.add_rounded,
-              onTap: () => _addProject(
-                context,
-                ref,
-                device.single ? device.primary : filter,
-              ),
-            ),
-          ],
-        ),
-        SideSection(
-          label: 'Tidy up',
-          children: [
-            SideItem(
-              label: 'Weekly reset',
-              icon: Icons.cleaning_services_outlined,
-              count: stale,
-              onTap: () => context.push('/reset'),
-            ),
-            SideItem(
-              label: 'Brain dump',
-              icon: Icons.bolt_outlined,
-              onTap: () => showQuickAdd(context, brainDump: true),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -565,10 +527,17 @@ class _Section extends StatelessWidget {
     required this.tasks,
     this.quiet = false,
     this.compact = false,
+    this.selectedId,
+    this.onSelect,
   });
   final String title;
   final List<Task> tasks;
   final bool compact;
+
+  /// Mac/iPad pane layout: tapping a row selects it instead of opening
+  /// the editor, and the selected row is raised.
+  final String? selectedId;
+  final void Function(Task)? onSelect;
 
   /// Not actionable yet: dimmed.
   final bool quiet;
@@ -589,6 +558,8 @@ class _Section extends StatelessWidget {
                 task: t,
                 last: i == tasks.length - 1,
                 compact: compact,
+                selected: selectedId == t.id,
+                onSelect: onSelect,
               ),
             ),
         ],
@@ -602,10 +573,14 @@ class _TaskTile extends ConsumerWidget {
     required this.task,
     this.last = false,
     this.compact = false,
+    this.selected = false,
+    this.onSelect,
   });
   final Task task;
   final bool last;
   final bool compact;
+  final bool selected;
+  final void Function(Task)? onSelect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -631,39 +606,62 @@ class _TaskTile extends ConsumerWidget {
       onDelete: () => deleteWithUndo(context, ref, task),
       onDone: isDone ? null : () => markDoneWithUndo(context, ref, task),
       child: InkWell(
-        onTap: () => context.push('/task/${task.id}'),
+        borderRadius: onSelect == null ? null : BorderRadius.circular(Radii.md),
+        onTap: onSelect == null
+            ? () => context.push('/task/${task.id}')
+            : () => onSelect!(task),
+        onDoubleTap: onSelect == null
+            ? null
+            : () => context.push('/task/${task.id}'),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            border: last ? null : Border(bottom: BorderSide(color: s.hairline)),
+          constraints: const BoxConstraints(minHeight: 64),
+          padding: EdgeInsets.symmetric(
+            vertical: 8,
+            horizontal: onSelect == null ? 0 : 10,
           ),
+          decoration: selected
+              ? BoxDecoration(
+                  color: s.raised,
+                  borderRadius: BorderRadius.circular(Radii.md),
+                  border: Border.all(color: s.line2, width: 2),
+                )
+              : BoxDecoration(
+                  border: last
+                      ? null
+                      : Border(bottom: BorderSide(color: s.line)),
+                ),
           child: Row(
             children: [
-              _DoneCircle(
-                done: isDone,
-                label: task.title,
-                onTap: isDone
-                    ? () => ctl.reopen(task.id)
-                    : () => markDoneWithUndo(context, ref, task),
+              Transform.translate(
+                offset: const Offset(-9, 0),
+                child: StarCheck(
+                  done: isDone,
+                  label: isDone ? 'Not done yet' : 'Mark done',
+                  onTap: isDone
+                      ? () => ctl.reopen(task.id)
+                      : () => markDoneWithUndo(context, ref, task),
+                ),
               ),
-              const SizedBox(width: 6),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task.title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        height: 1.3,
-                        color: isDone ? s.muted : s.onSurface,
-                        decoration: isDone ? TextDecoration.lineThrough : null,
-                        decorationColor: s.muted,
+                child: Transform.translate(
+                  offset: const Offset(-4, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        task.title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          height: 1.3,
+                          color: isDone ? s.ink3 : s.ink,
+                          decoration: isDone
+                              ? TextDecoration.lineThrough
+                              : null,
+                          decorationColor: s.ink3,
+                        ),
                       ),
-                    ),
-                    if (!isDone) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: Gap.s1),
                       TaskMeta(
                         task: task,
                         now: now,
@@ -671,62 +669,13 @@ class _TaskTile extends ConsumerWidget {
                         extra: extras.isEmpty ? null : extras.join(' · '),
                       ),
                     ],
-                  ],
+                  ),
                 ),
               ),
-              PopupMenuButton<String>(
-                useRootNavigator: true,
+              IconButton(
                 tooltip: 'More',
-                icon: Icon(Icons.more_horiz_rounded, color: s.faint),
-                onSelected: (v) {
-                  switch (v) {
-                    case 'start':
-                      openFocus(context, task.id, minutes: task.estimateMin);
-                    case 'edit':
-                      context.push('/task/${task.id}');
-                    case 'five':
-                      openFocus(context, task.id, minutes: 5, justFive: true);
-                    case 'waiting':
-                      showWaitingSheet(context, task);
-                    case 'todo':
-                      ctl.reopen(task.id);
-                    case 'done':
-                      markDoneWithUndo(context, ref, task);
-                    case 'archive':
-                      archiveWithUndo(context, ref, task);
-                    case 'delete':
-                      deleteWithUndo(context, ref, task);
-                  }
-                },
-                itemBuilder: (_) => [
-                  if (!isDone) ...[
-                    const PopupMenuItem(
-                      value: 'start',
-                      child: Text('Start now'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'five',
-                      child: Text('Just 5 minutes'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'done',
-                      child: Text('Mark done'),
-                    ),
-                  ],
-                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  if (!isDone && task.status != TaskStatus.waiting)
-                    const PopupMenuItem(
-                      value: 'waiting',
-                      child: Text('Waiting on someone'),
-                    ),
-                  if (isDone || task.status == TaskStatus.waiting)
-                    const PopupMenuItem(
-                      value: 'todo',
-                      child: Text('Move back to to-do'),
-                    ),
-                  const PopupMenuItem(value: 'archive', child: Text('Archive')),
-                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                ],
+                icon: Icon(Ph.dotsThree, size: 20, color: s.ink3),
+                onPressed: () => showTaskMenu(context, ref, task),
               ),
             ],
           ),
@@ -736,44 +685,163 @@ class _TaskTile extends ConsumerWidget {
   }
 }
 
-/// Round tick on the left of a task row.
-class _DoneCircle extends StatelessWidget {
-  const _DoneCircle({
-    required this.done,
-    required this.label,
-    required this.onTap,
-  });
-  final bool done;
+/// The ⋯ menu on a task: a sheet of actions, Delete last and in red.
+Future<void> showTaskMenu(BuildContext context, WidgetRef ref, Task task) {
+  final ctl = ref.read(tasksProvider.notifier);
+  final isDone = task.status == TaskStatus.done;
+  final items = <(String, IconData, VoidCallback, bool)>[
+    if (!isDone) ...[
+      (
+        'Start now',
+        Ph.starFour,
+        () => openFocus(context, task.id, minutes: task.estimateMin),
+        false,
+      ),
+      (
+        'Just 5 minutes',
+        Ph.timer,
+        () => openFocus(context, task.id, minutes: 5, justFive: true),
+        false,
+      ),
+      (
+        'Mark done',
+        Ph.check,
+        () => markDoneWithUndo(context, ref, task),
+        false,
+      ),
+    ],
+    ('Edit', Ph.pencilSimple, () => context.push('/task/${task.id}'), false),
+    if (!isDone && task.status != TaskStatus.waiting)
+      (
+        'Waiting on someone',
+        Ph.hourglassMedium,
+        () => showWaitingSheet(context, task),
+        false,
+      ),
+    if (isDone || task.status == TaskStatus.waiting)
+      (
+        'Move back to to-do',
+        Ph.arrowCounterClockwise,
+        () => ctl.reopen(task.id),
+        false,
+      ),
+    ('Archive', Ph.archive, () => archiveWithUndo(context, ref, task), false),
+    ('Delete', Ph.trash, () => deleteWithUndo(context, ref, task), true),
+  ];
+  return showAppSheet<void>(
+    context: context,
+    builder: (ctx) {
+      final s = ctx.spec;
+      return SafeArea(
+        child: SingleChildScrollView(
+          padding: sheetPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                task.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: s.display(17),
+              ),
+              const SizedBox(height: Gap.s4),
+              for (final (label, icon, onTap, danger) in items)
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    onTap();
+                  },
+                  child: SizedBox(
+                    height: 50,
+                    child: Row(
+                      children: [
+                        Icon(icon, size: 20, color: danger ? s.danger : s.ink),
+                        const SizedBox(width: Gap.s6),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: danger ? s.danger : s.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+/// "+ Project": a dashed outline, for making something new.
+class _DashedPill extends StatelessWidget {
+  const _DashedPill({required this.label, required this.onTap});
   final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final s = context.spec;
-    return IconButton(
-      tooltip: done ? 'Not done yet' : 'Mark done',
-      onPressed: onTap,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-      icon: Container(
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: done ? s.accent : null,
-          border: done
-              ? null
-              : Border.all(
-                  color: s.isDark ? const Color(0xFF3A4548) : s.faint,
-                  width: 2,
+    return Semantics(
+      button: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radii.md),
+        onTap: onTap,
+        child: CustomPaint(
+          painter: _DashedBorder(s.line2),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: s.ink2,
+                  ),
                 ),
+              ),
+            ),
+          ),
         ),
-        child: done
-            ? Icon(Icons.check_rounded, size: 16, color: s.onAccent)
-            : null,
       ),
     );
   }
+}
+
+class _DashedBorder extends CustomPainter {
+  _DashedBorder(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          (Offset.zero & size).deflate(1),
+          const Radius.circular(Radii.md),
+        ),
+      );
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    for (final m in path.computeMetrics()) {
+      for (var d = 0.0; d < m.length; d += 9) {
+        canvas.drawPath(m.extractPath(d, d + 5), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorder old) => old.color != color;
 }
 
 /// A waiting task whose check-back date has come: one tap to resolve it.
@@ -786,28 +854,28 @@ class _CheckBackRow extends ConsumerWidget {
     final s = context.spec;
     final ctl = ref.read(tasksProvider.notifier);
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(bottom: Gap.s4),
       child: Panel(
-        radius: 20,
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         onTap: () => context.push('/task/${task.id}'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              task.title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: s.onSurface,
-              ),
+            Row(
+              children: [
+                Icon(Ph.bellSimpleRinging, size: 14, color: s.accentText),
+                const SizedBox(width: Gap.s3),
+                Text('CHECK BACK', style: s.overline(color: s.accentText)),
+              ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: Gap.s4),
+            Text(task.title, style: s.body(weight: FontWeight.w700)),
+            const SizedBox(height: Gap.s1),
             Text(
               task.waitingOn.isEmpty
                   ? 'Any news? Time to check back.'
-                  : 'Waiting on ${task.waitingOn}. Any news?',
-              style: TextStyle(fontSize: 13, color: s.muted),
+                  : 'Waiting on ${_lower(task.waitingOn)}. Any news?',
+              style: s.caption(color: s.ink2),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -815,8 +883,9 @@ class _CheckBackRow extends ConsumerWidget {
               runSpacing: 6,
               children: [
                 Pill(
-                  label: 'Back to my list',
-                  selected: false,
+                  label: 'Back to list',
+                  selected: true,
+                  solid: true,
                   onTap: () => ctl.reopen(task.id),
                 ),
                 Pill(
@@ -837,3 +906,5 @@ class _CheckBackRow extends ConsumerWidget {
     );
   }
 }
+
+String _lower(String s) => s.isEmpty ? s : s[0].toLowerCase() + s.substring(1);

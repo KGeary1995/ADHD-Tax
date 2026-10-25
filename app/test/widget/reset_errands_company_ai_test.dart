@@ -13,7 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'app_flow_test.dart' show pumpApp;
+import 'app_flow_test.dart' show pastStarted, pumpApp;
 
 const _phone = Size(390, 844);
 
@@ -146,7 +146,7 @@ void main() {
     await tester.tap(banner);
     await tester.pumpAndSettle();
     expect(find.text('Pharmacy + Post office'), findsOneWidget);
-    expect(find.text('1. Pharmacy'), findsOneWidget);
+    expect(find.text('1. PHARMACY'), findsOneWidget);
 
     await tester.tap(find.text('Pick up prescription'));
     await tester.pumpAndSettle();
@@ -174,8 +174,7 @@ void main() {
     );
     final t = c.read(tasksProvider.notifier).create(title: 'Write report');
     c.read(routerProvider).push('/focus/${t.id}?min=25');
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await pastStarted(tester);
 
     await tester.tap(find.byTooltip('Company'));
     await frames(tester);

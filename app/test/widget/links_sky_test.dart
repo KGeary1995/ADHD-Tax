@@ -4,6 +4,7 @@ import 'package:adhd_tax/features/gamification/progress_controller.dart';
 import 'package:adhd_tax/features/notes/notes_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:adhd_tax/widgets/ui.dart';
+import 'package:adhd_tax/features/notes/note_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -93,8 +94,14 @@ void main() {
     c.read(routerProvider).go('/task/${t.id}');
     await tester.pumpAndSettle();
     await _show(tester, find.text('Shadow a Monday'));
-    expect(find.text('Related'), findsOneWidget);
-    expect(find.text('#training'), findsOneWidget);
+    expect(find.text('RELATED'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(LinkRow),
+        matching: find.text('#training'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Water plants'), findsNothing);
   });
 
@@ -106,7 +113,7 @@ void main() {
     c.read(routerProvider).go('/task/${t.id}');
     await tester.pumpAndSettle();
     await _show(tester, find.text('Add a note'));
-    expect(find.text('Related'), findsNothing);
+    expect(find.text('RELATED'), findsNothing);
   });
 
   testWidgets('Progress draws a star for each start', (tester) async {

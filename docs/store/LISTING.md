@@ -56,7 +56,7 @@ Also on iPhone, iPad, Mac, Windows and the web.
 
 **App category:** Productivity. **Tags:** to-do list, productivity, time management.
 
-**Graphics (made 2026-10-23):** 512×512 icon (`app/web/icons/Icon-512.png`); 1024×500 feature graphic (headline "Don't decide. Just start." beside a phone showing Today, drawn with the app's bundled fonts); five phone screenshots at 1242×2208 (`shoot.mjs … 414 736 --scale 3`). Play rejects screenshots whose long side is more than twice the short side, so the App Store's 6.3" set (1206×2622) can't be reused. No tablet screenshots yet.
+**Graphics (made 2026-10-23):** 512×512 icon (`app/web/icons/Icon-512.png`); 1024×500 feature graphic (headline "Don't decide. Just start." beside a phone showing Today, drawn with the app's bundled fonts); five phone screenshots at 1242×2208 (`shoot.mjs … 414 736 --scale 3`). Play rejects screenshots whose long side is more than twice the short side, so the App Store's 6.3" set (1206×2622) can't be reused. No tablet screenshots yet. **For 1.1:** the new icon is `docs/store/icon-512.png` (drawn by `make_icons.py`); the feature graphic and Play screenshots still show the old look and need redoing before 1.1 goes to Play.
 
 **Full description on Play:** the last line reads `Also on iPhone, iPad, Mac and the web.` (Windows dropped: it's an unpublished artifact).
 
@@ -110,8 +110,10 @@ Not collected: location, contacts, photos, audio (voice typing uses the phone's 
 | Category | Productivity (secondary: Lifestyle) |  |
 | Age rating | Answer "None" throughout. Expect **4+** |  |
 | Copyright | `2026 Kyle Geary` (the name on the Developer ID certificate) |  |
-| Version | `1.0.0`, matching the build's `CFBundleShortVersionString` from `pubspec.yaml`; App Store Connect defaults to "1.0", which hides the build |  |
+| Version | `1.0.0` (1.1 builds say `1.1.0`; create version 1.1.0 in App Store Connect for them), matching the build's `CFBundleShortVersionString` from `pubspec.yaml`; App Store Connect defaults to "1.0", which hides the build |  |
 | Screenshots | App Store Connect (Oct 2026) requires the **6.3" iPhone** set, 1206×2622 (`shoot.mjs … 402 874 --scale 3 --iphone`); 1290×2796 was rejected there as "File dimensions are invalid". 6.9" (1320×2868: `440 956 --scale 3`) is optional. iPad 13" 2048×2732 (`… 1024 1366`) is required because the app runs on iPad |  |
+| Screenshots for 1.1 | The redesign's captioned set (`app/tool/screenshots/store_frames.py`, steps in its header): five iPhone frames at 1206×2622 and three landscape iPad frames at 2732×2048, made 2026-10-25. Upload them with the 1.1 version, not before: 1.0 shows the old look |  |
+| What's New (1.1) | `A whole new look: Today shows one task and its next step, starting lights a star, and your progress fills a night sky. New icon, widgets that follow light and dark mode, and on iPad, Tasks shows the selected task beside the list.` |  |
 | iPhone Duo | Left empty for 1.0.0 (optional until April 2027, for apps built with the iOS 27.1 SDK or later). Sizes: outer 1398×2034, inner 2007×2853. Add them once the layout has been seen on a real Duo, before that deadline |  |
 
 ### App Privacy (draft)

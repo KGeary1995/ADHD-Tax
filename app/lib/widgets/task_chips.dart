@@ -32,33 +32,89 @@ class TaskMeta extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.spec;
     final t = task;
+    final when = now ?? DateTime.now();
+    if (compact) {
+      // "■ Tomorrow 3:27 pm · 1h · 1/4 steps": the dot says which side.
+      final due = t.dueAt == null ? null : _capital(formatDue(t.dueAt!, when));
+      final parts = [
+        if (t.status == TaskStatus.waiting && t.waitingOn.isNotEmpty)
+          'Waiting on ${t.waitingOn}',
+        formatMinutes(plannedMin ?? t.estimateMin),
+        if (t.steps.isNotEmpty)
+          '${t.steps.where((i) => i.done).length}/${t.steps.length} steps',
+        if (t.ugh >= 2) t.ugh == 3 ? 'Dreading' : ughLabels[t.ugh],
+        if (t.requiresLeavingHouse)
+          t.location.isEmpty ? 'Out of the house' : 'Out: ${t.location}',
+        if (t.repeat != Repeat.none) t.repeat.short,
+      ];
+      return Text.rich(
+        TextSpan(
+          children: [
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: s.workspaceColor(t.workspace == Workspace.work),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                ),
+              ),
+            ),
+            if (due != null)
+              TextSpan(
+                text: '$due · ',
+                style: TextStyle(
+                  color: s.accentText,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            TextSpan(text: parts.join(' · ')),
+          ],
+        ),
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: s.ink2,
+          height: 1.35,
+        ),
+      );
+    }
     final due = t.dueAt == null
         ? null
         : '${t.hardDeadline ? 'Hard deadline' : 'Due'} '
-              '${formatDue(t.dueAt!, now ?? DateTime.now())}';
-    final parts = compact
-        ? [
-            if (t.status == TaskStatus.waiting && t.waitingOn.isNotEmpty)
-              'Waiting on ${t.waitingOn}',
-            formatMinutes(t.estimateMin),
-          ]
-        : taskFacts(t, plannedMin: plannedMin);
-    if (extra != null && !compact) parts.add(extra!);
+              '${formatDue(t.dueAt!, when)}';
+    final parts = taskFacts(t, plannedMin: plannedMin);
+    if (extra != null) parts.add(extra!);
     return Text.rich(
       TextSpan(
         children: [
           if (due != null)
             TextSpan(
               text: parts.isEmpty ? due : '$due · ',
-              style: TextStyle(color: s.warning, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: s.accentText,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           TextSpan(text: parts.join(' · ')),
         ],
       ),
-      style: TextStyle(fontSize: 13, color: s.muted, height: 1.35),
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        color: s.ink2,
+        height: 1.35,
+      ),
     );
   }
 }
+
+String _capital(String s) =>
+    s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
 /// The facts [TaskMeta] lists after the due date.
 List<String> taskFacts(Task t, {int? plannedMin}) => [

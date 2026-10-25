@@ -10,6 +10,9 @@ class _Unsupported implements GoogleAuth {
   bool get isConfigured => false;
 
   @override
+  bool get restoreMayRecover => false;
+
+  @override
   Future<http.Client?> restore(Workspace ws, {String? email}) async => null;
 
   @override

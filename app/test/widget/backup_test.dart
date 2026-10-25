@@ -6,7 +6,7 @@ import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'app_flow_test.dart' show pumpApp;
+import 'app_flow_test.dart' show openSettings, pumpApp;
 
 const _phone = Size(390, 844);
 
@@ -27,8 +27,7 @@ class FakeBackupFiles implements BackupFiles {
 }
 
 Future<void> openSettingsRow(WidgetTester tester, String row) async {
-  await tester.tap(find.byTooltip('Settings'));
-  await tester.pumpAndSettle();
+  await openSettings(tester);
   // Settings is a lazy list: scroll until the row is built.
   await tester.dragUntilVisible(
     find.text(row),

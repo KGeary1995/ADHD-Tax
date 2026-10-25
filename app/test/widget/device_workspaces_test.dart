@@ -8,7 +8,7 @@ import 'package:adhd_tax/sync/replicas_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'app_flow_test.dart' show pumpApp;
+import 'app_flow_test.dart' show openSettings, pumpApp;
 
 const _phone = Size(390, 844);
 
@@ -23,8 +23,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Settings → Show on this device → Work.
-    await tester.tap(find.byTooltip('Settings'));
-    await tester.pumpAndSettle();
+    await openSettings(tester);
     await tester.tap(find.text('Work').first);
     await tester.pumpAndSettle();
     expect(c.read(deviceWorkspacesProvider), DeviceWorkspaces.work);
@@ -48,7 +47,9 @@ void main() {
     );
 
     // Tasks has no Personal/Work pills; Quick add has no workspace switch
-    // and files into Work.
+    // and files into Work. (Settings has no tab bar: back out first.)
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Tasks'));
     await tester.pumpAndSettle();
     expect(find.text('Everything'), findsNothing);

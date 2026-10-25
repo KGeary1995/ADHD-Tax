@@ -8,6 +8,7 @@ import '../../widgets/task_chips.dart';
 import '../../widgets/ui.dart';
 import 'progress_controller.dart';
 import 'rewards_controller.dart';
+import '../../core/theme/ph.dart';
 
 /// Progress → Reward shop: treats the user picks, bought with coins.
 class RewardShop extends ConsumerWidget {
@@ -21,135 +22,135 @@ class RewardShop extends ConsumerWidget {
     final history = ref.watch(redemptionsProvider);
     final shop = ref.read(rewardsProvider.notifier);
 
-    return Panel(
-      radius: 26,
-      padding: const EdgeInsets.fromLTRB(20, 20, 12, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 6,
-              children: [
-                Text('Reward shop', style: s.display(24)),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.toll_rounded, size: 18, color: s.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$coins ${coins == 1 ? 'coin' : 'coins'}',
-                      style: s.mono(15, weight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Text(
-              'Starting and finishing tasks earns coins. Spend them on '
-              'treats you choose, guilt-free.',
-              style: TextStyle(color: s.muted, fontSize: 13, height: 1.4),
-            ),
-          ),
-          const SizedBox(height: 8),
-          for (final r in rewards)
-            _RewardRow(reward: r, coins: coins, key: ValueKey(r.id)),
-          if (rewards.isEmpty) ...[
-            const SizedBox(height: 8),
-            const FieldLabel('Ideas to start with'),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final (name, cost) in rewardIdeas)
-                  Pill(
-                    label: '$name · $cost',
-                    icon: Icons.add_rounded,
-                    selected: false,
-                    onTap: () => shop.create(name, cost),
-                  ),
-              ],
+    // The cheapest treat you can have now gets the gold button.
+    final firstAffordable = rewards
+        .where((r) => r.cost <= coins)
+        .fold<Reward?>(null, (a, r) => a == null || r.cost < a.cost ? r : a);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Expanded(child: Text('Reward shop', style: s.display(19))),
+            Text(
+              '$coins ${coins == 1 ? 'coin' : 'coins'}',
+              style: s.caption(color: s.ink2),
             ),
           ],
-          const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () => showRewardDialog(context, ref),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Add a reward'),
-            ),
+        ),
+        const SizedBox(height: Gap.s1),
+        Text('Treats you chose. Spend coins guilt-free.', style: s.caption()),
+        const SizedBox(height: Gap.s4),
+        for (final r in rewards)
+          _RewardRow(
+            reward: r,
+            coins: coins,
+            primary: identical(r, firstAffordable),
+            key: ValueKey(r.id),
           ),
-          if (history.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 4, 8, 0),
-              child: Text(
-                'Last treat: ${history.first.label}, '
-                '${formatDate(history.first.at)}',
-                style: TextStyle(color: s.muted, fontSize: 13),
-              ),
-            ),
+        if (rewards.isEmpty) ...[
+          const SizedBox(height: Gap.s4),
+          const OptionLabel('Ideas to start with'),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final (name, cost) in rewardIdeas)
+                Pill(
+                  label: '$name · $cost',
+                  icon: Ph.plus,
+                  selected: false,
+                  onTap: () => shop.create(name, cost),
+                ),
+            ],
+          ),
         ],
-      ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            onPressed: () => showRewardDialog(context, ref),
+            icon: const Icon(Ph.plus, size: 16),
+            label: const Text('Add a reward'),
+          ),
+        ),
+        if (history.isNotEmpty)
+          Text(
+            'Last treat: ${history.first.label}, '
+            '${formatDate(history.first.at)}',
+            style: s.caption(),
+          ),
+      ],
     );
   }
 }
 
 class _RewardRow extends ConsumerWidget {
-  const _RewardRow({super.key, required this.reward, required this.coins});
+  const _RewardRow({
+    super.key,
+    required this.reward,
+    required this.coins,
+    this.primary = false,
+  });
   final Reward reward;
   final int coins;
+  final bool primary;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.spec;
     final short = reward.cost - coins;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: s.hairline)),
+        border: Border(bottom: BorderSide(color: s.line)),
       ),
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  reward.name,
-                  style: TextStyle(fontSize: 16, color: s.onSurface),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  short > 0
-                      ? '${reward.cost} coins · $short to go'
-                      : '${reward.cost} coins',
-                  style: s.mono(12, color: s.muted),
-                ),
-              ],
+            child: InkWell(
+              onLongPress: () =>
+                  showRewardDialog(context, ref, editing: reward),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(reward.name, style: s.body(weight: FontWeight.w700)),
+                  Text('${reward.cost} coins', style: s.caption()),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          FilledButton.tonal(
-            onPressed: short > 0 ? null : () => _redeem(context, ref),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 40),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+          const SizedBox(width: Gap.s4),
+          if (short > 0)
+            Text(
+              '$short to go',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: s.ink3,
+              ),
+            )
+          else if (primary)
+            PrimaryButton(
+              label: 'Redeem',
+              height: 40,
+              fontSize: 14,
+              expand: false,
+              onPressed: () => _redeem(context, ref),
+            )
+          else
+            OutlineButton(
+              label: 'Redeem',
+              height: 40,
+              fontSize: 14,
+              onPressed: () => _redeem(context, ref),
             ),
-            child: const Text('Redeem'),
-          ),
           PopupMenuButton<String>(
             useRootNavigator: true,
             tooltip: 'Reward options',
-            icon: Icon(Icons.more_vert_rounded, color: s.muted),
+            icon: Icon(Ph.dotsThreeVertical, size: 18, color: s.ink3),
             onSelected: (v) => v == 'edit'
                 ? showRewardDialog(context, ref, editing: reward)
                 : ref.read(rewardsProvider.notifier).delete(reward),
@@ -163,23 +164,84 @@ class _RewardRow extends ConsumerWidget {
     );
   }
 
-  void _redeem(BuildContext context, WidgetRef ref) {
+  Future<void> _redeem(BuildContext context, WidgetRef ref) async {
     final shop = ref.read(rewardsProvider.notifier);
     final e = shop.redeem(reward);
     if (e == null) return;
     HapticFeedback.mediumImpact();
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('Enjoy it: ${reward.name}. You earned it.'),
-          duration: const Duration(seconds: 6),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () => shop.unredeem(e),
+    final left = ref.read(progressProvider).coins;
+    final undo = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final s = ctx.spec;
+        return Dialog(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 26, 22, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: s.star,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [BoxShadow(color: s.glow, blurRadius: 22)],
+                      ),
+                      child: Icon(Ph.giftFill, size: 30, color: s.onStar),
+                    ),
+                  ),
+                  const SizedBox(height: Gap.s7),
+                  Text(
+                    'Enjoy it.',
+                    textAlign: TextAlign.center,
+                    style: s.display(26),
+                  ),
+                  const SizedBox(height: Gap.s3),
+                  Text(
+                    '${reward.name}. You earned it, no strings.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 15, height: 1.4, color: s.ink2),
+                  ),
+                  const SizedBox(height: Gap.s2),
+                  Text(
+                    '−${reward.cost} coins · $left left',
+                    textAlign: TextAlign.center,
+                    style: s.caption(),
+                  ),
+                  const SizedBox(height: Gap.s7),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: OutlineButton(
+                          label: 'Undo',
+                          fontSize: 16,
+                          onPressed: () => Navigator.pop(ctx, true),
+                        ),
+                      ),
+                      const SizedBox(width: Gap.s4),
+                      Expanded(
+                        child: PrimaryButton(
+                          label: 'Thanks',
+                          fontSize: 16,
+                          onPressed: () => Navigator.pop(ctx, false),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      );
+        );
+      },
+    );
+    if (undo == true) shop.unredeem(e);
   }
 }
 

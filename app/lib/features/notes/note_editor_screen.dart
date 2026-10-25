@@ -12,6 +12,7 @@ import '../../data/models/links.dart';
 import '../../data/models/note.dart';
 import '../../data/models/task.dart';
 import '../../widgets/ui.dart';
+import '../tasks/checklist_editor.dart';
 import '../capture/voice_input.dart';
 import '../safety/phi_warning.dart';
 import '../tasks/tasks_controller.dart';
@@ -19,6 +20,7 @@ import '../templates/templates_controller.dart';
 import 'note_links.dart';
 import 'notes_controller.dart';
 import 'project_widgets.dart';
+import '../../core/theme/ph.dart';
 
 /// A note, saved as you type. `noteId == 'new'` starts one; it's only
 /// stored once something has been written.
@@ -53,8 +55,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   Timer? _debounce;
   var _deleted = false;
 
-  // Held directly: the last save runs in dispose(), where ref can't be used.
-  late final NotesController _notes = ref.read(notesProvider.notifier);
+  // The last save runs in dispose(), where ref can't be used. Keep the
+  // container, not the controller: the controller is replaced whenever
+  // the notes provider rebuilds (a sync arriving, say) and a stale one
+  // throws.
+  late final ProviderContainer _container = ProviderScope.containerOf(
+    context,
+    listen: false,
+  );
+  NotesController get _notes => _container.read(notesProvider.notifier);
 
   @override
   void initState() {
@@ -258,30 +267,62 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           );
     final tags = _note.copyWith(title: _title.text, body: _body.text).allTags;
 
+    // A small phone: Make tasks as an icon, so the bar fits.
+    final narrow = MediaQuery.sizeOf(context).width < 400;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Ph.caretLeft),
+          onPressed: () => Navigator.maybePop(context),
+        ),
         actions: [
           VoiceButton(controller: _body, newLine: true),
           IconButton(
             tooltip: 'Link a task or note',
-            icon: const Icon(Icons.add_link_rounded),
+            icon: Icon(Ph.linkSimple, size: 20, color: s.ink2),
             onPressed: _startLink,
           ),
           IconButton(
             tooltip: _note.pinned ? 'Unpin' : 'Pin',
             isSelected: _note.pinned,
-            selectedIcon: Icon(Icons.push_pin_rounded, color: s.primary),
-            icon: const Icon(Icons.push_pin_outlined),
+            selectedIcon: Icon(Ph.pushPinFill, size: 20, color: s.accentText),
+            icon: Icon(Ph.pushPin, size: 20, color: s.ink2),
             onPressed: () => _update((n) => n.copyWith(pinned: !n.pinned)),
           ),
-          IconButton(
-            tooltip: 'Make tasks',
-            icon: const Icon(Icons.checklist_rounded),
-            onPressed: _makeTasks,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Tooltip(
+              message: 'Make tasks',
+              child: narrow
+                  ? IconButton(
+                      onPressed: _makeTasks,
+                      icon: Icon(Ph.listChecks, size: 20, color: s.ink),
+                    )
+                  : OutlinedButton.icon(
+                      onPressed: _makeTasks,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        textStyle: const TextStyle(
+                          fontFamily: Fonts.ui,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      icon: const Icon(Ph.listChecks, size: 16),
+                      label: const Text('Make tasks'),
+                    ),
+            ),
           ),
           PopupMenuButton<String>(
             useRootNavigator: true,
             tooltip: 'More',
+            icon: Icon(Ph.dotsThreeVertical, color: s.ink2),
             onSelected: (v) {
               if (v == 'organize') _organize();
               if (v == 'template') _saveAsTemplate();
@@ -293,6 +334,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               PopupMenuItem(value: 'delete', child: Text('Delete note')),
             ],
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
@@ -302,17 +344,60 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               maxWidth: 720,
               child: ListView(
                 padding: EdgeInsets.fromLTRB(
-                  22,
-                  0,
-                  22,
+                  26,
+                  8,
+                  26,
                   MediaQuery.paddingOf(context).bottom + 32,
                 ),
                 children: [
+                  // Where it lives, at a glance; tap to change.
+                  InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: _organize,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.middle,
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: WsDot(
+                                  s.workspaceColor(
+                                    _note.workspace == Workspace.work,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            TextSpan(
+                              text: [
+                                _note.workspace.label,
+                                project?.name ?? 'No project',
+                              ].join(' · '),
+                            ),
+                            TextSpan(
+                              text: tags.isEmpty
+                                  ? ' · + Tags'
+                                  : ' · ${tags.map((t) => '#$t').join(' ')}',
+                              style: TextStyle(color: s.accentText),
+                            ),
+                          ],
+                        ),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: s.ink2,
+                        ),
+                      ),
+                    ),
+                  ),
                   TextField(
                     controller: _title,
                     autofocus: !_stored && widget.taskId.isEmpty,
                     textCapitalization: TextCapitalization.sentences,
-                    style: s.display(26),
+                    maxLines: null,
+                    style: s.display(28),
                     decoration: const InputDecoration(
                       hintText: 'Title',
                       border: InputBorder.none,
@@ -322,75 +407,30 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       contentPadding: EdgeInsets.symmetric(vertical: 8),
                     ),
                   ),
-                  // Where it lives, at a glance; tap to change.
-                  InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: _organize,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Wrap(
-                        spacing: 12,
-                        runSpacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            _note.workspace.label,
-                            style: s.mono(12, color: s.muted),
-                          ),
-                          if (project != null)
-                            ProjectLabel(project)
-                          else
-                            Text(
-                              'No project',
-                              style: TextStyle(fontSize: 13, color: s.faint),
-                            ),
-                          for (final t in tags)
-                            Text(
-                              '#$t',
-                              style: TextStyle(fontSize: 13, color: s.primary),
-                            ),
-                          Text(
-                            tags.isEmpty ? '+ Tags' : 'Edit',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: s.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                   if (task != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Panel(
-                        radius: 14,
-                        padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+                        padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
                         onTap: () => context.push('/task/${task.id}'),
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.task_alt_rounded,
-                              size: 18,
-                              color: s.primary,
-                            ),
+                            Icon(Ph.checkSquare, size: 18, color: s.accentText),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 'For: ${task.title}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: s.text2),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: s.ink2,
+                                ),
                               ),
                             ),
                             IconButton(
                               tooltip: 'Unlink from task',
-                              icon: Icon(
-                                Icons.close_rounded,
-                                size: 18,
-                                color: s.muted,
-                              ),
+                              icon: Icon(Ph.x, size: 18, color: s.ink3),
                               onPressed: () =>
                                   _update((n) => n.copyWith(taskId: '')),
                             ),
@@ -408,9 +448,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                     keyboardType: TextInputType.multiline,
                     textCapitalization: TextCapitalization.sentences,
                     style: TextStyle(
-                      fontSize: 16,
-                      height: 1.5,
-                      color: s.onSurface,
+                      fontSize: 17,
+                      height: 1.7,
+                      fontWeight: FontWeight.w500,
+                      color: s.ink,
                     ),
                     decoration: InputDecoration(
                       hintText:
@@ -562,7 +603,7 @@ class _OrganizeSheetState extends ConsumerState<_OrganizeSheet> {
                 prefixText: '#',
                 suffixIcon: IconButton(
                   tooltip: 'Add tag',
-                  icon: const Icon(Icons.add_rounded),
+                  icon: const Icon(Ph.plusBold),
                   onPressed: () => _addTags(_tag.text),
                 ),
               ),
@@ -576,7 +617,7 @@ class _OrganizeSheetState extends ConsumerState<_OrganizeSheet> {
                   for (final t in suggestions.take(12))
                     Pill(
                       label: '#$t',
-                      icon: Icons.add_rounded,
+                      icon: Ph.plusBold,
                       selected: false,
                       onTap: () => _addTags(t),
                     ),
@@ -616,44 +657,46 @@ class _MakeTasksSheetState extends State<_MakeTasksSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-            child: Text('Make tasks', style: s.display(26)),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text(
-              'Tick the lines that are things to do.',
-              style: TextStyle(color: s.muted),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(24, 0, 24, Gap.s4),
+            child: SheetTitle(
+              'Make tasks',
+              subtitle: 'Tick the lines that are things to do.',
             ),
           ),
           Flexible(
             child: ListView(
               shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               children: [
                 for (final (i, line) in widget.lines.indexed)
-                  CheckboxListTile(
-                    value: _picked.contains(i),
-                    title: Text(line),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    onChanged: (v) => setState(
-                      () => v == true ? _picked.add(i) : _picked.remove(i),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: s.line)),
+                    ),
+                    child: ChecklistRow(
+                      item: ChecklistItem(line, done: _picked.contains(i)),
+                      onToggle: () => setState(
+                        () => _picked.contains(i)
+                            ? _picked.remove(i)
+                            : _picked.add(i),
+                      ),
                     ),
                   ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            child: FilledButton(
+            padding: const EdgeInsets.fromLTRB(24, Gap.s8, 24, 16),
+            child: PrimaryButton(
+              label: n == 0
+                  ? 'Make tasks'
+                  : 'Make $n ${n == 1 ? 'task' : 'tasks'}',
               onPressed: n == 0
                   ? null
                   : () => Navigator.pop(context, [
                       for (final i in _picked.toList()..sort()) widget.lines[i],
                     ]),
-              child: Text(
-                n == 0 ? 'Make tasks' : 'Make $n ${n == 1 ? 'task' : 'tasks'}',
-              ),
             ),
           ),
         ],

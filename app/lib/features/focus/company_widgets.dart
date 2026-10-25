@@ -10,46 +10,41 @@ Future<void> showCompanySheet(BuildContext context) => showAppSheet<void>(
   context: context,
   builder: (ctx) => Consumer(
     builder: (ctx, ref, _) {
-      final s = ctx.spec;
       final c = ref.watch(companyProvider);
       final ctl = ref.read(companyProvider.notifier);
       return SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          padding: sheetPadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Company while you work', style: s.display(24)),
-              const SizedBox(height: 6),
-              Text(
-                'Starting is easier when you\'re not alone. Pick a '
-                'background sound, a buddy, or both.',
-                style: TextStyle(color: s.muted, height: 1.4),
+              const SheetTitle(
+                'Company while you work',
+                subtitle: "Starting is easier when you're not alone.",
               ),
-              const SizedBox(height: 18),
-              const FieldLabel('Background sound'),
-              ChoiceGroup<FocusSound>(
-                values: FocusSound.values,
-                selected: c.sound,
-                labelOf: (x) => x.label,
-                onSelected: ctl.setSound,
+              const SizedBox(height: Gap.s7),
+              const OptionLabel('Background sound'),
+              OptionRow(
+                children: [
+                  for (final x in FocusSound.values)
+                    OptionButton(
+                      label: x.label,
+                      selected: c.sound == x,
+                      onTap: () => ctl.setSound(x),
+                    ),
+                ],
               ),
-              const SizedBox(height: 10),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Work alongside a buddy'),
-                subtitle: const Text(
-                  'A quiet line under the timer, like someone at the '
-                  'next desk getting on with their own list.',
-                ),
+              const SizedBox(height: Gap.s5),
+              SwitchRow(
+                title: 'Work alongside a buddy',
+                subtitle:
+                    'A second star orbits with yours, like someone at the '
+                    'next desk.',
                 value: c.buddy,
                 onChanged: ctl.setBuddy,
               ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Done'),
-              ),
+              const SizedBox(height: Gap.s6),
+              PrimaryButton(label: 'Done', onPressed: () => Navigator.pop(ctx)),
             ],
           ),
         ),

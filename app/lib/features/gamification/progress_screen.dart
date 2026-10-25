@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_themes.dart';
@@ -13,6 +16,7 @@ import 'constellation.dart';
 import 'progress_controller.dart';
 import 'reward_shop.dart';
 import 'xp_rules.dart';
+import '../../core/theme/ph.dart';
 
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
@@ -28,11 +32,11 @@ class ProgressScreen extends ConsumerWidget {
     final motion = context.reduceMotion ? 0 : 800;
 
     final stats = [
-      ('${p.started}', 'Tasks started'),
+      ('${p.started}', 'Started'),
       ('${p.completed}', 'Finished'),
       (shortMinutes(p.focusMinutes), 'Focused'),
-      (streak == 1 ? '1 day' : '$streak days', 'Streak'),
-      ('${p.ughCompleted}', 'Dreaded ones done'),
+      ('$streak', 'Day streak'),
+      ('${p.ughCompleted}', 'Dreaded, done'),
       ('${p.coins}', 'Coins'),
     ];
     final sorted = [
@@ -40,258 +44,280 @@ class ProgressScreen extends ConsumerWidget {
       ...achievements.where((a) => !p.unlocked.containsKey(a.id)),
     ];
 
-    final levelPanel = Panel(
-      radius: 26,
-      padding: const EdgeInsets.all(22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(child: Text('Level $level', style: s.display(44))),
-              Text(
-                rankForLevel(level),
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: s.primary,
+    Widget heading(String text, [String? note]) => Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Expanded(child: Text(text, style: s.display(19))),
+        if (note != null) Text(note, style: s.caption(color: s.ink2)),
+      ],
+    );
+
+    final levelBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  text: 'Level $level ',
+                  children: [
+                    TextSpan(
+                      text: rankForLevel(level),
+                      style: s.display(
+                        15,
+                        weight: FontWeight.w500,
+                        color: s.ink2,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Semantics(
-            label: 'XP to the next level',
-            value: '${(levelProgress(p.xp) * 100).round()}%',
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(5),
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(end: levelProgress(p.xp)),
-                duration: Duration(milliseconds: motion),
-                builder: (_, v, _) => LinearProgressIndicator(
-                  value: v,
-                  minHeight: 10,
-                  borderRadius: BorderRadius.circular(5),
-                ),
+                style: s.display(26),
               ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            spacing: 12,
-            children: [
-              Text('${p.xp} XP', style: s.mono(13)),
-              Text('$toNext to level ${level + 1}', style: s.mono(13)),
-            ],
-          ),
-        ],
-      ),
-    );
-    final statBlock = Padding(
-      padding: const EdgeInsets.fromLTRB(8, 14, 8, 0),
-      child: LayoutBuilder(
-        builder: (context, c) {
-          final cols = c.maxWidth > 520 ? 3 : 2;
-          final w = (c.maxWidth - (cols - 1) * 20) / cols;
-          return Wrap(
-            spacing: 20,
-            children: [
-              for (final (value, label) in stats)
-                Container(
-                  width: w,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: s.hairline)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        value,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: s.display(30, weight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        label,
-                        style: TextStyle(fontSize: 14, color: s.muted),
-                      ),
-                    ],
+            Text('$toNext XP to go', style: s.caption(color: s.ink2)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Semantics(
+          label: 'XP to the next level',
+          value: '${(levelProgress(p.xp) * 100).round()}%',
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(end: levelProgress(p.xp)),
+            duration: Duration(milliseconds: motion),
+            builder: (_, v, _) => Row(
+              children: [
+                Expanded(
+                  flex: math.max(1, (v * 1000).round()),
+                  child: Container(
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: s.star,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
                 ),
-            ],
-          );
-        },
-      ),
-    );
-    final streakNote = Padding(
-      padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
-      child: Text(
-        'Streaks have 2 grace days a week. Missing a day never sends '
-        'you back to zero.',
-        style: TextStyle(color: s.muted, fontSize: 13, height: 1.4),
-      ),
-    );
-    final achievementList = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text.rich(
-            TextSpan(
-              text: 'Achievements',
-              children: [
-                TextSpan(
-                  text: '  ${p.unlocked.length} of ${achievements.length}',
-                  style: TextStyle(color: s.faint, fontWeight: FontWeight.w400),
+                const SizedBox(width: 3),
+                Expanded(
+                  flex: math.max(1, ((1 - v) * 1000).round()),
+                  child: Container(
+                    height: 10,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: s.line2, width: 2),
+                    ),
+                  ),
                 ),
               ],
             ),
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: s.onSurface,
-            ),
           ),
-          const SizedBox(height: 6),
-          // Two columns when there's room, so the list isn't a long scroll.
-          LayoutBuilder(
-            builder: (context, c) {
-              final cols = c.maxWidth >= 600 ? 2 : 1;
-              final w = (c.maxWidth - (cols - 1) * 24) / cols;
-              final lastRow = (sorted.length - 1) ~/ cols;
-              return Wrap(
-                spacing: 24,
-                children: [
-                  for (final (i, a) in sorted.indexed)
-                    SizedBox(
-                      width: w,
-                      child: _AchievementRow(
-                        achievement: a,
-                        unlocked: p.unlocked.containsKey(a.id),
-                        last: i ~/ cols == lastRow,
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-    final recentXp = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SectionTitle('Recent XP'),
-          for (final r in p.recent.take(15))
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: s.hairline)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
+        ),
+        const SizedBox(height: Gap.s8),
+        LayoutBuilder(
+          builder: (context, c) {
+            const gap = 12.0;
+            final w = (c.maxWidth - 2 * gap) / 3;
+            return Wrap(
+              spacing: gap,
+              runSpacing: Gap.s7,
+              children: [
+                for (final (value, label) in stats)
+                  SizedBox(
+                    width: w,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          r.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 15, color: s.onSurface),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(value, maxLines: 1, style: s.stat()),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: Gap.s3),
                         Text(
-                          _ago(r.at, now),
-                          style: TextStyle(fontSize: 13, color: s.muted),
+                          label,
+                          style: TextStyle(fontSize: 12, color: s.ink2),
                         ),
                       ],
                     ),
                   ),
-                  Text(
-                    '+${r.amount}',
-                    style: s.mono(
-                      15,
-                      color: s.primary,
-                      weight: FontWeight.w500,
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: Gap.s5),
+        Text(
+          '2 grace days a week. Streaks never fall back to zero.',
+          style: s.caption(),
+        ),
+      ],
+    );
+
+    final achievementGrid = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        heading(
+          'Achievements',
+          '${p.unlocked.length} of ${achievements.length}',
+        ),
+        const SizedBox(height: Gap.s6),
+        LayoutBuilder(
+          builder: (context, c) {
+            final cols = c.maxWidth >= 520 ? 6 : 4;
+            const gap = 10.0;
+            final w = (c.maxWidth - (cols - 1) * gap) / cols;
+            return Wrap(
+              spacing: gap,
+              runSpacing: Gap.s6,
+              children: [
+                for (final a in sorted)
+                  SizedBox(
+                    width: w,
+                    child: _AchievementTile(
+                      achievement: a,
+                      unlocked: p.unlocked.containsKey(a.id),
                     ),
                   ),
-                ],
-              ),
-            ),
-        ],
-      ),
+              ],
+            );
+          },
+        ),
+      ],
     );
-    final sky = Constellation(startsByDay: p.startsByDay, now: now);
-    const header = Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      child: PageHeader('Progress'),
+
+    final recentXp = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        heading('Recent XP'),
+        const SizedBox(height: Gap.s4),
+        for (final (i, r) in p.recent.take(15).indexed)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              border: i == math.min(14, p.recent.length - 1)
+                  ? null
+                  : Border(bottom: BorderSide(color: s.line)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      text: r.label,
+                      children: [
+                        TextSpan(
+                          text: '  ${_ago(r.at, now)}',
+                          style: TextStyle(color: s.ink3),
+                        ),
+                      ],
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: s.ink,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: Gap.s4),
+                Text(
+                  '+${r.amount}',
+                  style: s
+                      .mono(15, color: s.accentText)
+                      .copyWith(fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
 
     return LayoutBuilder(
       builder: (context, c) {
-        // A computer: where you stand on the left, what to spend and
-        // what you've earned lately on the right.
-        if (c.maxWidth >= 1000) {
-          return ContentWidth(
-            maxWidth: 1180,
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(22, 28, 22, navClearance(context)),
-              children: [
-                header,
-                const SizedBox(height: 22),
-                ResponsiveColumns(
-                  sideWidth: 400,
-                  main: [
-                    levelPanel,
-                    statBlock,
-                    streakNote,
-                    const SizedBox(height: 22),
-                    sky,
-                    const SizedBox(height: 26),
-                    achievementList,
-                  ],
-                  side: [
-                    const RewardShop(),
-                    const SizedBox(height: 16),
-                    const _EstimatesCard(),
-                    if (p.recent.isNotEmpty) ...[
-                      const SizedBox(height: 26),
-                      recentXp,
-                    ],
-                  ],
-                ),
-              ],
+        final wide = c.maxWidth >= 1000;
+        final top = MediaQuery.paddingOf(context).top;
+        final side = wide ? 36.0 : Gap.listSide;
+        // Your sky: always night, edge to edge, under the status bar.
+        final hero = Theme(
+          data: buildTheme(nightSpec),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF0A0F1F),
+              gradient: RadialGradient(
+                center: Alignment.topCenter,
+                radius: 1.2,
+                colors: [Color(0xFF17203F), Color(0xFF0A0F1F)],
+                stops: [0, 0.7],
+              ),
             ),
-          );
-        }
-        return ContentWidth(
+            padding: EdgeInsets.fromLTRB(side, top + 18, side, 26),
+            child: ContentWidth(
+              maxWidth: 1120,
+              child: Builder(
+                builder: (context) => Constellation(
+                  startsByDay: p.startsByDay,
+                  now: now,
+                  trailing: wide
+                      ? null
+                      : SquareIconButton(
+                          icon: Ph.gearSix,
+                          tooltip: 'Settings',
+                          onPressed: () => context.go('/settings'),
+                        ),
+                ),
+              ),
+            ),
+          ),
+        );
+        final body = wide
+            ? ResponsiveColumns(
+                sideWidth: 400,
+                gap: 48,
+                main: [
+                  levelBlock,
+                  const SizedBox(height: Gap.s9),
+                  achievementGrid,
+                  if (p.recent.isNotEmpty) ...[
+                    const SizedBox(height: Gap.s9),
+                    recentXp,
+                  ],
+                ],
+                side: const [
+                  RewardShop(),
+                  SizedBox(height: Gap.s9),
+                  _EstimatesCard(),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  levelBlock,
+                  const SizedBox(height: Gap.s9),
+                  const RewardShop(),
+                  const SizedBox(height: Gap.s9),
+                  const _EstimatesCard(),
+                  const SizedBox(height: Gap.s9),
+                  achievementGrid,
+                  if (p.recent.isNotEmpty) ...[
+                    const SizedBox(height: Gap.s9),
+                    recentXp,
+                  ],
+                ],
+              );
+        return MediaQuery.removePadding(
+          context: context,
+          removeTop: true,
           child: ListView(
-            padding: EdgeInsets.fromLTRB(14, 24, 14, navClearance(context)),
+            padding: EdgeInsets.only(bottom: navClearance(context)),
             children: [
-              header,
-              const SizedBox(height: 22),
-              levelPanel,
-              statBlock,
-              streakNote,
-              const SizedBox(height: 22),
-              sky,
-              const SizedBox(height: 16),
-              const RewardShop(),
-              const SizedBox(height: 16),
-              const _EstimatesCard(),
-              const SizedBox(height: 26),
-              achievementList,
-              if (p.recent.isNotEmpty) ...[
-                const SizedBox(height: 26),
-                recentXp,
-              ],
+              hero,
+              Padding(
+                padding: EdgeInsets.fromLTRB(side, Gap.s8, side, 0),
+                child: ContentWidth(maxWidth: 1120, child: body),
+              ),
             ],
           ),
         );
@@ -300,68 +326,100 @@ class ProgressScreen extends ConsumerWidget {
   }
 }
 
-class _AchievementRow extends StatelessWidget {
-  const _AchievementRow({
-    required this.achievement,
-    required this.unlocked,
-    required this.last,
-  });
+/// An achievement: a gold tile when earned, a dashed lock when not. Tap
+/// for what it's for.
+class _AchievementTile extends StatelessWidget {
+  const _AchievementTile({required this.achievement, required this.unlocked});
   final Achievement achievement;
   final bool unlocked;
-  final bool last;
 
   @override
   Widget build(BuildContext context) {
     final s = context.spec;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: last ? null : Border(bottom: BorderSide(color: s.hairline)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            alignment: Alignment.center,
-            decoration: unlocked
-                ? BoxDecoration(color: s.accent, shape: BoxShape.circle)
-                : BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: s.outline, width: 1.5),
-                  ),
-            child: unlocked
-                ? Text(achievement.icon, style: const TextStyle(fontSize: 20))
-                : Icon(Icons.lock_outline_rounded, size: 18, color: s.faint),
+    return Semantics(
+      button: true,
+      label:
+          '${achievement.title}. ${unlocked ? 'Unlocked' : 'Locked'}. '
+          '${achievement.description}',
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radii.md),
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (ctx) => ConfirmDialog(
+            title: achievement.title,
+            body: achievement.description,
+            cancel: unlocked ? 'Unlocked' : 'Not yet',
+            confirm: 'OK',
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  achievement.title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: unlocked ? s.onSurface : s.text2,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  achievement.description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: unlocked ? s.muted : s.faint,
-                  ),
-                ),
-              ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              alignment: Alignment.center,
+              decoration: unlocked
+                  ? BoxDecoration(
+                      color: s.star,
+                      borderRadius: BorderRadius.circular(16),
+                    )
+                  : null,
+              child: unlocked
+                  ? Text(achievement.icon, style: const TextStyle(fontSize: 26))
+                  : CustomPaint(
+                      painter: _DashedSquare(s.line2),
+                      child: SizedBox.square(
+                        dimension: 56,
+                        child: Icon(Ph.lock, size: 22, color: s.ink3),
+                      ),
+                    ),
             ),
-          ),
-        ],
+            const SizedBox(height: Gap.s3),
+            Text(
+              achievement.title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: unlocked ? s.ink : s.ink3,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _DashedSquare extends CustomPainter {
+  _DashedSquare(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          (Offset.zero & size).deflate(1),
+          const Radius.circular(16),
+        ),
+      );
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    for (final m in path.computeMetrics()) {
+      for (var d = 0.0; d < m.length; d += 9) {
+        canvas.drawPath(m.extractPath(d, d + 5), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedSquare old) => old.color != color;
 }
 
 String _ago(DateTime at, DateTime now) {
@@ -397,8 +455,8 @@ class _EstimatesCard extends ConsumerWidget {
           'picks tasks that truly fit your time.';
     } else {
       body =
-          'From your last ${c.overall.samples} timed tasks. The picker uses '
-          'this to fit tasks to your time.';
+          'From your last ${c.overall.samples} timed tasks. The pick uses '
+          'this to fit your time.';
       for (final w in Workspace.values) {
         final k = c.byWorkspace[w];
         if (k != null && k.samples >= Calibration.minSamples) {
@@ -409,37 +467,36 @@ class _EstimatesCard extends ConsumerWidget {
       if (rows.length < 2) rows.clear();
     }
     return Panel(
-      radius: 22,
+      color: Colors.transparent,
+      borderColor: s.line2,
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'How long things really take',
             style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: s.onSurface,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: s.ink2,
             ),
           ),
           if (c.overall.samples >= Calibration.minSamples) ...[
-            const SizedBox(height: 10),
-            Text(
-              'Tasks take you ${line(c.overall)}',
-              style: s.display(24, weight: FontWeight.w600),
-            ),
+            const SizedBox(height: Gap.s3),
+            Text(_capital(line(c.overall)), style: s.display(22)),
             for (final (label, text) in rows)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text('$label: $text', style: s.mono(13, color: s.text2)),
               ),
           ],
-          const SizedBox(height: 8),
-          Text(
-            body,
-            style: TextStyle(fontSize: 13, color: s.muted, height: 1.4),
-          ),
+          const SizedBox(height: Gap.s1),
+          Text(body, style: s.caption()),
         ],
       ),
     );
   }
 }
+
+String _capital(String s) =>
+    s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);

@@ -12,6 +12,7 @@ import '../outside/desktop_hotkey.dart';
 import '../tasks/task_list_screen.dart' show taskViewProvider;
 import 'backup_files.dart';
 import 'settings_controller.dart';
+import '../../core/theme/ph.dart';
 
 const _lastSavedKey = 'backup.lastSavedAt';
 
@@ -66,13 +67,13 @@ class BackupGroup extends ConsumerWidget {
           subtitle: last == null
               ? 'Tasks, notes, XP and settings, in one file you keep'
               : 'Last saved ${_ago(last, now)}',
-          trailing: Icon(Icons.save_alt_rounded, color: s.muted),
+          trailing: Icon(Ph.downloadSimple, color: s.muted),
           onTap: () => _save(context, ref),
         ),
         GroupRow(
           title: 'Restore from a backup file',
           subtitle: 'Adds it back in. Nothing newer here is lost.',
-          trailing: Icon(Icons.restore_rounded, color: s.muted),
+          trailing: Icon(Ph.clockCounterClockwise, color: s.muted),
           onTap: () => _restore(context, ref),
         ),
       ],

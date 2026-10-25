@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +16,7 @@ import '../picker/picker_engine.dart';
 import '../settings/settings_controller.dart';
 import '../tasks/task_actions.dart';
 import '../tasks/tasks_controller.dart';
+import '../../core/theme/ph.dart';
 
 bool _sameDay(DateTime? a, DateTime b) =>
     a != null && a.year == b.year && a.month == b.month && a.day == b.day;
@@ -162,41 +165,48 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
     );
 
     const gap = SizedBox(height: 28);
+    const words = [
+      'No',
+      'One',
+      'Two',
+      'Three',
+      'Four',
+      'Five',
+      'Six',
+      'Seven',
+      'Eight',
+      'Nine',
+      'Ten',
+    ];
+    String count(int n) => n < words.length ? words[n] : '$n';
+    // Tonight in stars: one for each start.
+    final headline = started > 0
+        ? '${count(started)} ${started == 1 ? 'star' : 'stars'} tonight.'
+        : done.isNotEmpty
+        ? '${count(done.length)} done today.'
+        : 'A quiet day.';
+    final line = started > 0
+        ? 'You started $started ${started == 1 ? 'thing' : 'things'} and '
+              'finished ${done.length}. That counts.'
+        : done.isNotEmpty
+        ? '$xpToday XP. That counts.'
+        : 'That counts too.';
     final today = <Widget>[
-      const SectionTitle('Today'),
-      const SizedBox(height: 6),
-      Text(
-        done.isEmpty
-            ? started > 0
-                  ? 'You started $started. Starting counts.'
-                  : 'A quiet day. That counts too.'
-            : '${done.length} done · $xpToday XP',
-        style: s.display(26, weight: FontWeight.w600),
-      ),
-      for (final t in done.take(6))
-        Padding(
-          padding: const EdgeInsets.only(top: 10),
-          child: Row(
-            children: [
-              Icon(Icons.check_rounded, size: 18, color: s.primary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  t.title,
-                  style: TextStyle(fontSize: 15, color: s.text2),
-                ),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final (i, size) in [14.0, 10.0, 12.0].indexed)
+            if (i < math.max(1, math.min(3, started)))
+              Padding(
+                padding: EdgeInsets.only(right: 6, top: i == 1 ? 6 : 0),
+                child: StarMark(size: size),
               ),
-            ],
-          ),
-        ),
-      if (done.length > 6)
-        Padding(
-          padding: const EdgeInsets.only(top: 8, left: 28),
-          child: Text(
-            '+${done.length - 6} more',
-            style: TextStyle(color: s.muted),
-          ),
-        ),
+        ],
+      ),
+      const SizedBox(height: Gap.s5),
+      Text(headline, style: s.display(32)),
+      const SizedBox(height: Gap.s1),
+      Text(line, style: TextStyle(fontSize: 16, color: s.ink2, height: 1.4)),
       if (inProgress.isNotEmpty) ...[
         gap,
         SectionTitle('Still in progress', count: inProgress.length),
@@ -204,14 +214,14 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
       ],
     ];
     final tomorrow = <Widget>[
-      const SectionTitle("Tomorrow's first thing"),
-      const SizedBox(height: 4),
+      Text("Tomorrow's first thing", style: s.display(17)),
+      const SizedBox(height: Gap.s1),
       Text(
-        'Choose it now, and tomorrow starts with the decision already '
-        'made. It shows first on Home in the morning.',
-        style: TextStyle(fontSize: 14, color: s.muted, height: 1.4),
+        'Decide now and the morning starts already decided. It shows '
+        'first on Today.',
+        style: TextStyle(fontSize: 14, color: s.ink2, height: 1.4),
       ),
-      const SizedBox(height: 10),
+      const SizedBox(height: Gap.s6),
       if (candidates.isEmpty)
         Panel(
           child: Column(
@@ -249,12 +259,8 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
           ),
         ),
       ],
-      const SizedBox(height: 28),
-      FilledButton(
-        onPressed: _finish,
-        style: FilledButton.styleFrom(minimumSize: const Size(0, 56)),
-        child: const Text('Done for today'),
-      ),
+      const SizedBox(height: Gap.s8),
+      PrimaryButton(label: 'Done for today', height: 60, onPressed: _finish),
     ];
     final wide = MediaQuery.sizeOf(context).width >= 1000;
     // On a computer: today as a summary strip, tomorrow's pick as the
@@ -358,10 +364,10 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
           const SizedBox(width: 24),
           SizedBox(
             width: 300,
-            child: FilledButton(
+            child: PrimaryButton(
+              label: 'Done for today',
+              height: 60,
               onPressed: _finish,
-              style: FilledButton.styleFrom(minimumSize: const Size(0, 56)),
-              child: const Text('Done for today'),
             ),
           ),
         ],
@@ -372,7 +378,7 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
       appBar: AppBar(
         leading: IconButton(
           tooltip: 'Close',
-          icon: const Icon(Icons.close_rounded),
+          icon: const Icon(Ph.x),
           onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
         actions: [
@@ -381,7 +387,7 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
             child: Center(
               child: Text(
                 MaterialLocalizations.of(context).formatMediumDate(now),
-                style: s.mono(13),
+                style: s.caption(),
               ),
             ),
           ),
@@ -397,8 +403,6 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
             MediaQuery.paddingOf(context).bottom + 24,
           ),
           children: [
-            Text('Wrap up the day', style: s.display(36)),
-            gap,
             if (wide) ...wideBody() else ...[...today, gap, ...tomorrow],
           ],
         ),
@@ -424,8 +428,8 @@ class _Candidate extends StatelessWidget {
       selected: selected,
       button: true,
       child: Panel(
-        radius: 18,
-        color: selected ? s.accent : null,
+        color: selected ? s.starSoft : Colors.transparent,
+        borderColor: selected ? s.star : s.line2,
         padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
         onTap: onTap,
         child: Row(
@@ -434,31 +438,24 @@ class _Candidate extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    task.title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: selected ? s.onAccent : s.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (selected)
-                    Text(
-                      taskFacts(task).join(' · '),
-                      style: TextStyle(fontSize: 13, color: s.onAccentMuted),
-                    )
-                  else
-                    TaskMeta(task: task),
+                  Text(task.title, style: s.body(weight: FontWeight.w700)),
+                  const SizedBox(height: Gap.s1),
+                  TaskMeta(task: task, compact: true),
                 ],
               ),
             ),
             const SizedBox(width: 10),
-            Icon(
-              selected
-                  ? Icons.check_circle_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              color: selected ? s.onAccent : s.faint,
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected ? s.star : Colors.transparent,
+                border: Border.all(color: selected ? s.star : s.ink3, width: 2),
+              ),
+              child: selected
+                  ? Icon(Ph.checkBold, size: 13, color: s.onStar)
+                  : null,
             ),
           ],
         ),
@@ -486,7 +483,7 @@ class _DoneChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (check) ...[
-            Icon(Icons.check_rounded, size: 16, color: s.primary),
+            Icon(Ph.checkBold, size: 16, color: s.primary),
             const SizedBox(width: 6),
           ],
           Flexible(

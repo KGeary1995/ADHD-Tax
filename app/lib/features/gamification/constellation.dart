@@ -3,27 +3,31 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_themes.dart';
-import '../../widgets/ui.dart';
 import 'progress_stats.dart';
 
 /// Every task you started in the last [weeks] weeks, drawn as a star.
 /// Days in a row join up into constellations; a missed day just leaves
-/// a gap, never a mark against you.
+/// a gap, never a mark against you. Always drawn on the Night sky, so its
+/// colours don't follow the theme; the parent paints the night behind it.
 class Constellation extends StatelessWidget {
   const Constellation({
     super.key,
     required this.startsByDay,
     required this.now,
     this.weeks = 12,
+    this.trailing,
   });
 
   final Map<String, int> startsByDay;
   final DateTime now;
   final int weeks;
 
+  /// Beside the title (the Settings gear on Progress).
+  final Widget? trailing;
+
   @override
   Widget build(BuildContext context) {
-    final s = context.spec;
+    const s = nightSpec;
     final today = DateTime(now.year, now.month, now.day);
     // Calendar weeks from Monday, so each week keeps its shape as the days
     // go by; the last one is this week, up to today.
@@ -44,74 +48,71 @@ class Constellation extends StatelessWidget {
         .expand((w) => w)
         .where((n) => n > 0)
         .fold(0, (a, b) => a + b);
-    final ink = s.isDark ? s.onSurface : s.onInk;
 
-    return Panel(
-      radius: 22,
-      color: s.isDark ? null : s.ink,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.end,
-            spacing: 12,
-            runSpacing: 4,
-            children: [
-              Text('Your sky', style: s.display(22, color: ink)),
-              Text(
-                '$total ${total == 1 ? 'start' : 'starts'} · $weeks weeks',
-                style: s.mono(12, color: ink.withValues(alpha: 0.7)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, c) {
-              final cols = c.maxWidth >= 520 ? 6 : 4;
-              final rows = (weeks / cols).ceil();
-              return Semantics(
-                container: true,
-                image: true,
-                label:
-                    '$total ${total == 1 ? 'task' : 'tasks'} started in the '
-                    'last $weeks weeks',
-                child: SizedBox(
-                  height: rows * 64.0,
-                  child: CustomPaint(
-                    painter: _SkyPainter(
-                      weeks: counts,
-                      cols: cols,
-                      star: s.accent,
-                      ink: ink,
-                      firstWeek:
-                          firstMonday.millisecondsSinceEpoch ~/ 86400000 ~/ 7,
-                    ),
-                    child: total == 0
-                        ? Center(
-                            child: Text(
-                              'Start a task and your first star appears here.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: ink.withValues(alpha: 0.8),
-                                fontSize: 14,
-                              ),
-                            ),
-                          )
-                        : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Your sky', style: s.display(30)),
+                  const SizedBox(height: Gap.s1),
+                  Text(
+                    '$total ${total == 1 ? 'start' : 'starts'} · $weeks weeks',
+                    style: TextStyle(fontSize: 13, color: s.ink2),
                   ),
+                ],
+              ),
+            ),
+            ?trailing,
+          ],
+        ),
+        const SizedBox(height: Gap.s5),
+        LayoutBuilder(
+          builder: (context, c) {
+            final cols = c.maxWidth >= 520 ? 6 : 4;
+            final rows = (weeks / cols).ceil();
+            return Semantics(
+              container: true,
+              image: true,
+              label:
+                  '$total ${total == 1 ? 'task' : 'tasks'} started in the '
+                  'last $weeks weeks',
+              child: SizedBox(
+                height: rows * 66.0,
+                child: CustomPaint(
+                  painter: _SkyPainter(
+                    weeks: counts,
+                    cols: cols,
+                    star: s.star,
+                    ink: s.dust,
+                    firstWeek:
+                        firstMonday.millisecondsSinceEpoch ~/ 86400000 ~/ 7,
+                  ),
+                  child: total == 0
+                      ? Center(
+                          child: Text(
+                            'Start a task and your first star appears here.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: s.ink2, fontSize: 14),
+                          ),
+                        )
+                      : null,
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Every start is a star. Each week makes its own constellation.',
-            style: TextStyle(color: ink.withValues(alpha: 0.7), fontSize: 13),
-          ),
-        ],
-      ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: Gap.s5),
+        Text(
+          "Every start is a star. This week's shape is still being drawn.",
+          style: TextStyle(color: s.ink2, fontSize: 13),
+        ),
+      ],
     );
   }
 }
@@ -154,7 +155,7 @@ class _SkyPainter extends CustomPainter {
     final ch = size.height / rows;
 
     // Faint dust so even an empty sky reads as sky.
-    final dust = Paint()..color = ink.withValues(alpha: 0.12);
+    final dust = Paint()..color = ink.withValues(alpha: 0.3);
     for (var i = 0; i < 70; i++) {
       canvas.drawCircle(
         Offset(size.width * _rand(i * 7 + 1), size.height * _rand(i * 13 + 5)),
@@ -164,7 +165,7 @@ class _SkyPainter extends CustomPainter {
     }
 
     final line = Paint()
-      ..color = ink.withValues(alpha: 0.3)
+      ..color = star.withValues(alpha: 0.32)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
     final glow = Paint()

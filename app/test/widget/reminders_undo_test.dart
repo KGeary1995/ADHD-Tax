@@ -9,7 +9,7 @@ import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'app_flow_test.dart' show pumpApp;
+import 'app_flow_test.dart' show pastStarted, pumpApp;
 
 /// Records what the app asked the notification system to do.
 class FakeReminders implements Reminders {
@@ -99,6 +99,7 @@ void main() {
     await tester.pump();
     expect(fake.calls.last, 'running:Find the card');
 
+    await pastStarted(tester);
     await tester.tap(find.byTooltip('Pause'));
     await tester.pump();
     expect(fake.calls.last, 'paused:Find the card');
@@ -163,7 +164,7 @@ void main() {
     expect(open, hasLength(1), reason: 'next week\'s copy');
     expect(open.single.scheduledStart, isNotNull);
     expect(c.read(progressProvider).xp, greaterThan(xpBefore));
-    expect(find.text('Coming up  1'), findsOneWidget);
+    expect(find.text('Coming up 1'), findsOneWidget);
     expect(find.textContaining('next one'), findsOneWidget);
 
     await tester.tap(find.text('Undo'));

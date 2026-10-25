@@ -110,30 +110,26 @@ class _WaitingSheetState extends ConsumerState<_WaitingSheet> {
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          padding: sheetPadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Waiting on someone', style: s.display(26)),
-              const SizedBox(height: 6),
-              Text(
-                widget.task.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: s.muted),
-              ),
-              const SizedBox(height: 18),
-              const FieldLabel('Who or what? (optional)'),
+              SheetTitle('Waiting on someone', subtitle: widget.task.title),
+              const SizedBox(height: Gap.s6),
               TextField(
                 controller: _who,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  hintText: 'e.g. Insurance callback, IT ticket',
+                decoration: InputDecoration(
+                  hintText: 'Who or what? e.g. Insurance callback',
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(Radii.lg),
+                    borderSide: BorderSide(color: s.star, width: 2),
+                  ),
                 ),
               ),
               PhiWarning(text: _who.text, workspace: widget.task.workspace),
-              const SizedBox(height: 18),
-              const FieldLabel('Check back'),
+              const SizedBox(height: Gap.s7),
+              const OptionLabel('Check back'),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
@@ -156,14 +152,14 @@ class _WaitingSheetState extends ConsumerState<_WaitingSheet> {
                     ? 'It waits in your list until you move it back.'
                     : 'It comes back to the top of Tasks '
                           '${formatDue(at, now)}, with a reminder on your phone.',
-                style: TextStyle(fontSize: 13, color: s.muted, height: 1.4),
+                style: s.caption(),
               ),
-              const SizedBox(height: 22),
-              FilledButton(
+              const SizedBox(height: Gap.s8),
+              PrimaryButton(
+                label: 'Save',
                 onPressed: _when == _CheckBack.pick && _picked == null
                     ? null
                     : _save,
-                child: const Text('Save'),
               ),
             ],
           ),

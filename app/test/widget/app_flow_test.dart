@@ -3,6 +3,8 @@ import 'package:adhd_tax/core/providers.dart';
 import 'package:adhd_tax/core/theme/app_themes.dart';
 import 'package:adhd_tax/data/storage/key_value_store.dart';
 import 'package:adhd_tax/features/gamification/progress_controller.dart';
+import 'package:adhd_tax/features/picker/dashboard_screen.dart';
+import 'package:adhd_tax/features/picker/picker_controller.dart';
 import 'package:adhd_tax/features/motivation/quote_service.dart';
 import 'package:adhd_tax/features/settings/settings_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
@@ -43,12 +45,35 @@ Future<ProviderContainer> pumpApp(
   return container;
 }
 
+/// Past the focus screen's "A new star." moment, to the timer. The timer
+/// ticks every second, so this pumps fixed steps, never pumpAndSettle.
+Future<void> pastStarted(WidgetTester tester) async {
+  for (var i = 0; i < 6; i++) {
+    await tester.pump(const Duration(milliseconds: 600));
+  }
+}
+
+/// Settings: on a phone it's the gear on Progress.
+Future<void> openSettings(WidgetTester tester) async {
+  if (find.byTooltip('Settings').evaluate().isEmpty) {
+    await tester.tap(find.byTooltip('Progress'));
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(find.byTooltip('Settings'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('capture → pick → start → finish → celebrate', (tester) async {
     final c = await pumpApp(tester);
 
-    expect(find.text('Your list is empty.'), findsOneWidget);
-    await tester.tap(find.text('Add a task'));
+    expect(find.text('Your sky is clear.'), findsOneWidget);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(DashboardScreen),
+        matching: find.text('Add a task'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -66,29 +91,35 @@ void main() {
     await tester.tap(find.text('Start'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    await tester.pump();
 
-    // Focus screen, with XP awarded just for starting.
-    expect(find.text('Done'), findsOneWidget);
+    // "A new star.", with XP awarded just for starting.
+    expect(find.text('A new star.'), findsOneWidget);
     expect(find.textContaining('+10 XP'), findsOneWidget);
-    expect(find.textContaining('First Spark'), findsOneWidget);
     expect(c.read(progressProvider).started, 1);
 
-    await tester.tap(find.text('Done'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pump();
+    // Then the timer, and the start's achievement as a note.
+    await pastStarted(tester);
+    expect(find.text('Done'), findsOneWidget);
+    expect(find.textContaining('First Spark'), findsOneWidget);
 
-    expect(find.text('Keep the streak going'), findsOneWidget);
-    expect(find.textContaining('First Win'), findsWidgets);
-    await tester.tap(find.text('Keep the streak going'));
+    await tester.tap(find.text('Done'));
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
+    expect(find.text('Finished.'), findsOneWidget);
+    await tester.tap(find.text('Nice'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('ACHIEVEMENT UNLOCKED'), findsOneWidget);
+    expect(find.text('First Win'), findsOneWidget);
+    await tester.tap(find.text('Nice'));
     await tester.pumpAndSettle();
 
     final p = c.read(progressProvider);
     expect(p.completed, 1);
     expect(p.unlocked.keys, containsAll(['first_spark', 'first_win']));
     expect(c.read(tasksProvider).single.actualMin, 1);
-    expect(find.text('Your list is empty.'), findsOneWidget);
+    expect(find.text('Your sky is clear.'), findsOneWidget);
   });
 
   testWidgets('"Not this one" twice asks you to commit', (tester) async {
@@ -104,10 +135,20 @@ void main() {
     await tester.tap(find.text('Not this one'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Pick one of these and commit.'), findsOneWidget);
+    expect(find.text('Pick one of these three'), findsOneWidget);
     for (final t in ['A', 'B', 'C']) {
-      expect(find.text(t), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(Dialog), matching: find.text(t)),
+        findsOneWidget,
+      );
     }
+    // Choosing one makes it today's pick, and that's decided.
+    await tester.tap(
+      find.descendant(of: find.byType(Dialog), matching: find.text('B')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Pick one of these three'), findsNothing);
+    expect(c.read(pickResultProvider).suggestion?.task.title, 'B');
   });
 
   testWidgets('light and dark both render the dashboard on a phone', (
@@ -143,7 +184,7 @@ void main() {
 
   testWidgets('PHI guard warns on Work tasks only', (tester) async {
     await pumpApp(tester);
-    await tester.tap(find.byTooltip('Add a task'));
+    await tester.tap(find.text('Add a task').first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Call pt John Smith');
     await tester.pump();

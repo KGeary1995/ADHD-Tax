@@ -2,6 +2,24 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-25 — 1.1 "Night sky" redesign, built from the owner's handoff
+The owner commissioned a full high-fidelity redesign (Claude Design) and handed it over as two zips: an HTML prototype, 68 phone states in Night and Dawn, widgets, Mac/iPad, icon and store screenshots, and a spec (kept as docs/design/handoff-1.1.md). The idea: Today shows one task and one next step, and Start lights a star; Progress is a sky of the stars you've lit. It replaces the teal 2026-10-18 look entirely: Sora + Manrope, Phosphor icons, gold on deep navy (Night) or on cream (Dawn). Implemented as tokens on the existing `ThemeSpec` (old token names kept as getters) so features didn't need rewriting, only restyling. Ships as 1.1 after Apple approves 1.0, so the version under review isn't changed under it.
+
+### 2026-10-25 — Phosphor icons vendored, not the package
+`phosphor_flutter` subclasses `IconData`, which this Flutter makes final, so it doesn't compile. The three font weights are bundled and `tool/make_phosphor.py` generates `Ph` constants from the package's codepoint table: same icons, tree-shaken, no dependency.
+
+### 2026-10-25 — Starting shows a "Started" screen; starts don't get a celebration card
+The design makes the start itself the moment (the star ignites, "A new star.", 2.6 s, tap to skip). An XP card on top of that would be a second interruption at the exact moment the user has just got going, so starts show no card; an achievement or level earned by a start comes as a toast after the Started screen. Celebrations Off skips the Started screen too.
+
+### 2026-10-25 — Mac/iPad Tasks: list + detail pane instead of a filter sidebar
+The handoff's Mac board shows the list beside the selected task, with the filters as pills. That lets you read a task, tick a step or start it without opening the editor, which is the slow part on a computer. The second sidebar (workspace/project counts, Weekly reset) went: workspaces and projects are pills and the Projects sheet, and Weekly reset is still offered on Today when it's due and in the guide. The pane appears from 880 px of content, lower than other screens' 980, so an iPad in landscape gets it.
+
+### 2026-10-25 — First-step field stays put while you add steps
+The editor hides "First 2-minute step" for tasks that have a checklist (the next unticked step is the first step). Hiding it the moment the first step was added made the page jump under your finger, so it's decided once, when the editor opens.
+
+### 2026-10-25 — App icon: the star (supersedes "tangle → arrow")
+The handoff's icon: a four-point star with curved sides, 52% of the canvas, gold with a soft glow on a navy radial. iOS gets the default, dark and tinted variants (single-size 1024 asset catalog); Android gets an adaptive icon (background, foreground, monochrome) plus the old square for older launchers. All drawn by `tool/make_icons.py` from the handoff's SVG path, so they stay in step.
+
 ### 2026-10-21 — Backup files carry settings, but not per-install choices, consents or secrets
 The owner asked for settings in the backup. They're replaced on restore (there's no meaningful merge for "celebrations: party"), behind a checkbox. "Show on this device" stays out because the same person restores into both the personal and the work-profile copy; "Use AI on Work tasks" stays out because it's a consent that should be given on each device; the API key and Google tokens stay out because backup files are emailed and left in Drive. Restore only accepts the allowed keys, so a hand-edited file can't plant anything else.
 
@@ -51,6 +69,7 @@ The median ignores the odd task left running over lunch; the window follows you 
 The wrap-up's pinned task lives in settings, not the synced replica: it's a nudge for the phone you'll pick up in the morning, and a new synced field would have to be designed for conflicting pins across devices. Revisit if the owner wraps up on the Mac and starts on the phone.
 
 ### 2026-10-18 — One look (light + dark) instead of 9 themes
+*Superseded in look by the 1.1 redesign (2026-10-25); the one-identity, two-brightness idea stands.*
 The owner said the app "feels extremely AI made". A Claude Design canvas (https://claude.ai/artifact/558G1Ms1eMZAsD1UHHwFfB) explored three directions; the owner picked a mix of B (situation as one line, quiet tiles) and C (teal task card, floating pill nav), asked for a one-line headline and a white light background. Nine themes made every screen generic, so there is now one identity: Bricolage Grotesque / Geist / Geist Mono, near-black or white, one teal. Appearance is Light / Dark / Match phone; old theme choices map to light or dark so nobody's screen flips unexpectedly. Fonts are bundled (not fetched) so the app looks the same offline and on every platform.
 
 ### 2026-10-22 — Keep "Gumption" despite a pending app trademark; don't file our own
@@ -66,6 +85,7 @@ Before going public, a search found several ADHD apps already called Unstuck ("U
 The owner wanted a name that says what the app does and is neutral on a work phone at the clinic ("ADHD Tax" announced ADHD to anyone glancing at the screen). Only user-visible strings changed: app labels, window titles, in-app text, notifications, backup filenames, release asset names (`Unstuck.apk`, `Unstuck-macOS.zip`) and the Cloudflare project default (`unstuck`, set before it was ever deployed, so no iPhone data was tied to the old address). The Android applicationId, Mac bundle id, Dart package, repo name, web token key and repeat-copy id seed keep the old name: changing them would install a separate empty app, break update-over-install and the Google Android OAuth client, or make devices on different builds create duplicate repeating tasks. *Revisit only with a planned migration (e.g. before a store release).*
 
 ### 2026-10-18 — Icon: tangle → arrow
+*Superseded by the star icon (2026-10-25).*
 A loop straightening into an arrow ("stuck, then moving"), teal on deep teal, chosen by the owner from four drawn concepts. Generated by `app/tool/make_icons.py`, which centres and sizes the mark from its measured pixels.
 
 ### 2026-10-18 — Mac builds only on demand
