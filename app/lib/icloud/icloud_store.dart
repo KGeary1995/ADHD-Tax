@@ -9,7 +9,12 @@ import '../sync/remote_store.dart';
 /// also runs on Apple-silicon Macs). Not Android, Windows, the web, or the
 /// Mac app yet.
 bool get iCloudSupportedHere =>
-    !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    _screenshotIPhone ||
+    (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS);
+
+/// Store screenshots only (tool/screenshots/store_frames.py): lets the web
+/// build show the iPhone's sync choices. Never set in a real build.
+const _screenshotIPhone = bool.fromEnvironment('SCREENSHOT_IPHONE');
 
 /// Prefix that marks a sync account as iCloud. iCloud doesn't tell apps the
 /// Apple ID's email, so the account is stored as `icloud:<id>`, where the id
