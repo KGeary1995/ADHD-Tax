@@ -30,12 +30,22 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
   Timer? _debounce;
   String? _lastWidget;
   late final AppLifecycleListener _lifecycle;
+  Timer? _pickerRefresh;
 
   @override
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(
-      onResume: () => ref.read(deviceBridgeProvider).poll(),
+      onResume: () {
+        ref.read(deviceBridgeProvider).poll();
+        // Time passed while the app was away; see pickerTickProvider.
+        ref.invalidate(pickerTickProvider);
+      },
+    );
+    ref.listenManual(
+      pickerTickProvider,
+      (_, tick) => _schedulePickerRefresh(tick.now, tick.next),
+      fireImmediately: true,
     );
     quickAddRequested.addListener(_quickAddFromRoute);
     // After the first frame, so the router's navigator exists.
@@ -59,8 +69,21 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
     showQuickAdd(nav);
   }
 
+  /// Looks at the picks again when time makes a task eligible (see
+  /// [pickerTickProvider]).
+  void _schedulePickerRefresh(DateTime now, DateTime next) {
+    _pickerRefresh?.cancel();
+    _pickerRefresh = Timer(
+      next.difference(now) + const Duration(milliseconds: 500),
+      () {
+        if (mounted) ref.invalidate(pickerTickProvider);
+      },
+    );
+  }
+
   @override
   void dispose() {
+    _pickerRefresh?.cancel();
     _lifecycle.dispose();
     quickAddRequested.removeListener(_quickAddFromRoute);
     _sub?.cancel();

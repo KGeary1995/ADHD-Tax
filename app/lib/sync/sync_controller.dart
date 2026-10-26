@@ -157,6 +157,15 @@ class SyncController extends Notifier<WorkspaceSync> {
   bool _running = false;
   bool _again = false;
 
+  /// Bumped by [connect] and [disconnect]. A sync round that started under
+  /// an older number finds out after its next network call and stops,
+  /// so a reply arriving after Disconnect can't mark it Synced again.
+  int _generation = 0;
+
+  /// A round merged other devices' changes but couldn't upload them:
+  /// upload on the next one even if nothing else changed.
+  bool _uploadOwed = false;
+
   /// The sign-in for this workspace's service (not used for iCloud).
   AccountAuth get _auth => service == SyncService.onedrive
       ? ref.read(microsoftAuthProvider)
@@ -232,6 +241,7 @@ class SyncController extends Notifier<WorkspaceSync> {
     final switched = via != null && via != service;
     if (switched) ref.read(keyValueStoreProvider).write(_serviceKey, via.name);
     final attempt = ++_attempt;
+    _generation++;
     state = WorkspaceSync(SyncPhase.connecting, email: _sync.email);
     try {
       final http.Client? client;
@@ -294,6 +304,9 @@ class SyncController extends Notifier<WorkspaceSync> {
   /// Stops syncing this workspace. Local data stays on this device, and the
   /// copy in Drive stays there for other devices.
   Future<void> disconnect() async {
+    _generation++;
+    _attempt++;
+    _uploadOwed = false;
     _periodic?.cancel();
     _debounce?.cancel();
     _retry?.cancel();
@@ -325,6 +338,8 @@ class SyncController extends Notifier<WorkspaceSync> {
       return;
     }
     _running = true;
+    final generation = _generation;
+    bool current() => ref.mounted && generation == _generation;
     try {
       do {
         _again = false;
@@ -339,10 +354,11 @@ class SyncController extends Notifier<WorkspaceSync> {
         } on Object catch (e) {
           // iCloud being off isn't a hiccup to wait out: say so at once.
           final retry = e is! WrongAccount && !(_iCloud && e is NeedsReconnect);
-          if (retry && ref.mounted && _retryRestore()) return;
+          if (!current()) return;
+          if (retry && _retryRestore()) return;
           rethrow;
         }
-        if (!ref.mounted) return;
+        if (!current()) return;
         if (remote == null) {
           if (!_iCloud && _auth.restoreMayRecover && _retryRestore()) return;
           state = WorkspaceSync(
@@ -354,19 +370,29 @@ class SyncController extends Notifier<WorkspaceSync> {
           return;
         }
         _restoreFailures = 0;
+        var saved = true;
         final out = await syncOnce(
           replica: ref.read(replicasProvider)[workspace],
           remote: remote,
           workspace: workspace.name,
           state: _sync,
           now: _now,
+          forceUpload: _uploadOwed,
+          current: current,
+          // Saved and shown before the upload, which may still fail.
+          onMerged: () async {
+            _uploadOwed = true;
+            saved = await ref
+                .read(replicasProvider.notifier)
+                .remoteMerged(workspace);
+          },
         );
-        if (!ref.mounted) return;
+        if (!current()) return;
+        _uploadOwed = false;
         _sync = out.state;
-        _save();
-        if (out.merged) {
-          ref.read(replicasProvider.notifier).remoteMerged(workspace);
-        }
+        // Not on disk: keep the stored record of which files were read as
+        // it was, so after a restart they're downloaded again.
+        if (saved) _save();
         state = WorkspaceSync(
           SyncPhase.synced,
           email: _sync.email,
@@ -376,9 +402,11 @@ class SyncController extends Notifier<WorkspaceSync> {
               : '${out.skipped.length} file(s) from another device couldn\'t be read.',
         );
       } while (_again);
+    } on SyncCancelled {
+      // Disconnected or switched account mid-round: nothing to report.
     } on NeedsReconnect catch (e) {
-      _dropClient();
-      if (ref.mounted) {
+      if (current()) _dropClient();
+      if (current()) {
         state = WorkspaceSync(
           SyncPhase.needsReconnect,
           email: _sync.email,
@@ -387,8 +415,8 @@ class SyncController extends Notifier<WorkspaceSync> {
         );
       }
     } on DetailedApiRequestError catch (e) {
-      if (e.status == 401) _dropClient();
-      if (ref.mounted) {
+      if (e.status == 401 && current()) _dropClient();
+      if (current()) {
         state = WorkspaceSync(
           e.status == 401 ? SyncPhase.needsReconnect : SyncPhase.error,
           email: _sync.email,
@@ -399,7 +427,7 @@ class SyncController extends Notifier<WorkspaceSync> {
         );
       }
     } on Object catch (e) {
-      if (ref.mounted) {
+      if (current()) {
         state = WorkspaceSync(
           SyncPhase.error,
           email: _sync.email,
@@ -409,6 +437,12 @@ class SyncController extends Notifier<WorkspaceSync> {
       }
     } finally {
       _running = false;
+      // A stale round ended: run what was asked for meanwhile (a reconnect
+      // calls syncNow while the old round is still waiting on the network).
+      if (!current() && ref.mounted && _again) {
+        _again = false;
+        scheduleMicrotask(syncNow);
+      }
     }
   }
 
@@ -445,9 +479,13 @@ class SyncController extends Notifier<WorkspaceSync> {
       // Checked every round, not once: the device's Apple ID can change
       // (Settings → sign out) while Gumption keeps running.
       final remote = _remote ?? ref.read(iCloudStoreProvider)(workspace);
+      final generation = _generation;
       // Signed in to a different Apple ID now: its iCloud is a different
       // place, so ask before syncing everything into it.
       final who = await remote.accountEmail();
+      if (!ref.mounted || generation != _generation) {
+        throw const SyncCancelled();
+      }
       if (who != _sync.email) {
         throw const WrongAccount(
           'This device is signed in to a different iCloud account. '
@@ -457,13 +495,23 @@ class SyncController extends Notifier<WorkspaceSync> {
       return _remote = remote;
     }
     if (_remote != null) return _remote;
+    final generation = _generation;
     final client = await _auth.restore(workspace, email: _sync.email);
     if (client == null) return null;
+    if (!ref.mounted || generation != _generation) {
+      // Disconnected meanwhile: don't bring this sign-in back.
+      client.close();
+      throw const SyncCancelled();
+    }
     final remote = _remoteFor(client);
     // Check whose Drive this is before writing anything: a sign-in shared
     // between workspaces (iPhone's Google Sign-In did this) could otherwise put
     // Work tasks in the Personal account, or the other way round.
     final who = await remote.accountEmail();
+    if (!ref.mounted || generation != _generation) {
+      client.close();
+      throw const SyncCancelled();
+    }
     final want = _sync.email;
     if (who != null &&
         want != null &&

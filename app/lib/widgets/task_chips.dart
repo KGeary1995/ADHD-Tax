@@ -146,7 +146,7 @@ String formatDue(DateTime d, DateTime now) {
   final day = DateTime(d.year, d.month, d.day);
   final hasTime = d.hour != 0 || d.minute != 0;
   if (day == today) return hasTime ? formatClock(d) : 'today';
-  if (day == today.add(const Duration(days: 1))) {
+  if (day == DateTime(now.year, now.month, now.day + 1)) {
     return hasTime ? 'tomorrow ${formatClock(d)}' : 'tomorrow';
   }
   return formatDate(d);
@@ -157,7 +157,7 @@ String formatDueDay(DateTime d, DateTime now) {
   final today = DateTime(now.year, now.month, now.day);
   final day = DateTime(d.year, d.month, d.day);
   if (day == today) return 'today';
-  if (day == today.add(const Duration(days: 1))) return 'tomorrow';
+  if (day == DateTime(now.year, now.month, now.day + 1)) return 'tomorrow';
   return formatDate(d);
 }
 

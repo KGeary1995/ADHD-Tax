@@ -21,7 +21,7 @@ Triggers: `push` (except docs-only commits) and `workflow_dispatch` (Run workflo
 
 | Job | Runs on | Does | Publishes |
 |---|---|---|---|
-| `test` | ubuntu | `pub get` → `dart format --set-exit-if-changed` → `flutter analyze` → `flutter test` → web build | artifact `unstuck-web` |
+| `test` | ubuntu | `pub get` → `dart format --set-exit-if-changed` → `flutter analyze` → `flutter test` (with `TZ=America/Los_Angeles`, so date code meets a clock change) → web build | artifact `unstuck-web` |
 | `android` | ubuntu, after `test` | `flutter build apk --release --no-shrink --build-number=<run_number>` | `android-latest` release, except on `pull_request` |
 | `play` | ubuntu, after `test`; dispatch or `[play]` in the commit message | Decodes the upload keystore from secrets, `UPLOAD_KEYSTORE=… flutter build appbundle --release --no-shrink --build-number=<run_number>` (`build.gradle.kts` signs with the upload key when that variable is set). Fails with a message if the secrets are missing | `play-latest` release |
 | `windows` | windows, after `test` | `flutter build windows --release` | artifact only |

@@ -91,16 +91,37 @@ String filePrefix(String workspace) => 'state.$workspace.';
 String fileName(String workspace, String deviceId) =>
     '${filePrefix(workspace)}$deviceId.json';
 
+/// The round was abandoned because [syncOnce]'s `current` said so (the
+/// workspace was disconnected or switched account meanwhile).
+class SyncCancelled implements Exception {
+  const SyncCancelled();
+}
+
 /// Runs one round. Mutates [replica] in place when remote changes merge.
+///
+/// [onMerged] runs after the downloads merged something and before the
+/// upload, so the caller can save and show them even if the upload then
+/// fails. [forceUpload] rewrites our file even without new local writes:
+/// a previous round merged changes but failed to upload them. [current] is
+/// checked after every network call; once false, the round stops with
+/// [SyncCancelled] before touching [replica] again.
 Future<SyncOutcome> syncOnce({
   required Replica replica,
   required RemoteStore remote,
   required String workspace,
   required SyncState state,
   required DateTime Function() now,
+  Future<void> Function()? onMerged,
+  bool forceUpload = false,
+  bool Function()? current,
 }) async {
+  void check() {
+    if (current != null && !current()) throw const SyncCancelled();
+  }
+
   final ownName = fileName(workspace, replica.node);
   final files = await remote.list(filePrefix(workspace));
+  check();
   final seen = {...state.seen};
   final skipped = <String>[];
   var merged = false;
@@ -114,6 +135,7 @@ Future<SyncOutcome> syncOnce({
     if (seen[f.name] == f.checksum) continue;
     try {
       final bytes = await remote.read(f.id);
+      check();
       final theirs = Replica.decode(utf8.decode(bytes));
       if (replica.merge(theirs, now())) merged = true;
       seen[f.name] = f.checksum;
@@ -130,6 +152,9 @@ Future<SyncOutcome> syncOnce({
     ownFileId = null;
   }
 
+  if (merged && onMerged != null) await onMerged();
+  check();
+
   final local = replica.lastLocalWrite;
   var uploaded = false;
   // Also rewrite our file after merging someone else's changes: otherwise
@@ -137,7 +162,10 @@ Future<SyncOutcome> syncOnce({
   // workspace (e.g. a Work task in the Personal account) until this device
   // happens to edit something. It can't ping-pong: the next round merges
   // nothing new, so nobody uploads again.
-  if (ownFileId == null || local != state.uploadedClock || merged) {
+  if (ownFileId == null ||
+      local != state.uploadedClock ||
+      merged ||
+      forceUpload) {
     final bytes = utf8.encode(replica.encode());
     if (ownFileId == null) {
       ownFileId = await remote.create(ownName, bytes);

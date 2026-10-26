@@ -91,6 +91,22 @@ class TasksController extends Notifier<List<Task>> {
     _write(t.copyWith(updatedAt: _now()));
   }
 
+  /// Saves what an editor changed between [original] (the task when it
+  /// opened) and [edited], on top of the task as it is now. Writing the
+  /// whole editor copy would undo anything that happened meanwhile: marked
+  /// done in the list, or changed on another device and synced in.
+  void saveEdits(Task original, Task edited) {
+    final latest = byId(original.id);
+    // Deleted meanwhile: Save is a clear "keep this", so it comes back.
+    if (latest == null) return save(edited);
+    final before = original.toJson();
+    final merged = latest.toJson();
+    edited.toJson().forEach((k, v) {
+      if (before[k] != v) merged[k] = v;
+    });
+    save(Task.fromJson(merged));
+  }
+
   void delete(String id) {
     final t = byId(id);
     if (t == null) return;
@@ -117,10 +133,15 @@ class TasksController extends Notifier<List<Task>> {
   });
 
   /// Marks it done. A repeating task also gets its next copy, which is
-  /// returned so an undo can take it back.
-  Task? complete(String id, {required int minutesWorked}) {
+  /// returned (for the "next one" message) with whether this call made it,
+  /// so an undo takes back only a copy it created; see [undoComplete].
+  ({Task? next, bool created}) complete(
+    String id, {
+    required int minutesWorked,
+  }) {
+    const none = (next: null, created: false);
     final t = byId(id);
-    if (t == null) return null;
+    if (t == null) return none;
     final now = _now();
     _write(
       t.copyWith(
@@ -134,10 +155,23 @@ class TasksController extends Notifier<List<Task>> {
       ),
     );
     final next = nextOccurrence(t, now);
-    if (next == null) return null;
-    // Already there if another device finished this one first.
-    if (byId(next.id) == null) _write(next);
-    return next;
+    if (next == null) return none;
+    // Already there if another device finished this one first, or it was
+    // done, reopened and done again here. Then it isn't ours to undo.
+    final existing = byId(next.id);
+    if (existing != null) return (next: existing, created: false);
+    _write(next);
+    return (next: next, created: true);
+  }
+
+  /// Undo for [complete]: puts [before] back and removes the next copy if
+  /// that completion made it and nobody has changed it since.
+  void undoComplete(Task before, ({Task? next, bool created}) done) {
+    restore(before);
+    final next = done.next;
+    if (next != null && done.created && byId(next.id) == next) {
+      delete(next.id);
+    }
   }
 
   /// Puts back a task exactly as it was before a change: undo for done,

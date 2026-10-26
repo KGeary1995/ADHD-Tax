@@ -31,6 +31,7 @@ import 'features/templates/template_editor_screen.dart';
 import 'features/templates/templates_screen.dart';
 import 'features/guide/guide_screen.dart';
 import 'features/wrapup/wrapup_screen.dart';
+import 'sync/save_warning.dart';
 import 'sync/sync_badge.dart';
 import 'widgets/ui.dart';
 import 'core/theme/ph.dart';
@@ -167,7 +168,7 @@ class GumptionApp extends ConsumerWidget {
             child: OutsideBootstrap(
               child: DesktopHotkey(
                 child: CelebrationOverlay(
-                  child: child ?? const SizedBox.shrink(),
+                  child: SaveWarning(child: child ?? const SizedBox.shrink()),
                 ),
               ),
             ),

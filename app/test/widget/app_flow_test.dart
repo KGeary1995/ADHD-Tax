@@ -25,6 +25,7 @@ Future<ProviderContainer> pumpApp(
   WidgetTester tester, {
   Size size = const Size(1400, 1000),
   List<Override> overrides = const [],
+  KeyValueStore? store,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -32,7 +33,7 @@ Future<ProviderContainer> pumpApp(
 
   final container = ProviderContainer(
     overrides: [
-      keyValueStoreProvider.overrideWithValue(MemoryStore()),
+      keyValueStoreProvider.overrideWithValue(store ?? MemoryStore()),
       quoteServiceProvider.overrideWithValue(QuoteService(_quotes)),
       ...overrides,
     ],

@@ -15,11 +15,25 @@ class PrefsStore implements KeyValueStore {
   @override
   String? read(String key) => _prefs.getString(key);
 
+  /// Throws when the platform says the value wasn't stored, so callers
+  /// can tell the user and retry rather than lose it quietly.
   @override
-  Future<void> write(String key, String value) => _prefs.setString(key, value);
+  Future<void> write(String key, String value) async {
+    if (!await _prefs.setString(key, value)) {
+      throw StorageWriteFailed(key);
+    }
+  }
 
   @override
   Future<void> remove(String key) => _prefs.remove(key);
+}
+
+class StorageWriteFailed implements Exception {
+  const StorageWriteFailed(this.key);
+  final String key;
+
+  @override
+  String toString() => 'Couldn\'t save $key on this device';
 }
 
 class MemoryStore implements KeyValueStore {

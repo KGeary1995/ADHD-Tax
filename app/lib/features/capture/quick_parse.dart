@@ -221,8 +221,9 @@ QuickParse parseQuickAdd(
     );
     if (relative != null) {
       final w = relative.group(1)!.toLowerCase();
-      day = _day(now).add(
-        Duration(days: w.startsWith('tm') || w.startsWith('tomorrow') ? 1 : 0),
+      day = _addDays(
+        now,
+        w.startsWith('tm') || w.startsWith('tomorrow') ? 1 : 0,
       );
       defaultHour = switch (w) {
         'tonight' => 20,
@@ -248,12 +249,12 @@ QuickParse parseQuickAdd(
       final next = m.group(1)?.trim().toLowerCase() == 'next';
       var ahead = (target - now.weekday) % 7;
       if (ahead == 0 && next) ahead = 7;
-      day = _day(now).add(Duration(days: ahead));
+      day = _addDays(now, ahead);
       defaultHour = _partHour(m.group(3));
     } else if (take(_re(r'\bnext\s+week\b')) case _?) {
-      day = _day(now).add(Duration(days: 8 - now.weekday));
+      day = _addDays(now, 8 - now.weekday);
     } else if (take(_re(r'\b(?:this\s+|on\s+the\s+)?weekend\b')) case _?) {
-      day = _day(now).add(Duration(days: (6 - now.weekday) % 7));
+      day = _addDays(now, (6 - now.weekday) % 7);
     } else if (take(
           _re(
             r'\bin\s+(\d+|a|an|one|two|three|four|five|six|seven)\s+(days?|weeks?)\b',
@@ -263,7 +264,7 @@ QuickParse parseQuickAdd(
       final n =
           int.tryParse(m.group(1)!) ?? _numberWords[m.group(1)!.toLowerCase()]!;
       final days = m.group(2)!.toLowerCase().startsWith('w') ? n * 7 : n;
-      day = _day(now).add(Duration(days: days.clamp(0, 3650)));
+      day = _addDays(now, days.clamp(0, 3650));
     } else if (take(
           _re(
             '(?<![\\w])$_pre($_monthNames)\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b',
@@ -316,7 +317,9 @@ QuickParse parseQuickAdd(
   } else if (hour != null) {
     dueAt = DateTime(now.year, now.month, now.day, hour, minute);
     // A time that's already gone today means tomorrow.
-    if (!dueAt.isAfter(now)) dueAt = dueAt.add(const Duration(days: 1));
+    if (!dueAt.isAfter(now)) {
+      dueAt = DateTime(now.year, now.month, now.day + 1, hour, minute);
+    }
   }
   if (dueAt != null) bits.add(QuickBit(qkDue, _dueLabel(dueAt, now)));
 
@@ -377,6 +380,11 @@ extension on int {
 
 DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
 
+/// Midnight [n] calendar days after [d]'s date. Adding `Duration(days: n)`
+/// to a local midnight lands on 23:00 of the day before when the clocks
+/// go back in between.
+DateTime _addDays(DateTime d, int n) => DateTime(d.year, d.month, d.day + n);
+
 int? _partHour(String? part) => switch (part?.toLowerCase()) {
   'morning' => 9,
   'afternoon' => 14,
@@ -398,7 +406,8 @@ DateTime _dateIn(DateTime now, int month, int day) {
 String _dueLabel(DateTime d, DateTime now) {
   final today = _day(now);
   final day = _day(d);
-  final diff = day.difference(today).inDays;
+  // Rounded: across a clock change two midnights are 23 or 25 hours apart.
+  final diff = (day.difference(today).inHours / 24).round();
   final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
   final m = d.minute == 0 ? '' : ':${d.minute.toString().padLeft(2, '0')}';
   final clock = '$h$m ${d.hour < 12 ? 'am' : 'pm'}';

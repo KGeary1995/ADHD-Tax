@@ -50,6 +50,10 @@ class TaskEditorScreen extends ConsumerStatefulWidget {
 class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   late Task _task;
 
+  /// The task as it was when the editor opened. Save writes only what
+  /// changed since, so edits made elsewhere meanwhile survive.
+  late final Task _original;
+
   /// A task with steps starts from its checklist, so the first-step field
   /// is hidden. Decided once on open: adding the first step mustn't make
   /// the section vanish under your finger.
@@ -79,6 +83,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           createdAt: now,
           updatedAt: now,
         );
+    _original = _task;
     _showFirstStep = _task.steps.isEmpty || _task.firstStep.isNotEmpty;
     _title = TextEditingController(text: _task.title)
       ..addListener(() => setState(() {}));
@@ -124,7 +129,11 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       waitingOn: _waitingOn.text.trim(),
       tags: parseTags(_tags.text.split(RegExp(r'[\s,]+')).join(',')).join(','),
     );
-    tasks.save(t);
+    if (_isNew) {
+      tasks.save(t);
+    } else {
+      tasks.saveEdits(_original, t);
+    }
     _close();
   }
 

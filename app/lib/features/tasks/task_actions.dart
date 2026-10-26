@@ -20,7 +20,8 @@ void markDoneWithUndo(BuildContext context, WidgetRef ref, Task t) {
   final messenger = ScaffoldMessenger.of(context);
   final dates = MaterialLocalizations.of(context);
 
-  final next = tasks.complete(t.id, minutesWorked: 0);
+  final done = tasks.complete(t.id, minutesWorked: 0);
+  final next = done.next;
   final celebration = progress.recordCompletion(t, actualMin: null);
   final when = next?.dueAt ?? next?.scheduledStart;
   _undoBar(
@@ -29,8 +30,7 @@ void markDoneWithUndo(BuildContext context, WidgetRef ref, Task t) {
         ? 'Done: ${t.title}'
         : 'Done: ${t.title} · next one ${dates.formatMediumDate(when)}',
     () {
-      tasks.restore(t);
-      if (next != null) tasks.delete(next.id);
+      tasks.undoComplete(t, done);
       progress.revoke(celebration);
     },
   );

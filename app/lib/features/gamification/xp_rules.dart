@@ -120,7 +120,7 @@ int streakWithGrace(
 }) {
   final days = activeDays.map(dayOnly).toSet();
   var day = dayOnly(today);
-  if (!days.contains(day)) day = day.subtract(const Duration(days: 1));
+  if (!days.contains(day)) day = _dayBefore(day);
 
   var streak = 0;
   final misses = <DateTime>[];
@@ -130,13 +130,19 @@ int streakWithGrace(
       streak++;
     } else {
       misses.add(day);
-      final recent = misses.where((m) => m.difference(day).inDays < 7).length;
+      final recent = misses
+          .where((m) => (m.difference(day).inHours / 24).round() < 7)
+          .length;
       if (recent > gracePerWeek) break;
     }
-    day = day.subtract(const Duration(days: 1));
+    day = _dayBefore(day);
     if (streak == 0 && misses.length > gracePerWeek) break;
   }
   return streak;
 }
 
 DateTime dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// Calendar arithmetic, not 24 hours: across a clock change, midnight
+/// minus a day's worth of hours is 23:00 or 01:00, a different date.
+DateTime _dayBefore(DateTime d) => DateTime(d.year, d.month, d.day - 1);

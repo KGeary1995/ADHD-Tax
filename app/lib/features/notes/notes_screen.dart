@@ -614,7 +614,7 @@ Future<void> _showTagsSheet(
 String _when(DateTime at, DateTime now) {
   final today = DateTime(now.year, now.month, now.day);
   final day = DateTime(at.year, at.month, at.day);
-  final d = today.difference(day).inDays;
+  final d = (today.difference(day).inHours / 24).round();
   if (d == 0) return formatClock(at);
   if (d == 1) return 'Yesterday';
   return formatDate(at);

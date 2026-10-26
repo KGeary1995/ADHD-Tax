@@ -82,11 +82,15 @@ class BackupGroup extends ConsumerWidget {
 }
 
 String _ago(DateTime at, DateTime now) {
-  final days = DateTime(
-    now.year,
-    now.month,
-    now.day,
-  ).difference(DateTime(at.year, at.month, at.day)).inDays;
+  // Rounded: across a clock change two midnights are 23 or 25 hours apart.
+  final days =
+      (DateTime(
+                now.year,
+                now.month,
+                now.day,
+              ).difference(DateTime(at.year, at.month, at.day)).inHours /
+              24)
+          .round();
   return switch (days) {
     <= 0 => 'today',
     1 => 'yesterday',

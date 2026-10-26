@@ -275,6 +275,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
         .recordCompletion(
           task,
           actualMin: (task.actualMin ?? 0) + worked,
+          sessionMin: worked,
           keptGoingAfterFive: _keptGoing,
         );
     _leave();

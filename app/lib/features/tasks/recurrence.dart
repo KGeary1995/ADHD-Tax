@@ -35,7 +35,7 @@ Task? nextOccurrence(Task done, DateTime finishedAt) {
       next = advance(next, r);
     }
     dueAt = next;
-    showFrom = _day(next).subtract(Duration(days: leadDays(r)));
+    showFrom = DateTime(next.year, next.month, next.day - leadDays(r));
   } else {
     final anchor = done.repeatFromDone
         ? today
