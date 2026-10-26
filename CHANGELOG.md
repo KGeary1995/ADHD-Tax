@@ -2,6 +2,19 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
+## Next build — 2026-10-25 (Android, web): fixes from a code audit
+- **Sync keeps what it downloads** even when the upload after it fails (offline halfway through): tasks from your other devices show at once and are saved, and the next round uploads them. Before, they could stay invisible.
+- **A warning if this device can't save** (storage full, say): a strip at the top says so and the app keeps retrying, instead of looking saved when it isn't.
+- **An editor left open no longer undoes newer changes.** Saving a task saves only what you changed in the editor, so a task marked done in the list or on another device meanwhile stays done. Closing a note you didn't type in leaves it alone, so a note deleted on another device doesn't come back.
+- **Disconnect stays disconnected**, even if a sync was halfway through.
+- **Undo after finishing a repeating task** only removes the next copy if that tap made it, never one that was already there (and maybe edited).
+- **Focus minutes count once:** stopping a task after 10 minutes and finishing it later in 5 now adds 15 to Progress, not 25.
+- **A snoozed task comes back on time**: Today looks again when a snooze ends, at midnight, and when you return to the app.
+- **Dates across a clock change:** "in 2 weeks" typed before the clocks go back no longer lands a day early, and a streak no longer breaks when the clocks change. Same fix for "tomorrow" labels, the Progress sky and repeating tasks' lead time.
+- **Hidden workspace stays hidden:** on a device set to show only Personal (or only Work), Progress shows the other side's history as "Started: a Work task", without titles. XP still counts in full.
+- Web app: the saved offline copy is used when the server has an error (not only when there's no network), and disconnecting Google also forgets the sign-in saved in the browser.
+- Not yet tried on a phone; covered by tests (308, now run in a time zone with clock changes).
+
 ## Next build — 2026-10-25 (web): OneDrive in the web app
 - **OneDrive works in the web app too:** Settings → Sync → Connect → Microsoft account opens Microsoft's sign-in in a small window (allow pop-ups if the browser asks). Microsoft keeps a browser signed in for 24 hours; after that the row shows **Reconnect**.
 - Fixed: with only OneDrive available, the note under the Sync rows talked about Google Drive.

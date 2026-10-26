@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -40,6 +42,7 @@ class ReplicaSet {
     this.eventsVersion = 0,
     this.docsVersion = 0,
     this.localWrites = const {},
+    this.unsaved = const {},
   });
 
   final Map<Workspace, Replica> _replicas;
@@ -55,6 +58,10 @@ class ReplicaSet {
 
   /// Per-workspace count of local writes; sync listens to schedule uploads.
   final Map<Workspace, int> localWrites;
+
+  /// Workspaces whose latest change didn't reach this device's storage
+  /// (retried until it does). The app shows a warning meanwhile.
+  final Set<Workspace> unsaved;
 
   Replica operator [](Workspace ws) => _replicas[ws]!;
 
@@ -74,6 +81,16 @@ class ReplicaSet {
     localWrites: localWrite == null
         ? localWrites
         : {...localWrites, localWrite: (localWrites[localWrite] ?? 0) + 1},
+    unsaved: unsaved,
+  );
+
+  ReplicaSet withUnsaved(Set<Workspace> unsaved) => ReplicaSet(
+    _replicas,
+    tasksVersion: tasksVersion,
+    eventsVersion: eventsVersion,
+    docsVersion: docsVersion,
+    localWrites: localWrites,
+    unsaved: unsaved,
   );
 }
 
@@ -85,8 +102,23 @@ class ReplicasController extends Notifier<ReplicaSet> {
   KeyValueStore get _store => ref.read(keyValueStoreProvider);
   DateTime _now() => ref.read(clockProvider)();
 
+  /// Per workspace, the number of the newest write started: only its
+  /// outcome says whether the data on disk is current.
+  final _writes = <Workspace, int>{};
+  Timer? _retry;
+  int _failures = 0;
+
+  /// Waits between attempts to save again after a failed write.
+  static const retryAfter = [
+    Duration(seconds: 2),
+    Duration(seconds: 10),
+    Duration(seconds: 30),
+    Duration(minutes: 2),
+  ];
+
   @override
   ReplicaSet build() {
+    ref.onDispose(() => _retry?.cancel());
     final node = ref.read(deviceIdProvider);
     final replicas = {
       for (final ws in Workspace.values)
@@ -119,9 +151,12 @@ class ReplicasController extends Notifier<ReplicaSet> {
   }
 
   /// Called by sync after remote changes were merged into [ws]'s replica.
-  void remoteMerged(Workspace ws) {
-    _persist(ws, state[ws]);
+  /// True once they're on disk; sync only then records the files as read,
+  /// or a failed write would leave them neither saved nor fetched again.
+  Future<bool> remoteMerged(Workspace ws) {
+    final saved = _persist(ws, state[ws]);
     state = state.bumped(tasks: true, events: true, docs: true);
+    return saved;
   }
 
   /// Merges a backup file in. Returns true if it added or changed anything.
@@ -146,8 +181,39 @@ class ReplicasController extends Notifier<ReplicaSet> {
     return any;
   }
 
-  void _persist(Workspace ws, Replica r) =>
-      _store.write(_replicaKey(ws), r.encode());
+  /// Writes [ws]'s whole replica. Each write is a full copy, so only the
+  /// newest one matters: a failure marks the workspace unsaved and retries
+  /// with backoff, and a later success clears it. Completes with whether
+  /// the data is on disk.
+  Future<bool> _persist(Workspace ws, Replica r) async {
+    final n = _writes[ws] = (_writes[ws] ?? 0) + 1;
+    try {
+      await _store.write(_replicaKey(ws), r.encode());
+    } on Object {
+      if (_writes[ws] == n && ref.mounted) {
+        state = state.withUnsaved({...state.unsaved, ws});
+        _scheduleRetry();
+      }
+      return false;
+    }
+    if (_writes[ws] == n && ref.mounted && state.unsaved.contains(ws)) {
+      _failures = 0;
+      state = state.withUnsaved({...state.unsaved}..remove(ws));
+      if (state.unsaved.isEmpty) _retry?.cancel();
+    }
+    return true;
+  }
+
+  void _scheduleRetry() {
+    if (_retry?.isActive ?? false) return;
+    final wait = retryAfter[math.min(_failures++, retryAfter.length - 1)];
+    _retry = Timer(wait, () {
+      if (!ref.mounted) return;
+      for (final ws in state.unsaved) {
+        _persist(ws, state[ws]);
+      }
+    });
+  }
 
   /// Phase 1 kept tasks and progress as plain JSON. Move them into the
   /// replicas once, so they start syncing.

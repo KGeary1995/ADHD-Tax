@@ -18,15 +18,20 @@ self.addEventListener('fetch', (event) => {
     // (it carries a one-time code) is never kept in the offline copy.
     return;
   }
-  event.respondWith(respond(req));
+  event.respondWith(respond(event, req));
 });
 
-async function respond(req) {
+async function respond(event, req) {
   const cache = await caches.open(CACHE);
   const network = fetch(req).then((res) => {
-    if (res.ok) cache.put(req, res.clone());
+    // A server error (Cloudflare having a bad minute) is no better than no
+    // network: use the saved copy instead, if there is one.
+    if (res.status >= 500) throw new Error(`server ${res.status}`);
+    // Keep the worker alive until the copy is saved.
+    if (res.ok) event.waitUntil(cache.put(req, res.clone()));
     return res;
   });
+  network.catch(() => {}); // Handled below; no "unhandled rejection" noise.
   const saved = () =>
     cache.match(req).then((r) => r || (req.mode === 'navigate' ? cache.match('./') : undefined));
   try {
@@ -36,6 +41,9 @@ async function respond(req) {
     ]);
   } catch (_) {
     const fallback = await saved();
-    return fallback || network; // Nothing saved yet: keep waiting on the network.
+    if (fallback) return fallback;
+    // Nothing saved yet: keep waiting on the network, and pass a server
+    // error page through rather than failing the request.
+    return network.catch(() => fetch(req));
   }
 }

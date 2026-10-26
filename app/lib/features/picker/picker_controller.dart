@@ -116,8 +116,33 @@ final calibrationProvider = Provider<Calibrations>(
   (ref) => calibrate(ref.watch(tasksProvider)),
 );
 
+/// When the picks were last worked out, and when they next need to be
+/// ([nextPickerBoundary]). Invalidating it makes them look again:
+/// `OutsideBootstrap` does that at `next` and on resume, since nothing else
+/// they watch changes just because time passes (a task snoozed until 10
+/// stayed hidden after 10).
+final pickerTickProvider = Provider<({DateTime now, DateTime next})>((ref) {
+  // Rebuilt with the tasks too, so a new snooze moves `next`.
+  final tasks = ref.watch(tasksProvider);
+  final now = ref.read(clockProvider)();
+  return (now: now, next: nextPickerBoundary(tasks, now));
+});
+
+/// When what's eligible next changes by itself: the earliest start time
+/// of a snoozed or scheduled open task, or else midnight (last night's
+/// wrap-up pick lapses).
+DateTime nextPickerBoundary(Iterable<Task> tasks, DateTime now) {
+  var next = DateTime(now.year, now.month, now.day + 1);
+  for (final t in tasks) {
+    final s = t.scheduledStart;
+    if (t.isOpen && s != null && s.isAfter(now) && s.isBefore(next)) next = s;
+  }
+  return next;
+}
+
 /// The one task the dashboard shows.
 final pickResultProvider = Provider<PickResult>((ref) {
+  ref.watch(pickerTickProvider);
   final tasks = ref.watch(tasksProvider);
   final inputs = ref.watch(pickerInputsProvider);
   final now = ref.read(clockProvider)();
@@ -160,6 +185,7 @@ final pickResultProvider = Provider<PickResult>((ref) {
 /// What else would fit right now, best first, for the large home-screen
 /// widget's "Next up" list.
 final nextUpProvider = Provider<List<Suggestion>>((ref) {
+  ref.watch(pickerTickProvider);
   final inputs = ref.watch(pickerInputsProvider);
   return pickerEngine
       .rank(
@@ -178,6 +204,7 @@ final nextUpProvider = Provider<List<Suggestion>>((ref) {
 /// "Pick one of these 3 and commit" after too many rerolls. Rejected tasks
 /// are allowed back in: the point is to choose, not to keep skipping.
 final commitChoicesProvider = Provider<List<Suggestion>>((ref) {
+  ref.watch(pickerTickProvider);
   final tasks = ref.watch(tasksProvider);
   final inputs = ref.watch(pickerInputsProvider);
   final now = ref.read(clockProvider)();
@@ -195,6 +222,7 @@ final commitChoicesProvider = Provider<List<Suggestion>>((ref) {
 /// Overwhelm mode suggestion. Ignores the time limit: any task is fair
 /// game for five minutes.
 final tinySuggestionProvider = Provider<Suggestion?>((ref) {
+  ref.watch(pickerTickProvider);
   final inputs = ref.watch(pickerInputsProvider);
   return pickerEngine.pickTiny(
     ref.watch(tasksProvider),

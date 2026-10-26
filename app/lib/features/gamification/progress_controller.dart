@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/providers.dart';
 import '../../data/models/task.dart';
 import '../../sync/replicas_controller.dart';
+import '../settings/device_workspaces.dart';
 import 'achievements.dart';
 import 'progress_event.dart';
 import 'xp_rules.dart';
@@ -86,10 +87,11 @@ class ProgressController extends Notifier<ProgressStats> {
   @override
   ProgressStats build() {
     ref.watch(replicasProvider.select((s) => s.eventsVersion));
+    final shown = ref.watch(deviceWorkspacesProvider).shown;
     final set = ref.read(replicasProvider);
     DateTime? resetAt;
     final events = <ProgressEvent>[];
-    for (final (_, r) in set.entries) {
+    for (final (ws, r) in set.entries) {
       final reset = r.get(collMeta, _progressMeta)?.values['resetAt'];
       if (reset is String) {
         final at = DateTime.parse(reset);
@@ -98,7 +100,14 @@ class ProgressController extends Notifier<ProgressStats> {
       for (final e in r.collection(collEvents).entries) {
         if (e.value.isDeleted) continue;
         try {
-          events.add(ProgressEvent.fromJson(e.key, e.value.values));
+          final event = ProgressEvent.fromJson(e.key, e.value.values);
+          // XP and counts stay whole, but a workspace this device doesn't
+          // show keeps its task titles to itself.
+          events.add(
+            shown.contains(ws)
+                ? event
+                : event.copyWith(label: hiddenLabel(event, ws)),
+          );
         } on Object {
           // Unreadable event from another app version: leave it out.
         }
@@ -118,10 +127,14 @@ class ProgressController extends Notifier<ProgressStats> {
     );
   }
 
-  /// [actualMin] is null when it was marked done without being timed.
+  /// [actualMin] is the task's whole time, null when it was marked done
+  /// without being timed. [sessionMin] is this session's share of it (what
+  /// counts as new focus time); left out, it's all of [actualMin]. Earlier
+  /// sessions on the task already counted theirs through [recordPartial].
   CelebrationEvent recordCompletion(
     Task t, {
     required int? actualMin,
+    int? sessionMin,
     bool keptGoingAfterFive = false,
   }) {
     final now = _now();
@@ -145,7 +158,7 @@ class ProgressController extends Notifier<ProgressStats> {
             ? 1
             : 0,
         oldCleared: now.difference(t.createdAt).inDays >= 7 ? 1 : 0,
-        focusMinutes: actualMin ?? 0,
+        focusMinutes: sessionMin ?? actualMin ?? 0,
         keptGoing: keptGoingAfterFive ? 1 : 0,
         errands: t.requiresLeavingHouse ? 1 : 0,
       ),
@@ -262,6 +275,17 @@ class ProgressController extends Notifier<ProgressStats> {
     ref.read(celebrationQueueProvider.notifier).push(celebration);
     return celebration;
   }
+}
+
+/// "Started: Send the report" from a hidden workspace → "Started: a Work
+/// task"; a reward's name → "A Work reward".
+String hiddenLabel(ProgressEvent e, Workspace ws) {
+  if (e.kind == ProgressKind.redeemed) return 'A ${ws.label} reward';
+  final colon = e.label.indexOf(': ');
+  final what = 'a ${ws.label} task';
+  return colon < 0
+      ? '${ws.label} progress'
+      : '${e.label.substring(0, colon)}: $what';
 }
 
 const _progressMeta = 'progress';

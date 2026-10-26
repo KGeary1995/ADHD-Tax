@@ -131,6 +131,8 @@ class WebGoogleAuth implements GoogleAuth {
   @override
   Future<void> disconnect(Workspace ws, {String? email}) async {
     final t = _tokens.remove(ws);
+    // Forget the saved copy first, whether or not Google hears the revoke.
+    _save(ws);
     if (t != null) oauth2.revoke(t.$1);
   }
 }

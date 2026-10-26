@@ -58,6 +58,7 @@ class ProgressEvent {
   final List<String> days;
 
   ProgressEvent copyWith({
+    String? label,
     int? started,
     int? completed,
     int? ughCompleted,
@@ -71,7 +72,7 @@ class ProgressEvent {
     id: id,
     at: at,
     kind: kind,
-    label: label,
+    label: label ?? this.label,
     xp: xp,
     coins: coins,
     started: started ?? this.started,

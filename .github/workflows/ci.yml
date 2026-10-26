@@ -45,7 +45,11 @@ jobs:
       - run: flutter pub get
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
+      # A zone with clock changes: date code that adds 24-hour days passes
+      # in UTC and breaks across daylight saving (quick add's "in 2 weeks").
       - run: flutter test
+        env:
+          TZ: America/Los_Angeles
       # Google sign-in client ids from repository secrets (README → Set up
       # Google sync). Empty until they're added, which builds without sync.
       - name: Google sign-in keys

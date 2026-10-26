@@ -48,6 +48,12 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
 
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late Note _note;
+
+  /// What the editor last showed as saved: changes are measured from here,
+  /// not from the stored note, so a note changed or deleted on another
+  /// device meanwhile isn't overwritten (or brought back) by closing an
+  /// editor nobody typed in.
+  late Note _base;
   late bool _stored;
   late final TextEditingController _title;
   late final LinkTextController _body;
@@ -82,6 +88,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           createdAt: now,
           updatedAt: now,
         );
+    _base = _note;
     _title = TextEditingController(text: _note.title)..addListener(_changed);
     _body = LinkTextController(text: _note.body)..addListener(_changed);
     // The link bar shows only while the body has focus.
@@ -93,7 +100,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _save();
+    // Not now: providers can't change while the tree is being torn down.
+    final title = _title.text;
+    final body = _body.text;
+    scheduleMicrotask(() => _save(title: title, body: body));
     _title.dispose();
     _body.dispose();
     _bodyFocus.dispose();
@@ -108,9 +118,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   /// Writes the note if anything changed. A new note isn't stored until
   /// it has words in it, so opening and closing leaves nothing behind.
-  void _save() {
+  void _save({String? title, String? body}) {
     if (_deleted) return;
-    final next = _note.copyWith(title: _title.text, body: _body.text);
+    final next = _note.copyWith(
+      title: title ?? _title.text,
+      body: body ?? _body.text,
+    );
     final notes = _notes;
     if (!_stored) {
       if (next.isEmpty) return;
@@ -124,21 +137,38 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       if (next.tags.isNotEmpty || next.pinned) {
         notes.save(_note.copyWith(tags: next.tags, pinned: next.pinned));
       }
+      _note = _base = notes.byId(_note.id) ?? _note;
       _stored = true;
       return;
     }
-    final current = notes.byId(_note.id);
+    final base = _base;
+    final tagsChanged = next.tags.join(',') != base.tags.join(',');
     final changed =
-        current == null ||
-        current.title != next.title ||
-        current.body != next.body ||
-        current.workspace != next.workspace ||
-        current.projectId != next.projectId ||
-        current.taskId != next.taskId ||
-        current.pinned != next.pinned ||
-        current.tags.join(',') != next.tags.join(',');
-    if (changed) notes.save(next);
+        next.title != base.title ||
+        next.body != base.body ||
+        next.workspace != base.workspace ||
+        next.projectId != base.projectId ||
+        next.taskId != base.taskId ||
+        next.pinned != base.pinned ||
+        tagsChanged;
     _note = next;
+    if (!changed) return;
+    _base = next;
+    final current = notes.byId(next.id);
+    // Deleted elsewhere while being typed in: what was typed wins.
+    if (current == null) return notes.save(next);
+    // Only what changed here, on top of the note as it is now.
+    notes.save(
+      current.copyWith(
+        title: next.title != base.title ? next.title : null,
+        body: next.body != base.body ? next.body : null,
+        workspace: next.workspace != base.workspace ? next.workspace : null,
+        projectId: next.projectId != base.projectId ? next.projectId : null,
+        taskId: next.taskId != base.taskId ? next.taskId : null,
+        pinned: next.pinned != base.pinned ? next.pinned : null,
+        tags: tagsChanged ? next.tags : null,
+      ),
+    );
   }
 
   /// The `[[link` being typed at the cursor, if any.

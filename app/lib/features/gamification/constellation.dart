@@ -31,14 +31,20 @@ class Constellation extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     // Calendar weeks from Monday, so each week keeps its shape as the days
     // go by; the last one is this week, up to today.
-    final firstMonday = today.subtract(
-      Duration(days: today.weekday - 1 + (weeks - 1) * 7),
+    final firstMonday = DateTime(
+      today.year,
+      today.month,
+      today.day - (today.weekday - 1 + (weeks - 1) * 7),
     );
     final counts = [
       for (var w = 0; w < weeks; w++)
         [
           for (var d = 0; d < 7; d++)
-            switch (firstMonday.add(Duration(days: w * 7 + d))) {
+            switch (DateTime(
+              firstMonday.year,
+              firstMonday.month,
+              firstMonday.day + w * 7 + d,
+            )) {
               final day when day.isAfter(today) => -1,
               final day => startsByDay[dayKey(day)] ?? 0,
             },

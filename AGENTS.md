@@ -58,7 +58,7 @@ Last updated: 2026-10-25 (PR #11, OneDrive sync, merged and verified on Android 
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-flutter test                         # 293 tests, ~65 s
+TZ=America/Los_Angeles flutter test  # 308 tests, ~65 s; CI uses this zone so date code meets a clock change
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
@@ -150,6 +150,8 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - CI uses `cancel-in-progress`: a new push cancels the running build for the branch, including its Mac job. A `[mac]` push followed quickly by one without `[mac]` leaves the Mac app on the old build, so put `[mac]` on the **last** push of a series.
 - **Actions minutes run out** (2026-10-22: every job, even Linux, "failed" in 2–3 s with no runner and no logs). The private repo gets 2,000 minutes a month; macOS counts 10×, Windows 2×. CI now runs once per commit, skips docs-only commits, and builds Windows/Mac/iOS only on request. Batch `[mac]` builds. If jobs fail instantly with no runner, check github.com/settings/billing before debugging.
 - **Never delete and recreate the rolling releases** (`android-latest`, `macos-latest`, `play-latest`). Build 100 deleted `android-latest` and then got HTTP 403 creating it again, leaving the owner with no download. The likely cause: GitHub refuses the build token creating a tag at a commit whose `.github/workflows` file differs from the default branch's. The publish steps now `gh release upload --clobber` into the existing release and only create one (anchored on the default branch) if it's missing. The same cause probably explains an earlier 403 on a `workflow_dispatch` run.
+- **Calendar days, not 24 hours:** step dates with `DateTime(y, m, d + n)`, never `.add(Duration(days: n))` on a local midnight, which lands on the wrong date across a clock change (quick add's "in 2 weeks" and streaks both broke). Tests run in Los Angeles time (CI and `check.sh`) so this shows up; passing in UTC proves nothing.
+- **Editors save what changed, onto the latest record** (`TasksController.saveEdits`, the note editor's `_base`). Writing the whole copy taken when the screen opened undoes anything done meanwhile, in the list or synced in from another device.
 - Home changes after 5 pm (the "Wrap up" link). A layout that fits in the afternoon overflowed in the evening and only failed tests run after 5 pm; `narrow_layout_test` now pins the clock to 9 pm. Pin `clockProvider` in any test whose layout depends on the time.
 - **Menus and sheets on tab screens need `useRootNavigator: true`** (`PopupMenuButton`, `showModalBottomSheet`). The tabs live in go_router's nested shell navigator, so without it they open *under* the floating nav bar and bottom items (e.g. Delete) can't be tapped. `test/flutter_test_config.dart` makes tests fail on any tap that wouldn't hit its target.
 - The focus screen ticks every second and the buddy dot animates forever, so `pumpAndSettle()` there can hang: pump fixed durations instead (`frames()` in `reset_errands_company_ai_test.dart`). Override `ambientPlayerProvider`, `aiKeyStoreProvider` and `httpClientProvider` in tests; the real ones need native plugins or the network.

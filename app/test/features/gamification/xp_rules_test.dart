@@ -188,4 +188,16 @@ void main() {
       expect(back.toJson(), s.toJson());
     });
   });
+
+  // Meaningful where clocks change (CI runs tests in Los Angeles time):
+  // stepping back 24 hours from a midnight just after the change lands on
+  // the wrong date.
+  test('a streak runs on across the clocks changing', () {
+    final spring = [for (var d = 5; d <= 10; d++) DateTime(2026, 3, d)];
+    expect(streakWithGrace(spring.toSet(), DateTime(2026, 3, 10, 12)), 6);
+    final autumn =
+        [for (var d = 29; d <= 31; d++) DateTime(2026, 10, d)] +
+        [for (var d = 1; d <= 3; d++) DateTime(2026, 11, d)];
+    expect(streakWithGrace(autumn.toSet(), DateTime(2026, 11, 3, 12)), 6);
+  });
 }
