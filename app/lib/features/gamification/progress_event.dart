@@ -36,6 +36,7 @@ class ProgressEvent {
     this.panic = 0,
     this.errands = 0,
     this.days = const [],
+    this.taskId = '',
   });
 
   final String id;
@@ -57,6 +58,12 @@ class ProgressEvent {
   /// Extra active days (yyyy-mm-dd), only for [ProgressKind.carryover].
   final List<String> days;
 
+  /// The task a completion was for ('' on other kinds, and on events from
+  /// before it was recorded). [foldEvents] counts one completion per task
+  /// per day, so two devices finishing the same task offline don't earn it
+  /// twice.
+  final String taskId;
+
   ProgressEvent copyWith({
     String? label,
     int? started,
@@ -68,6 +75,7 @@ class ProgressEvent {
     int? keptGoing,
     int? panic,
     int? errands,
+    String? taskId,
   }) => ProgressEvent(
     id: id,
     at: at,
@@ -85,6 +93,7 @@ class ProgressEvent {
     panic: panic ?? this.panic,
     errands: errands ?? this.errands,
     days: days,
+    taskId: taskId ?? this.taskId,
   );
 
   Map<String, Object?> toJson() => {
@@ -103,6 +112,7 @@ class ProgressEvent {
     'panic': panic,
     'errands': errands,
     if (days.isNotEmpty) 'days': days.join(','),
+    if (taskId.isNotEmpty) 'task': taskId,
   };
 
   factory ProgressEvent.fromJson(String id, Map<String, Object?> j) {
@@ -125,6 +135,7 @@ class ProgressEvent {
       panic: i('panic'),
       errands: i('errands'),
       days: days == null || days.isEmpty ? const [] : days.split(','),
+      taskId: j['task'] as String? ?? '',
     );
   }
 }
@@ -164,6 +175,10 @@ class ProgressEvent {
     errandsByDay: e.errands == 0
         ? s.errandsByDay
         : {...s.errandsByDay, day: (s.errandsByDay[day] ?? 0) + e.errands},
+    // Like [recent], a carryover's lump of old XP isn't today's.
+    xpByDay: e.xp == 0 || e.kind == ProgressKind.carryover
+        ? s.xpByDay
+        : {...s.xpByDay, day: (s.xpByDay[day] ?? 0) + e.xp},
     activeDays: {
       ...s.activeDays,
       dayOnly(e.at),
@@ -191,7 +206,9 @@ class ProgressEvent {
   return (next, unlocked);
 }
 
-/// Replays events in time order. Events before [resetAt] are ignored.
+/// Replays events in time order. Events before [resetAt] are ignored, and
+/// so is a second completion of the same task on the same day: two devices
+/// that each finished it before hearing from the other.
 ProgressStats foldEvents(Iterable<ProgressEvent> events, {DateTime? resetAt}) {
   final sorted =
       events.where((e) => resetAt == null || !e.at.isBefore(resetAt)).toList()
@@ -200,7 +217,13 @@ ProgressStats foldEvents(Iterable<ProgressEvent> events, {DateTime? resetAt}) {
           return c != 0 ? c : a.id.compareTo(b.id);
         });
   var s = const ProgressStats();
+  final finished = <String>{};
   for (final e in sorted) {
+    if (e.kind == ProgressKind.completed &&
+        e.taskId.isNotEmpty &&
+        !finished.add('${e.taskId} ${dayKey(e.at)}')) {
+      continue;
+    }
     s = applyEvent(s, e).$1;
   }
   return s;

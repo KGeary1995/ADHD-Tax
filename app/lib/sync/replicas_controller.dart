@@ -108,6 +108,10 @@ class ReplicasController extends Notifier<ReplicaSet> {
   Timer? _retry;
   int _failures = 0;
 
+  /// Workspaces whose migrated Phase 1 data isn't saved yet; the old keys
+  /// are removed once this is empty.
+  final _legacyWaiting = <Workspace>{};
+
   /// Waits between attempts to save again after a failed write.
   static const retryAfter = [
     Duration(seconds: 2),
@@ -201,6 +205,11 @@ class ReplicasController extends Notifier<ReplicaSet> {
       state = state.withUnsaved({...state.unsaved}..remove(ws));
       if (state.unsaved.isEmpty) _retry?.cancel();
     }
+    // Every write is a full copy, so any success saves the migrated data.
+    if (_legacyWaiting.remove(ws) && _legacyWaiting.isEmpty) {
+      _store.remove('tasks.v1');
+      _store.remove('progress.v1');
+    }
     return true;
   }
 
@@ -216,7 +225,9 @@ class ReplicasController extends Notifier<ReplicaSet> {
   }
 
   /// Phase 1 kept tasks and progress as plain JSON. Move them into the
-  /// replicas once, so they start syncing.
+  /// replicas once, so they start syncing. The old keys are only removed
+  /// after the replicas are saved, and running it again (the app closed
+  /// first) adds nothing twice and doesn't overwrite later edits.
   void _migrateLegacy(Map<Workspace, Replica> replicas) {
     final rawTasks = _store.read('tasks.v1');
     final rawProgress = _store.read('progress.v1');
@@ -226,7 +237,9 @@ class ReplicasController extends Notifier<ReplicaSet> {
     if (rawTasks != null) {
       for (final j in jsonDecode(rawTasks) as List<Object?>) {
         final t = Task.fromJson(j as Map<String, Object?>);
-        replicas[t.workspace]!.put(collTasks, t.id, taskFields(t), now);
+        final r = replicas[t.workspace]!;
+        if (r.get(collTasks, t.id) != null) continue;
+        r.put(collTasks, t.id, taskFields(t), now);
       }
     }
     if (rawProgress != null) {
@@ -234,7 +247,7 @@ class ReplicasController extends Notifier<ReplicaSet> {
         jsonDecode(rawProgress) as Map<String, Object?>,
       );
       final e = ProgressEvent(
-        id: const Uuid().v4(),
+        id: 'legacy-progress',
         at: s.lastActiveAt ?? now,
         kind: ProgressKind.carryover,
         label: 'Progress from before sync',
@@ -250,13 +263,15 @@ class ReplicasController extends Notifier<ReplicaSet> {
         panic: s.panicStarts,
         days: [for (final d in s.activeDays) dayKey(d)],
       );
-      replicas[Workspace.personal]!.put(collEvents, e.id, e.toJson(), now);
+      final r = replicas[Workspace.personal]!;
+      if (r.get(collEvents, e.id) == null) {
+        r.put(collEvents, e.id, e.toJson(), now);
+      }
     }
+    _legacyWaiting.addAll(replicas.keys);
     for (final e in replicas.entries) {
       _persist(e.key, e.value);
     }
-    _store.remove('tasks.v1');
-    _store.remove('progress.v1');
   }
 }
 

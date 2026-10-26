@@ -120,7 +120,9 @@ final calibrationProvider = Provider<Calibrations>(
 /// ([nextPickerBoundary]). Invalidating it makes them look again:
 /// `OutsideBootstrap` does that at `next` and on resume, since nothing else
 /// they watch changes just because time passes (a task snoozed until 10
-/// stayed hidden after 10).
+/// stayed hidden after 10). Anything else that sorts tasks by the time
+/// watches it too: the errand run, the Tasks list and board (Coming up),
+/// Today's check-back.
 final pickerTickProvider = Provider<({DateTime now, DateTime next})>((ref) {
   // Rebuilt with the tasks too, so a new snooze moves `next`.
   final tasks = ref.watch(tasksProvider);
@@ -129,13 +131,17 @@ final pickerTickProvider = Provider<({DateTime now, DateTime next})>((ref) {
 });
 
 /// When what's eligible next changes by itself: the earliest start time
-/// of a snoozed or scheduled open task, or else midnight (last night's
-/// wrap-up pick lapses).
+/// of a snoozed or scheduled open task or check-back date of a waiting
+/// one, or else midnight (last night's wrap-up pick lapses).
 DateTime nextPickerBoundary(Iterable<Task> tasks, DateTime now) {
   var next = DateTime(now.year, now.month, now.day + 1);
   for (final t in tasks) {
-    final s = t.scheduledStart;
-    if (t.isOpen && s != null && s.isAfter(now) && s.isBefore(next)) next = s;
+    final at = t.isOpen
+        ? t.scheduledStart
+        : t.status == TaskStatus.waiting
+        ? t.followUpAt
+        : null;
+    if (at != null && at.isAfter(now) && at.isBefore(next)) next = at;
   }
   return next;
 }

@@ -49,7 +49,7 @@ class _WeeklyResetScreenState extends ConsumerState<WeeklyResetScreen> {
   // Snapshot: deciding about one task mustn't reshuffle the rest.
   late final List<Task> _queue;
   var _pos = 0;
-  final _history = <(Task, _Choice, int)>[];
+  final _history = <(Task, Task?, _Choice, int)>[];
   bool _finished = false;
 
   DateTime _now() => ref.read(clockProvider)();
@@ -84,7 +84,7 @@ class _WeeklyResetScreenState extends ConsumerState<WeeklyResetScreen> {
             fresh.copyWith(status: TaskStatus.archived, reviewedAt: now),
           );
       }
-      _history.add((fresh, c, _pos));
+      _history.add((fresh, tasks.byId(t.id), c, _pos));
     }
     setState(() => _pos++);
     if (_pos >= _queue.length) _finish();
@@ -92,8 +92,8 @@ class _WeeklyResetScreenState extends ConsumerState<WeeklyResetScreen> {
 
   void _undo() {
     if (_history.isEmpty || _finished) return;
-    final (before, _, pos) = _history.removeLast();
-    ref.read(tasksProvider.notifier).restore(before);
+    final (before, after, _, pos) = _history.removeLast();
+    if (after != null) ref.read(tasksProvider.notifier).revert(before, after);
     setState(() => _pos = pos);
   }
 
@@ -109,7 +109,7 @@ class _WeeklyResetScreenState extends ConsumerState<WeeklyResetScreen> {
         );
   }
 
-  int _count(_Choice c) => _history.where((h) => h.$2 == c).length;
+  int _count(_Choice c) => _history.where((h) => h.$3 == c).length;
 
   @override
   Widget build(BuildContext context) {

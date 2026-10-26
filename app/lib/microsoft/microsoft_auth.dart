@@ -55,6 +55,12 @@ class MicrosoftAuth implements AccountAuth {
   final http.Client _http;
   final DateTime Function() _now;
 
+  /// Per workspace, bumped by [disconnect] and each new sign-in. A client
+  /// made under an older number may still finish a token renewal, but
+  /// doesn't save its refresh token: that would bring back credentials
+  /// just deleted, or replace a newer sign-in's.
+  final _generation = <Workspace, int>{};
+
   @override
   bool get isConfigured => clientId.isNotEmpty;
 
@@ -123,6 +129,7 @@ class MicrosoftAuth implements AccountAuth {
         );
       }
       final tokens = _Tokens(refresh)..take(body, _now());
+      _generation[ws] = (_generation[ws] ?? 0) + 1;
       await _save(ws, tokens.refresh);
       return _client(ws, tokens);
     } finally {
@@ -131,16 +138,19 @@ class MicrosoftAuth implements AccountAuth {
   }
 
   @override
-  Future<void> disconnect(Workspace ws, {String? email}) =>
-      // Microsoft has no revoke endpoint for an app like this; the grant
-      // stays listed at account.microsoft.com → Privacy → Apps, where the
-      // user can remove it.
-      secrets.delete(_key(ws));
+  Future<void> disconnect(Workspace ws, {String? email}) {
+    _generation[ws] = (_generation[ws] ?? 0) + 1;
+    // Microsoft has no revoke endpoint for an app like this; the grant
+    // stays listed at account.microsoft.com → Privacy → Apps, where the
+    // user can remove it.
+    return secrets.delete(_key(ws));
+  }
 
   Future<void> _save(Workspace ws, String refresh) =>
       secrets.write(_key(ws), jsonEncode({'refresh_token': refresh}));
 
   http.Client _client(Workspace ws, _Tokens tokens) {
+    final generation = _generation[ws] ?? 0;
     Future<String>? renewing;
     Future<String> renew() async {
       final body = await _token({
@@ -150,7 +160,9 @@ class MicrosoftAuth implements AccountAuth {
       final before = tokens.refresh;
       tokens.take(body, _now());
       // Microsoft hands out a new refresh token with each renewal.
-      if (tokens.refresh != before) await _save(ws, tokens.refresh);
+      if (tokens.refresh != before && generation == (_generation[ws] ?? 0)) {
+        await _save(ws, tokens.refresh);
+      }
       return tokens.access!;
     }
 

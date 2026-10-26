@@ -13,6 +13,7 @@ import '../google/google_auth.dart';
 import '../icloud/icloud_store.dart';
 import '../microsoft/auth_factory.dart';
 import '../microsoft/onedrive_store.dart';
+import 'backup_file.dart';
 import 'remote_store.dart';
 import 'replicas_controller.dart';
 import 'sync_engine.dart';
@@ -162,9 +163,9 @@ class SyncController extends Notifier<WorkspaceSync> {
   /// so a reply arriving after Disconnect can't mark it Synced again.
   int _generation = 0;
 
-  /// A round merged other devices' changes but couldn't upload them:
-  /// upload on the next one even if nothing else changed.
-  bool _uploadOwed = false;
+  /// This device's own cloud file has been checked once since the app
+  /// started (see `checkOwn` in [syncOnce]).
+  bool _ownChecked = false;
 
   /// The sign-in for this workspace's service (not used for iCloud).
   AccountAuth get _auth => service == SyncService.onedrive
@@ -306,7 +307,6 @@ class SyncController extends Notifier<WorkspaceSync> {
   Future<void> disconnect() async {
     _generation++;
     _attempt++;
-    _uploadOwed = false;
     _periodic?.cancel();
     _debounce?.cancel();
     _retry?.cancel();
@@ -370,29 +370,32 @@ class SyncController extends Notifier<WorkspaceSync> {
           return;
         }
         _restoreFailures = 0;
-        var saved = true;
         final out = await syncOnce(
           replica: ref.read(replicasProvider)[workspace],
           remote: remote,
           workspace: workspace.name,
           state: _sync,
           now: _now,
-          forceUpload: _uploadOwed,
+          checkOwn: !_ownChecked,
           current: current,
           // Saved and shown before the upload, which may still fail.
           onMerged: () async {
-            _uploadOwed = true;
-            saved = await ref
+            final saved = await ref
                 .read(replicasProvider.notifier)
                 .remoteMerged(workspace);
+            if (!current()) return;
+            _sync = _sync.copyWith(uploadOwed: true);
+            // On disk too, so a restart before the upload still makes it.
+            if (saved) _save();
           },
         );
         if (!current()) return;
-        _uploadOwed = false;
+        _ownChecked = true;
         _sync = out.state;
-        // Not on disk: keep the stored record of which files were read as
-        // it was, so after a restart they're downloaded again.
-        if (saved) _save();
+        // Only record which files were read once what they brought is on
+        // disk (this round's merge, or an earlier one whose save failed):
+        // otherwise after a restart they'd be skipped and the data gone.
+        if (!ref.read(replicasProvider).unsaved.contains(workspace)) _save();
         state = WorkspaceSync(
           SyncPhase.synced,
           email: _sync.email,
@@ -446,31 +449,22 @@ class SyncController extends Notifier<WorkspaceSync> {
     }
   }
 
-  /// Saves a readable JSON copy of this workspace to the user's Drive or
-  /// OneDrive. Returns a link to the file when there is one.
+  /// Saves a backup of this workspace (everything in it: tasks, notes,
+  /// projects, templates, rewards, XP) to the user's Drive or OneDrive, in
+  /// the same format as Settings → Save a backup file, so Restore takes
+  /// it. Only this workspace: its account never gets the other one's data.
+  /// Returns a link to the file when there is one.
   Future<String?> exportBackup() async {
     final remote = await _ensureRemote();
     if (remote == null) throw const NeedsReconnect();
     final replica = ref.read(replicasProvider)[workspace];
     final now = _now();
-    final doc = {
-      'app': 'Gumption',
-      'workspace': workspace.name,
-      'exportedAt': now.toIso8601String(),
-      'tasks': [
-        for (final e in replica.collection(collTasks).entries)
-          if (taskFromRecord(e.key, e.value) case final t?) t.toJson(),
-      ],
-      'xpEvents': [
-        for (final e in replica.collection(collEvents).entries)
-          if (!e.value.isDeleted) {'id': e.key, ...e.value.values},
-      ],
-    };
+    final json = BackupFile(replicas: {workspace: replica}).encode(now);
     final date =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     return remote.exportBackup(
       'Gumption backup - ${workspace.label} - $date.json',
-      utf8.encode(const JsonEncoder.withIndent('  ').convert(doc)),
+      utf8.encode(json),
     );
   }
 

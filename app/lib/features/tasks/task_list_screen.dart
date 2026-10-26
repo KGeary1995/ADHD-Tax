@@ -16,6 +16,7 @@ import '../capture/quick_add_sheet.dart';
 import '../focus/focus_route.dart';
 import '../notes/notes_controller.dart';
 import '../notes/project_widgets.dart';
+import '../picker/picker_controller.dart';
 import 'task_actions.dart';
 import 'task_board.dart';
 import 'task_detail_pane.dart';
@@ -103,6 +104,7 @@ class TaskListScreen extends ConsumerWidget {
 
     final doing = all.where((t) => t.status == TaskStatus.doing).toList()
       ..sort(byUrgency);
+    ref.watch(pickerTickProvider); // a snooze running out leaves Coming up
     final now = ref.read(clockProvider)();
     bool later(Task t) =>
         t.scheduledStart != null && t.scheduledStart!.isAfter(now);

@@ -246,13 +246,23 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     );
   }
 
+  /// A date picker whose range always takes in [initial]: a task can hold
+  /// a date outside the usual window (set long ago, or on another device),
+  /// and the picker refuses to open on a date outside its range.
+  Future<DateTime?> _date(DateTime initial, DateTime first, DateTime last) =>
+      showDatePicker(
+        context: context,
+        initialDate: initial,
+        firstDate: initial.isBefore(first) ? initial : first,
+        lastDate: initial.isAfter(last) ? initial : last,
+      );
+
   Future<void> _pickDue() async {
     final now = ref.read(clockProvider)();
-    final d = await showDatePicker(
-      context: context,
-      initialDate: _task.dueAt ?? now,
-      firstDate: now.subtract(const Duration(days: 365)),
-      lastDate: now.add(const Duration(days: 365 * 3)),
+    final d = await _date(
+      _task.dueAt ?? now,
+      DateTime(now.year - 1, now.month, now.day),
+      DateTime(now.year + 3, now.month, now.day),
     );
     if (d != null) {
       // End of day: "due Tuesday" means by Tuesday evening.
@@ -265,11 +275,10 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
 
   Future<void> _pickFollowUp() async {
     final now = ref.read(clockProvider)();
-    final d = await showDatePicker(
-      context: context,
-      initialDate: _task.followUpAt ?? now.add(const Duration(days: 1)),
-      firstDate: now.subtract(const Duration(days: 30)),
-      lastDate: now.add(const Duration(days: 365)),
+    final d = await _date(
+      _task.followUpAt ?? DateTime(now.year, now.month, now.day + 1),
+      DateTime(now.year, now.month, now.day - 30),
+      DateTime(now.year + 1, now.month, now.day),
     );
     if (d != null) {
       setState(

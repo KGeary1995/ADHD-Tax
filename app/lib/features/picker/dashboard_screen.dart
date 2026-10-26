@@ -403,6 +403,7 @@ class _Reminders extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.spec;
+    ref.watch(pickerTickProvider); // a check-back date arriving
     final now = ref.read(clockProvider)();
     final waiting = ref
         .watch(tasksProvider)
@@ -1081,14 +1082,7 @@ class _RightNowPanel extends ConsumerWidget {
     final s = context.spec;
     final p = ref.watch(progressProvider);
     final now = ref.read(clockProvider)();
-    final xpToday = p.recent
-        .where(
-          (r) =>
-              r.at.year == now.year &&
-              r.at.month == now.month &&
-              r.at.day == now.day,
-        )
-        .fold(0, (a, r) => a + r.amount);
+    final xpToday = p.xpOn(now);
     final streak = streakWithGrace(p.activeDays, now);
     final stats = [
       ('${p.startedOn(now)}', 'Started today'),

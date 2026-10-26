@@ -7,6 +7,7 @@ import 'package:adhd_tax/data/storage/key_value_store.dart';
 import 'package:adhd_tax/features/gamification/progress_controller.dart';
 import 'package:adhd_tax/features/tasks/tasks_controller.dart';
 import 'package:adhd_tax/google/google_auth.dart';
+import 'package:adhd_tax/sync/backup_file.dart';
 import 'package:adhd_tax/sync/remote_store.dart';
 import 'package:adhd_tax/sync/replicas_controller.dart';
 import 'package:adhd_tax/sync/sync_controller.dart';
@@ -482,16 +483,27 @@ void main() {
     );
   });
 
-  test('backup export writes readable JSON', () async {
+  test('a cloud backup holds the whole workspace, only that one, and '
+      'Restore takes it', () async {
     final pc = device(FakeAuth(accounts()));
     await pc.read(syncProvider(Workspace.personal).notifier).connect();
-    pc.read(tasksProvider.notifier).create(title: 'Back me up');
+    pc.read(tasksProvider.notifier)
+      ..create(title: 'Back me up')
+      ..create(title: 'Work only', workspace: Workspace.work);
+    pc.read(notesProvider.notifier).create(title: 'A note too');
     final link = await pc
         .read(syncProvider(Workspace.personal).notifier)
         .exportBackup();
     expect(link, startsWith('https://'));
-    final doc = jsonDecode(personal.backups.values.single) as Map;
-    expect((doc['tasks'] as List).single['title'], 'Back me up');
+    final backup = BackupFile.decode(personal.backups.values.single);
+    expect(backup.replicas.keys, [Workspace.personal]);
+
+    final fresh = device(FakeAuth(accounts()));
+    fresh.read(replicasProvider.notifier).restore(backup);
+    expect(fresh.read(tasksProvider).map((t) => t.title).toSet(), {
+      'Back me up',
+    });
+    expect(fresh.read(notesProvider).single.title, 'A note too');
   });
 
   test('disconnect stops syncing but keeps local tasks', () async {
@@ -586,6 +598,7 @@ void main() {
     final pc = device(FakeAuth(accounts()), store: store);
     expect(pc.read(tasksProvider).single.title, 'Old task');
     expect(pc.read(progressProvider).xp, 640);
+    await pumpEventQueue(); // removed once the replicas are saved
     expect(store.read('tasks.v1'), isNull);
     expect(
       pc.read(replicasProvider)[Workspace.personal].lastLocalWrite,

@@ -34,6 +34,10 @@ class TemplateEditorScreen extends ConsumerStatefulWidget {
 class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
   late Template _t;
   late final bool _isNew;
+
+  /// The template as the editor opened it; Save applies only the changes
+  /// from this onto the latest copy.
+  late final Template _original;
   late final _name = TextEditingController(text: _t.name);
   late final _title = TextEditingController(text: _t.title);
   late final _body = TextEditingController(text: _t.body);
@@ -61,6 +65,7 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
           workspace: ref.read(deviceWorkspacesProvider).primary,
           createdAt: ref.read(clockProvider)(),
         );
+    _original = _t;
     for (final c in [_name, _title, _body]) {
       c.addListener(() => setState(() {}));
     }
@@ -78,17 +83,14 @@ class _TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
 
   void _save() {
     if (!_canSave) return;
-    ref
-        .read(templatesProvider.notifier)
-        .save(
-          _t.copyWith(
-            name: _name.text.trim(),
-            title: _title.text.trim(),
-            body: _body.text,
-            tags: parseTags(_tags.text.split(RegExp(r'[\s,]+')).join(','))
-                .join(','),
-          ),
-        );
+    final templates = ref.read(templatesProvider.notifier);
+    final edited = _t.copyWith(
+      name: _name.text.trim(),
+      title: _title.text.trim(),
+      body: _body.text,
+      tags: parseTags(_tags.text.split(RegExp(r'[\s,]+')).join(',')).join(','),
+    );
+    _isNew ? templates.save(edited) : templates.saveEdits(_original, edited);
     context.canPop() ? context.pop() : context.go('/templates');
   }
 

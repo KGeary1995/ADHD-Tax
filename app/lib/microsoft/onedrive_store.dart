@@ -110,7 +110,7 @@ class OneDriveStore implements AccountRemoteStore {
     return mail is String && mail.isNotEmpty ? mail : null;
   }
 
-  /// A readable copy in Apps/Gumption/Backups, which the user can open in
+  /// A backup file in Apps/Gumption/Backups, which the user can open in
   /// OneDrive. Returns its web link.
   @override
   Future<String?> exportBackup(String name, List<int> bytes) async {

@@ -54,7 +54,7 @@ Runs on Android, iPhone (as a home-screen web app), Mac, Windows and the web fro
 | **Works offline** | Everything saves on the device first. It syncs on start, a few seconds after you edit something, every 3 minutes while the app is open, and when you come back to the app. |
 | **No conflicts** | Edits made offline on two devices merge field by field, so editing the title on your phone and the priority on your PC keeps both changes. XP is recorded as events, so points earned on each device add up instead of overwriting each other. |
 | **Or iCloud, or OneDrive** | Each workspace can sync through iCloud instead (iPhone, iPad and Mac; no sign-in), or a Microsoft account's OneDrive (personal, or work or school; Android, iPhone, iPad, Mac and Windows). Settings → Sync → Connect asks which. OneDrive keeps the files in a visible **Apps/Gumption** folder that the app can't see past. |
-| **Backups** | "Back up to Drive" (or "to OneDrive") saves a readable JSON copy of a workspace to your Drive (or Apps/Gumption/Backups). |
+| **Backups** | "Back up to Drive" (or "to OneDrive") saves a backup file of that workspace to your Drive (or Apps/Gumption/Backups), in the same format as Settings → Save a backup file, so Restore takes it. |
 | **Guard rails** | The app warns you if the Work workspace is connected to a personal Gmail account. A sync badge shows status, and "Reconnect" appears if Google signs a device out. |
 
 Without Google setup, the app works exactly as before, storing everything on the device.

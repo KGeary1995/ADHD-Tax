@@ -15,6 +15,7 @@ import 'picker_controller.dart';
 /// The best errand run for the time and workspaces set on Home. Home only
 /// suggests it when "Can go out" is on; the screen shows it either way.
 final errandRunProvider = Provider<ErrandRun?>((ref) {
+  ref.watch(pickerTickProvider); // a snoozed errand coming back
   final inputs = ref.watch(pickerInputsProvider);
   return planErrandRun(
     ref.watch(tasksProvider),

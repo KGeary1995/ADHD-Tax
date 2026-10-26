@@ -60,7 +60,16 @@
     // Keeps a copy of the app so the home-screen version opens offline.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('offline.js').catch(() => {});
+        navigator.serviceWorker.register('offline.js')
+          .then(() => navigator.serviceWorker.ready)
+          .then((reg) => {
+            // What this first visit loaded before the worker ran: it saves
+            // them, so the next launch opens offline (see offline.js).
+            const urls = [location.href].concat(
+              performance.getEntriesByType('resource').map((e) => e.name));
+            if (reg.active) reg.active.postMessage({ warm: urls });
+          })
+          .catch(() => {});
       });
     }
   </script>

@@ -100,13 +100,18 @@ class RewardsController extends Notifier<List<Reward>> {
       );
 }
 
-/// Rewards bought, newest first.
+/// Rewards bought, newest first. A workspace this device doesn't show
+/// keeps its reward names to itself, as in Progress.
 final redemptionsProvider = Provider<List<ProgressEvent>>((ref) {
   ref.watch(replicasProvider.select((s) => s.eventsVersion));
+  final shown = ref.watch(deviceWorkspacesProvider).shown;
   return [
-    for (final (_, r) in ref.read(replicasProvider).entries)
+    for (final (ws, r) in ref.read(replicasProvider).entries)
       for (final e in r.collection(collEvents).entries)
         if (!e.value.isDeleted && e.value.values['kind'] == 'redeemed')
-          ProgressEvent.fromJson(e.key, e.value.values),
+          if (ProgressEvent.fromJson(e.key, e.value.values) case final event)
+            shown.contains(ws)
+                ? event
+                : event.copyWith(label: hiddenLabel(event, ws)),
   ]..sort((a, b) => b.at.compareTo(a.at));
 });
