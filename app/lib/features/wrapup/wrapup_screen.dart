@@ -92,9 +92,7 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
         )
         .toList();
     final started = all.where((t) => _sameDay(t.startedAt, now)).length;
-    final xpToday = progress.recent
-        .where((r) => _sameDay(r.at, now))
-        .fold(0, (a, r) => a + r.amount);
+    final xpToday = progress.xpOn(now);
     final inProgress = all.where((t) => t.status == TaskStatus.doing).toList();
 
     // Tomorrow morning, with plenty of time and no place restrictions:

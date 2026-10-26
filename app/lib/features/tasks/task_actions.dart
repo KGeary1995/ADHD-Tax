@@ -39,11 +39,10 @@ void markDoneWithUndo(BuildContext context, WidgetRef ref, Task t) {
 void archiveWithUndo(BuildContext context, WidgetRef ref, Task t) {
   final tasks = ref.read(tasksProvider.notifier);
   tasks.setStatus(t.id, TaskStatus.archived);
-  _undoBar(
-    ScaffoldMessenger.of(context),
-    'Archived: ${t.title}',
-    () => tasks.restore(t),
-  );
+  final archived = tasks.byId(t.id);
+  _undoBar(ScaffoldMessenger.of(context), 'Archived: ${t.title}', () {
+    if (archived != null) tasks.revert(t, archived);
+  });
 }
 
 void deleteWithUndo(BuildContext context, WidgetRef ref, Task t) {

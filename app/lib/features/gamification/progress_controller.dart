@@ -151,6 +151,7 @@ class ProgressController extends Notifier<ProgressStats> {
       award,
       CelebrationKind.completed,
       (e) => e.copyWith(
+        taskId: t.id,
         completed: 1,
         ughCompleted: t.ugh >= 2 ? 1 : 0,
         accurate:

@@ -38,6 +38,13 @@ class _VoiceButtonState extends State<VoiceButton> {
     if (mounted && _listening) setState(() => _listening = false);
   }
 
+  void _onStatus(String status) {
+    if (status == SpeechToText.doneStatus ||
+        status == SpeechToText.notListeningStatus) {
+      _stopped();
+    }
+  }
+
   Future<void> _toggle() async {
     final speech = _speech ??= SpeechToText();
     if (_listening) {
@@ -48,14 +55,14 @@ class _VoiceButtonState extends State<VoiceButton> {
     var ready = false;
     try {
       ready = await speech.initialize(
-        onStatus: (status) {
-          if (status == SpeechToText.doneStatus ||
-              status == SpeechToText.notListeningStatus) {
-            _stopped();
-          }
-        },
+        onStatus: _onStatus,
         onError: (_) => _stopped(),
       );
+      // The recognizer is shared and only initializes once, keeping the
+      // first button's callbacks: point them at this one.
+      speech
+        ..statusListener = _onStatus
+        ..errorListener = (_) => _stopped();
     } on Object {
       ready = false;
     }

@@ -45,6 +45,7 @@ class ProgressStats {
     this.errandsByDay = const {},
     this.completionsByDay = const {},
     this.startsByDay = const {},
+    this.xpByDay = const {},
     this.recent = const [],
     this.activeDays = const {},
     this.unlocked = const {},
@@ -71,6 +72,10 @@ class ProgressStats {
   /// yyyy-mm-dd → tasks started that day (drawn as the constellation).
   final Map<String, int> startsByDay;
 
+  /// yyyy-mm-dd → XP earned that day (the wrap-up's total; [recent] is
+  /// capped, so it can't be summed for a busy day).
+  final Map<String, int> xpByDay;
+
   /// Newest first, capped at [recentCap].
   final List<XpLogEntry> recent;
   final Set<DateTime> activeDays;
@@ -87,6 +92,8 @@ class ProgressStats {
 
   int startedOn(DateTime day) => startsByDay[dayKey(day)] ?? 0;
 
+  int xpOn(DateTime day) => xpByDay[dayKey(day)] ?? 0;
+
   ProgressStats copyWith({
     int? xp,
     int? coins,
@@ -101,6 +108,7 @@ class ProgressStats {
     Map<String, int>? errandsByDay,
     Map<String, int>? completionsByDay,
     Map<String, int>? startsByDay,
+    Map<String, int>? xpByDay,
     List<XpLogEntry>? recent,
     Set<DateTime>? activeDays,
     Map<String, DateTime>? unlocked,
@@ -120,6 +128,7 @@ class ProgressStats {
       errandsByDay: errandsByDay ?? this.errandsByDay,
       completionsByDay: completionsByDay ?? this.completionsByDay,
       startsByDay: startsByDay ?? this.startsByDay,
+      xpByDay: xpByDay ?? this.xpByDay,
       recent: recent ?? this.recent,
       activeDays: activeDays ?? this.activeDays,
       unlocked: unlocked ?? this.unlocked,
@@ -141,6 +150,7 @@ class ProgressStats {
     'errandsByDay': errandsByDay,
     'completionsByDay': completionsByDay,
     'startsByDay': startsByDay,
+    'xpByDay': xpByDay,
     'recent': [for (final r in recent) r.toJson()],
     'activeDays': [for (final d in activeDays) d.toIso8601String()],
     'unlocked': {
@@ -165,6 +175,7 @@ class ProgressStats {
       errandsByDay: _intMap(j['errandsByDay']),
       completionsByDay: _intMap(j['completionsByDay']),
       startsByDay: _intMap(j['startsByDay']),
+      xpByDay: _intMap(j['xpByDay']),
       recent: [
         for (final r in j['recent'] as List<Object?>? ?? const [])
           XpLogEntry.fromJson(r as Map<String, Object?>),

@@ -62,6 +62,21 @@ class TemplatesController extends Notifier<List<Template>> {
     return saved;
   }
 
+  /// The editor's Save: applies only what changed between [original] (as
+  /// the editor opened) and [edited], on top of the template as it is now,
+  /// so a change synced in meanwhile isn't undone. Deleted meanwhile, it
+  /// comes back as edited.
+  Template saveEdits(Template original, Template edited) {
+    final latest = byId(original.id);
+    if (latest == null) return save(edited);
+    final before = original.toJson();
+    final merged = latest.toJson();
+    edited.toJson().forEach((k, v) {
+      if (before[k] != v) merged[k] = v;
+    });
+    return save(Template.fromJson(merged));
+  }
+
   void delete(Template t) => ref
       .read(replicasProvider.notifier)
       .write(

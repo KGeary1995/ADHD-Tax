@@ -22,6 +22,7 @@ class SyncState {
     this.uploadedClock,
     this.lastSyncedAt,
     this.email,
+    this.uploadOwed = false,
   });
 
   final String? ownFileId;
@@ -35,18 +36,25 @@ class SyncState {
   final DateTime? lastSyncedAt;
   final String? email;
 
+  /// Other devices' changes were merged and saved here but not uploaded
+  /// yet: the next round rewrites our file even with no local edits.
+  /// Stored, so a restart in between doesn't forget it.
+  final bool uploadOwed;
+
   SyncState copyWith({
     String? ownFileId,
     Map<String, String>? seen,
     String? uploadedClock,
     DateTime? lastSyncedAt,
     String? email,
+    bool? uploadOwed,
   }) => SyncState(
     ownFileId: ownFileId ?? this.ownFileId,
     seen: seen ?? this.seen,
     uploadedClock: uploadedClock ?? this.uploadedClock,
     lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
     email: email ?? this.email,
+    uploadOwed: uploadOwed ?? this.uploadOwed,
   );
 
   Map<String, Object?> toJson() => {
@@ -55,6 +63,7 @@ class SyncState {
     'uploadedClock': uploadedClock,
     'lastSyncedAt': lastSyncedAt?.toIso8601String(),
     'email': email,
+    if (uploadOwed) 'uploadOwed': true,
   };
 
   factory SyncState.fromJson(Map<String, Object?> j) => SyncState(
@@ -65,6 +74,7 @@ class SyncState {
         ? null
         : DateTime.parse(j['lastSyncedAt'] as String),
     email: j['email'] as String?,
+    uploadOwed: j['uploadOwed'] == true,
   );
 }
 
@@ -101,10 +111,13 @@ class SyncCancelled implements Exception {
 ///
 /// [onMerged] runs after the downloads merged something and before the
 /// upload, so the caller can save and show them even if the upload then
-/// fails. [forceUpload] rewrites our file even without new local writes:
-/// a previous round merged changes but failed to upload them. [current] is
-/// checked after every network call; once false, the round stops with
-/// [SyncCancelled] before touching [replica] again.
+/// fails; it also runs when a later download fails, so what already merged
+/// isn't left unsaved and unshown. [SyncState.uploadOwed] rewrites our file
+/// even without new local writes. [checkOwn] also merges our own file when
+/// it changed since we last looked: after this device's storage is rolled
+/// back (an OS snapshot), the cloud copy can be newer than local data.
+/// [current] is checked after every network call; once false, the round
+/// stops with [SyncCancelled] before touching [replica] again.
 Future<SyncOutcome> syncOnce({
   required Replica replica,
   required RemoteStore remote,
@@ -112,7 +125,7 @@ Future<SyncOutcome> syncOnce({
   required SyncState state,
   required DateTime Function() now,
   Future<void> Function()? onMerged,
-  bool forceUpload = false,
+  bool checkOwn = false,
   bool Function()? current,
 }) async {
   void check() {
@@ -127,23 +140,31 @@ Future<SyncOutcome> syncOnce({
   var merged = false;
   String? ownFileId = state.ownFileId;
 
-  for (final f in files) {
-    if (f.name == ownName) {
-      ownFileId ??= f.id;
-      continue;
+  try {
+    for (final f in files) {
+      if (f.name == ownName) {
+        ownFileId ??= f.id;
+        if (!checkOwn) continue;
+      }
+      if (seen[f.name] == f.checksum) continue;
+      try {
+        final bytes = await remote.read(f.id);
+        check();
+        final theirs = Replica.decode(utf8.decode(bytes));
+        if (replica.merge(theirs, now())) merged = true;
+        seen[f.name] = f.checksum;
+      } on FormatException {
+        skipped.add(f.name);
+      } on TypeError {
+        skipped.add(f.name);
+      }
     }
-    if (seen[f.name] == f.checksum) continue;
-    try {
-      final bytes = await remote.read(f.id);
-      check();
-      final theirs = Replica.decode(utf8.decode(bytes));
-      if (replica.merge(theirs, now())) merged = true;
-      seen[f.name] = f.checksum;
-    } on FormatException {
-      skipped.add(f.name);
-    } on TypeError {
-      skipped.add(f.name);
-    }
+  } on SyncCancelled {
+    rethrow;
+  } on Object {
+    // A later file failed: save and show what the earlier ones brought.
+    if (merged && onMerged != null) await onMerged();
+    rethrow;
   }
 
   // Our own file went missing (deleted in Drive, or a different account):
@@ -165,7 +186,7 @@ Future<SyncOutcome> syncOnce({
   if (ownFileId == null ||
       local != state.uploadedClock ||
       merged ||
-      forceUpload) {
+      state.uploadOwed) {
     final bytes = utf8.encode(replica.encode());
     if (ownFileId == null) {
       ownFileId = await remote.create(ownName, bytes);
@@ -181,6 +202,7 @@ Future<SyncOutcome> syncOnce({
       seen: seen,
       uploadedClock: uploaded ? local : state.uploadedClock,
       lastSyncedAt: now(),
+      uploadOwed: uploaded ? false : state.uploadOwed,
     ),
     merged: merged,
     uploaded: uploaded,

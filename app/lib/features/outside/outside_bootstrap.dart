@@ -159,9 +159,14 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
     'alt${n}Route': _focusRoute(s),
   };
 
-  String _focusRoute(Suggestion s, {int? min}) => Uri(
+  /// [justFive] is the "Just 5 minutes" start: five minutes with the
+  /// Keep going / Stop here ending, as from Today.
+  String _focusRoute(Suggestion s, {bool justFive = false}) => Uri(
     path: '/focus/${s.task.id}',
-    queryParameters: {'min': '${min ?? s.plannedMin}'},
+    queryParameters: {
+      'min': justFive ? '5' : '${s.plannedMin}',
+      if (justFive) 'five': '1',
+    },
   ).toString();
 
   Map<String, String> _cardData(Suggestion s) {
@@ -193,7 +198,7 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
       'length': time,
       if (lines.isNotEmpty) 'line1': lines[0],
       if (lines.length > 1) 'line2': lines[1],
-      'fiveRoute': _focusRoute(s, min: 5),
+      'fiveRoute': _focusRoute(s, justFive: true),
     };
   }
 

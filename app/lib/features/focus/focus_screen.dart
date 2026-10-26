@@ -53,6 +53,11 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
 
   /// "A new star." shows for the first moments, then the timer.
   bool _intro = true;
+
+  /// Opened from an old link (a widget, a notification, another device's
+  /// stale route) for a task that's already done or archived: nothing
+  /// starts until "Start it again".
+  bool _alreadyDone = false;
   int _startXp = 0;
   Timer? _introTimer;
 
@@ -85,24 +90,49 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final task = ref.read(tasksProvider.notifier).byId(widget.taskId);
       if (task == null) return;
-      ref.read(tasksProvider.notifier).markStarted(task.id);
-      // XP for starting — the hard part — before any work is done.
-      final started = ref
-          .read(progressProvider.notifier)
-          .recordStart(task, panic: widget.panic);
-      final level = ref.read(settingsProvider).celebration;
-      if (level == CelebrationLevel.off) {
-        setState(() => _intro = false);
-      } else {
-        setState(() => _startXp = started.award.total);
-        _introTimer = Timer(
-          Duration(milliseconds: context.reduceMotion ? 1200 : 2600),
-          _endIntro,
-        );
+      if (task.status == TaskStatus.done ||
+          task.status == TaskStatus.archived) {
+        setState(() {
+          _alreadyDone = true;
+          _intro = false;
+          _runningSince = null;
+        });
+        return;
       }
-      _syncNotification();
-      _ambient.play(ref.read(companyProvider).sound);
+      _begin(task);
     });
+  }
+
+  /// Starts the session: marks the task started and awards start XP.
+  void _begin(Task task) {
+    ref.read(tasksProvider.notifier).markStarted(task.id);
+    // XP for starting — the hard part — before any work is done.
+    final started = ref
+        .read(progressProvider.notifier)
+        .recordStart(task, panic: widget.panic);
+    final level = ref.read(settingsProvider).celebration;
+    if (level == CelebrationLevel.off) {
+      setState(() => _intro = false);
+    } else {
+      setState(() => _startXp = started.award.total);
+      _introTimer = Timer(
+        Duration(milliseconds: context.reduceMotion ? 1200 : 2600),
+        _endIntro,
+      );
+    }
+    _syncNotification();
+    _ambient.play(ref.read(companyProvider).sound);
+  }
+
+  void _startAgain(Task task) {
+    ref.read(tasksProvider.notifier).reopen(task.id);
+    setState(() {
+      _alreadyDone = false;
+      _intro = true;
+      _banked = Duration.zero;
+      _runningSince = _now();
+    });
+    _begin(task);
   }
 
   void _endIntro() {
@@ -432,6 +462,38 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(),
         body: const Center(child: Text('That task no longer exists.')),
+      );
+    }
+    if (_alreadyDone) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(Gap.s7),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'This one\'s already done.',
+                  textAlign: TextAlign.center,
+                  style: s.display(22),
+                ),
+                const SizedBox(height: Gap.s3),
+                Text(
+                  task.title,
+                  textAlign: TextAlign.center,
+                  style: s.body(color: s.ink2),
+                ),
+                const SizedBox(height: Gap.s7),
+                PrimaryButton(
+                  label: 'Start it again',
+                  onPressed: () => _startAgain(task),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
     final paused = _runningSince == null;

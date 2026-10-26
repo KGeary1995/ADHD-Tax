@@ -2,7 +2,26 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-25 (Android, web): fixes from a code audit
+## Next build — 2026-10-25 (Android, web): fixes from a second code audit
+- **Sync can't lose a download after a failed save.** If this device couldn't save what it downloaded (storage full, say), it no longer marks those files as read, so after a restart it fetches them again. What one file brought is also kept and shown when a later file fails to download.
+- **An upload still owed survives a restart:** changes merged from another device but not yet uploaded (offline halfway through) go up on the next sync after reopening the app.
+- **A device restored from an old phone backup** (the phone's own, not Gumption's backup file) picks up its newer copy in the cloud instead of overwriting it.
+- **Updating from a very early build** keeps the old tasks in place until they're saved in the new format.
+- **Templates:** saving a template you had open keeps changes synced in meanwhile (its checklist, say), as tasks and notes already did.
+- **Undo is gentler:** Undo after Done, Archive or a weekly-reset choice puts back only what that tap changed, so an edit made in the seconds before (here or on another device) stays.
+- **An old link doesn't restart a finished task.** Opening Focus for a task already done (an old widget button, a notification) says "This one's already done." with **Start it again**, instead of quietly reopening it and giving start XP.
+- **The home-screen widget's Just 5 minutes** now ends like Today's: *Keep going* or *Stop here, that counts*.
+- **Lists keep up with the clock:** the Tasks list moves a snoozed task out of Coming up when its time comes, Today shows a check-back when its date arrives, and the errand run takes in an errand whose snooze ended, all without reopening the app.
+- **"Back up to Drive" / "to OneDrive" saves a full backup** of that workspace (notes, projects, templates and rewards too, not just tasks and XP) in the same format as Save a backup file, so **Restore from a backup file** takes it. It holds only that workspace, since it lives in that workspace's account.
+- **Date pickers open on any date:** a task due years ago (or far ahead) no longer stops the date picker opening.
+- **Wrap-up counts all of a busy day's XP**, not just the last 30 entries.
+- **Two devices finishing the same task offline** count it once (same day). Finishing a task again on another day still counts.
+- **Removing your AI key while the app is starting** keeps it removed, and **Disconnect from Microsoft** while a sign-in was being renewed no longer saves that sign-in again.
+- **The mic button** in a second note or task stops showing "Stop listening" when dictation ends.
+- **Web app:** the first visit now saves the app for offline use, so the very next launch opens without a connection (before, it took a second visit).
+- Not yet tried on a phone; covered by tests (328).
+
+## Build 135 / iPhone 135 — 2026-10-25: fixes from a code audit
 - **Sync keeps what it downloads** even when the upload after it fails (offline halfway through): tasks from your other devices show at once and are saved, and the next round uploads them. Before, they could stay invisible.
 - **A warning if this device can't save** (storage full, say): a strip at the top says so and the app keeps retrying, instead of looking saved when it isn't.
 - **An editor left open no longer undoes newer changes.** Saving a task saves only what you changed in the editor, so a task marked done in the list or on another device meanwhile stays done. Closing a note you didn't type in leaves it alone, so a note deleted on another device doesn't come back.

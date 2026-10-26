@@ -132,50 +132,70 @@ class TasksController extends Notifier<List<Task>> {
     return t.copyWith(actualMin: (t.actualMin ?? 0) + minutesWorked);
   });
 
-  /// Marks it done. A repeating task also gets its next copy, which is
-  /// returned (for the "next one" message) with whether this call made it,
-  /// so an undo takes back only a copy it created; see [undoComplete].
-  ({Task? next, bool created}) complete(
+  /// Marks it done. Returns the task as done (what [undoComplete] reverts)
+  /// and, for a repeating task, its next copy (for the "next one" message)
+  /// with whether this call made it, so an undo takes back only a copy it
+  /// created.
+  ({Task? done, Task? next, bool created}) complete(
     String id, {
     required int minutesWorked,
   }) {
-    const none = (next: null, created: false);
     final t = byId(id);
-    if (t == null) return none;
+    if (t == null) return (done: null, next: null, created: false);
     final now = _now();
-    _write(
-      t.copyWith(
-        status: TaskStatus.done,
-        completedAt: now,
-        actualMin: minutesWorked == 0
-            ? t.actualMin
-            : (t.actualMin ?? 0) + minutesWorked,
-        followUpAt: null,
-        updatedAt: now,
-      ),
+    final done = t.copyWith(
+      status: TaskStatus.done,
+      completedAt: now,
+      actualMin: minutesWorked == 0
+          ? t.actualMin
+          : (t.actualMin ?? 0) + minutesWorked,
+      followUpAt: null,
+      updatedAt: now,
     );
+    _write(done);
     final next = nextOccurrence(t, now);
-    if (next == null) return none;
+    if (next == null) return (done: done, next: null, created: false);
     // Already there if another device finished this one first, or it was
     // done, reopened and done again here. Then it isn't ours to undo.
     final existing = byId(next.id);
-    if (existing != null) return (next: existing, created: false);
+    if (existing != null) return (done: done, next: existing, created: false);
     _write(next);
-    return (next: next, created: true);
+    return (done: done, next: next, created: true);
   }
 
-  /// Undo for [complete]: puts [before] back and removes the next copy if
-  /// that completion made it and nobody has changed it since.
-  void undoComplete(Task before, ({Task? next, bool created}) done) {
-    restore(before);
-    final next = done.next;
-    if (next != null && done.created && byId(next.id) == next) {
+  /// Undo for [complete]: reverts what it changed on [before] and removes
+  /// the next copy if that completion made it and nobody has changed it
+  /// since.
+  void undoComplete(Task before, ({Task? done, Task? next, bool created}) r) {
+    if (r.done case final done?) revert(before, done);
+    final next = r.next;
+    if (next != null && r.created && byId(next.id) == next) {
       delete(next.id);
     }
   }
 
-  /// Puts back a task exactly as it was before a change: undo for done,
-  /// archive and delete. Also revives a deleted one.
+  /// Undo for a change that turned [before] into [after] (done, archive,
+  /// a weekly-reset choice): puts back only the fields that change set
+  /// and nobody has changed since, so an edit made meanwhile (here, or
+  /// synced in during the Undo window) survives. A task deleted since is
+  /// left deleted.
+  void revert(Task before, Task after) {
+    final latest = byId(before.id);
+    if (latest == null) return;
+    final was = before.toJson();
+    final changed = after.toJson();
+    final merged = latest.toJson();
+    var any = false;
+    changed.forEach((k, v) {
+      if (k == 'updatedAt' || was[k] == v || merged[k] != v) return;
+      merged[k] = was[k];
+      any = true;
+    });
+    if (!any) return;
+    _write(Task.fromJson(merged).copyWith(updatedAt: _now()));
+  }
+
+  /// Puts back a deleted task as it was: undo for delete.
   void restore(Task before) => _write(before.copyWith(updatedAt: _now()));
 
   void reopen(String id) => _update(id, (t) {

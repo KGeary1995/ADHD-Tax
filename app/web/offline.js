@@ -9,6 +9,36 @@ const SLOW_MS = 4000;
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
+// The first visit loads the app before this worker is running, so none of
+// it went through the fetch handler below. The page sends the list of
+// what it loaded (index.html) and it's saved now, so the very next launch
+// opens offline.
+self.addEventListener('message', (event) => {
+  const urls = event.data && event.data.warm;
+  if (Array.isArray(urls)) event.waitUntil(warm(urls));
+});
+
+async function warm(urls) {
+  const cache = await caches.open(CACHE);
+  await Promise.all(['./', ...urls].map(async (u) => {
+    let url;
+    try {
+      url = new URL(u, self.location.href);
+    } catch (_) {
+      return;
+    }
+    if (url.origin !== self.location.origin || url.pathname.includes('/auth/')) return;
+    url.hash = '';
+    if (await cache.match(url.href)) return;
+    try {
+      const res = await fetch(url.href);
+      if (res.ok) await cache.put(url.href, res);
+    } catch (_) {
+      // Offline already: whatever loads next is saved by the fetch handler.
+    }
+  }));
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);

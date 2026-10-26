@@ -168,7 +168,11 @@ void main() {
     expect(bridge.widgetUpdates.last.containsKey('alt1Title'), isFalse);
     expect(bridge.widgetUpdates.last['startRoute'], '/focus/${t.id}?min=15');
     // 1.1 widgets: header, length, the step lines and a 5 min start.
-    expect(bridge.widgetUpdates.last['fiveRoute'], '/focus/${t.id}?min=5');
+    // Five minutes with the Keep going / Stop here ending, as from Today.
+    expect(
+      bridge.widgetUpdates.last['fiveRoute'],
+      '/focus/${t.id}?min=5&five=1',
+    );
     expect(bridge.widgetUpdates.last['length'], '15 min');
     expect(bridge.widgetUpdates.last['header'], t.workspace.label);
     expect(bridge.widgetUpdates.last['work'], isNotNull);

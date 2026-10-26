@@ -63,13 +63,16 @@ final aiSettingsProvider = NotifierProvider<AiSettingsController, AiSettings>(
 class AiSettingsController extends Notifier<AiSettings> {
   static const _workKey = 'ai.allowWork';
 
+  /// The key was saved or removed since startup: the keychain read that
+  /// started then is older, whatever it returns.
+  bool _changed = false;
+
   @override
   AiSettings build() {
     final allowWork = ref.read(keyValueStoreProvider).read(_workKey) == 'true';
     // The keychain is async; the key arrives a moment after startup.
     ref.read(aiKeyStoreProvider).read().then((k) {
-      // Skip if a key was saved meanwhile: that one is newer.
-      if (k != null && ref.mounted && !state.hasKey) {
+      if (k != null && ref.mounted && !_changed) {
         state = AiSettings(key: k, allowWork: state.allowWork);
       }
     });
@@ -78,6 +81,7 @@ class AiSettingsController extends Notifier<AiSettings> {
 
   Future<void> setKey(String? key) async {
     final k = key?.trim();
+    _changed = true;
     await ref.read(aiKeyStoreProvider).write(k);
     state = AiSettings(
       key: k == null || k.isEmpty ? null : k,

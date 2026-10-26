@@ -40,7 +40,7 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | Settings from any tab (phone): a gear at the top right of Today, Tasks, Notes and Progress; tab bar stays on Settings; back returns to the tab it came from | Done; merged 2026-10-25 (PR #10) | Not yet (tests and web screenshots at 360 and 390 wide) |
 | Phase 3+ (Calendar, table/timeline views) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-25 (PR #11, OneDrive sync, merged and verified on Android and iPhone; iPhone CI reuses one saved development certificate).
+Last updated: 2026-10-25 (PR #14, fixes from a code audit, merged and shipped as Build 135 / iPhone 135; fixes from a second audit on `fix/full-audit`).
 
 ## Toolchain
 
@@ -58,7 +58,7 @@ Last updated: 2026-10-25 (PR #11, OneDrive sync, merged and verified on Android 
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-TZ=America/Los_Angeles flutter test  # 308 tests, ~65 s; CI uses this zone so date code meets a clock change
+TZ=America/Los_Angeles flutter test  # 328 tests, ~70 s; CI uses this zone so date code meets a clock change
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
@@ -100,7 +100,7 @@ app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks
 
 ## How a change ships
 
-1. `main` is the stable copy (PR #1 merged 2026-10-22; PR #7, the iPhone sync fix and the 1.1 redesign, 2026-10-25; PR #8, wording for everyone, PR #9, iCloud sync, PR #10, Settings from any tab, and PR #11, OneDrive sync, and PR #12, OneDrive on the web, 2026-10-25). Work on a feature branch made from the latest `main` and open a new PR into `main` for each batch; the owner decides when to merge. A merged PR is finished: follow-up work goes on a fresh branch from `main`, never on top of the merged history.
+1. `main` is the stable copy (PR #1 merged 2026-10-22; PR #7, the iPhone sync fix and the 1.1 redesign, 2026-10-25; PR #8, wording for everyone, PR #9, iCloud sync, PR #10, Settings from any tab, and PR #11, OneDrive sync, and PR #12, OneDrive on the web, PR #13, store screenshots, and PR #14, fixes from a code audit, 2026-10-25). Work on a feature branch made from the latest `main` and open a new PR into `main` for each batch; the owner decides when to merge. A merged PR is finished: follow-up work goes on a fresh branch from `main`, never on top of the merged history.
 2. `./tool/check.sh` must pass.
 3. Push. CI runs once per commit (push only; docs-only commits, i.e. `*.md` and `docs/`, skip CI entirely): `test` (format, analyze, test, web build), then in parallel:
    - **Android**: builds the APK and replaces the `android-latest` release asset. The phone download link never changes.
@@ -151,7 +151,9 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - **Actions minutes run out** (2026-10-22: every job, even Linux, "failed" in 2–3 s with no runner and no logs). The private repo gets 2,000 minutes a month; macOS counts 10×, Windows 2×. CI now runs once per commit, skips docs-only commits, and builds Windows/Mac/iOS only on request. Batch `[mac]` builds. If jobs fail instantly with no runner, check github.com/settings/billing before debugging.
 - **Never delete and recreate the rolling releases** (`android-latest`, `macos-latest`, `play-latest`). Build 100 deleted `android-latest` and then got HTTP 403 creating it again, leaving the owner with no download. The likely cause: GitHub refuses the build token creating a tag at a commit whose `.github/workflows` file differs from the default branch's. The publish steps now `gh release upload --clobber` into the existing release and only create one (anchored on the default branch) if it's missing. The same cause probably explains an earlier 403 on a `workflow_dispatch` run.
 - **Calendar days, not 24 hours:** step dates with `DateTime(y, m, d + n)`, never `.add(Duration(days: n))` on a local midnight, which lands on the wrong date across a clock change (quick add's "in 2 weeks" and streaks both broke). Tests run in Los Angeles time (CI and `check.sh`) so this shows up; passing in UTC proves nothing.
-- **Editors save what changed, onto the latest record** (`TasksController.saveEdits`, the note editor's `_base`). Writing the whole copy taken when the screen opened undoes anything done meanwhile, in the list or synced in from another device.
+- **Editors save what changed, onto the latest record** (`TasksController.saveEdits`, `TemplatesController.saveEdits`, the note editor's `_base`), and **Undo reverts only what its action changed** (`TasksController.revert`). Writing the whole copy taken when the screen opened (or before the tap) undoes anything done meanwhile, in the list or synced in from another device.
+- **Anything that sorts tasks by the time watches `pickerTickProvider`** (the picks, errand run, Tasks' Coming up, Today's check-back). Reading `clockProvider` alone in a build method goes stale: nothing rebuilds when a snooze or check-back time passes.
+- **Sync checkpoints only what's on disk.** `sync.v1.<ws>` (files already read) is saved only when the workspace isn't in `ReplicaSet.unsaved`, and an upload owed is stored in it (`SyncState.uploadOwed`). See docs/ARCHITECTURE.md → sync round.
 - Home changes after 5 pm (the "Wrap up" link). A layout that fits in the afternoon overflowed in the evening and only failed tests run after 5 pm; `narrow_layout_test` now pins the clock to 9 pm. Pin `clockProvider` in any test whose layout depends on the time.
 - **Menus and sheets on tab screens need `useRootNavigator: true`** (`PopupMenuButton`, `showModalBottomSheet`). The tabs live in go_router's nested shell navigator, so without it they open *under* the floating nav bar and bottom items (e.g. Delete) can't be tapped. `test/flutter_test_config.dart` makes tests fail on any tap that wouldn't hit its target.
 - The focus screen ticks every second and the buddy dot animates forever, so `pumpAndSettle()` there can hang: pump fixed durations instead (`frames()` in `reset_errands_company_ai_test.dart`). Override `ambientPlayerProvider`, `aiKeyStoreProvider` and `httpClientProvider` in tests; the real ones need native plugins or the network.
