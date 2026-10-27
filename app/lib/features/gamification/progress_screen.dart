@@ -35,7 +35,11 @@ class ProgressScreen extends ConsumerWidget {
       ('${p.started}', 'Started'),
       ('${p.completed}', 'Finished'),
       (shortMinutes(p.focusMinutes), 'Focused'),
-      ('$streak', 'Day streak'),
+      // No streak right now: show every day that counted, never a zero
+      // (no shame mechanics).
+      streak > 0
+          ? ('$streak', 'Day streak')
+          : ('${p.activeDays.length}', 'Days active'),
       ('${p.ughCompleted}', 'Dreaded, done'),
       ('${p.coins}', 'Coins'),
     ];

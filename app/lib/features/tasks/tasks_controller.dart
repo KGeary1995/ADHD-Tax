@@ -250,7 +250,14 @@ class TasksController extends Notifier<List<Task>> {
     }
     replicas.write(
       t.workspace,
-      (r, now) => r.put(collTasks, t.id, taskFields(t), now),
+      (r, now) => putChanged(
+        r,
+        collTasks,
+        t.id,
+        taskFields(t),
+        (j) => Task.fromJson(j).toJson(),
+        now,
+      ),
       tasks: true,
     );
   }

@@ -122,7 +122,7 @@ Apple's labels follow the same reasoning as Play's Data safety.
 
 | Data type | Collected | Linked to the user | Used for tracking | Purpose |
 |---|---|---|---|---|
-| Contact Info → Email Address | Yes (only with Google sync) | Yes | No | App Functionality |
+| Contact Info → Email Address | Yes (only with Google or Microsoft sync) | Yes | No | App Functionality |
 | User Content → Other User Content | Yes (sync and the optional AI helper) | Yes | No | App Functionality |
 
 Everything else: not collected.
@@ -169,7 +169,8 @@ No login, credentials or sample files are needed. Everything works offline on th
 - Home Screen widget: touch and hold the Home Screen → Edit → Add Widget → Gumption.
 
 4. External services
-- Google Sign-In and the Google Drive API (the drive.appdata scope only): optional sync of the user's own tasks to a hidden app folder in their own Google Drive.
+- Google Sign-In and the Google Drive API (the drive.appdata and drive.file scopes, both non-sensitive): optional sync of the user's own tasks to a hidden app folder in their own Google Drive (drive.appdata), and a backup file the user asks for, saved to their Drive (drive.file: only files the app creates).
+- Microsoft sign-in and the Microsoft Graph API (Files.ReadWrite.AppFolder, User.Read, offline_access): the same optional sync through OneDrive's app folder; User.Read shows which account is connected.
 - (From 1.2) iCloud Drive: optional sync to a hidden folder of the user's own iCloud, with no sign-in. Microsoft sign-in and Microsoft Graph (Files.ReadWrite.AppFolder, User.Read): optional sync to the app's own Apps/Gumption folder in the user's OneDrive.
 - Anthropic API: the optional "Break it down" helper, only when the user enters their own API key. The text of one task is sent when the user taps the button.
 - Apple's Speech framework for voice entry in Quick add, and local notifications for the focus timer and reminders.

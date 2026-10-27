@@ -839,4 +839,128 @@ void main() {
       );
     });
   });
+
+  group('third audit', () {
+    test('a phone restored from a backup of another takes a new device id, '
+        'and the two then sync with each other', () async {
+      final store = MemoryStore();
+      final old = device(FakeAuth(accounts()), store: store);
+      await old.read(syncProvider(Workspace.personal).notifier).connect();
+      old.read(tasksProvider.notifier).create(title: 'Before the restore');
+      await old.read(syncProvider(Workspace.personal).notifier).syncNow();
+
+      // The new phone starts from a copy of the old one's storage.
+      final restored = device(
+        FakeAuth(accounts()),
+        store: MemoryStore({...store.data}),
+      );
+      final oldId = old.read(deviceIdProvider);
+      expect(restored.read(deviceIdProvider), oldId);
+
+      // The old phone keeps working and uploads under the shared id.
+      old.read(tasksProvider.notifier).create(title: 'Old phone, later');
+      await old.read(syncProvider(Workspace.personal).notifier).syncNow();
+
+      // The restored phone's first round finds writes it never made.
+      restored.read(tasksProvider.notifier).create(title: 'New phone');
+      await restored.read(syncProvider(Workspace.personal).notifier).connect();
+      // The round its start-up began finishes first.
+      await pumpEventQueue();
+      expect(restored.read(deviceIdProvider), isNot(oldId));
+      expect(
+        personal.drive.files.values.map((f) => f.$1).toSet(),
+        hasLength(2),
+      );
+
+      await old.read(syncProvider(Workspace.personal).notifier).syncNow();
+      Set<String> titles(ProviderContainer c) =>
+          c.read(tasksProvider).map((t) => t.title).toSet();
+      expect(titles(old), contains('New phone'));
+      expect(titles(restored), contains('Old phone, later'));
+    });
+
+    test(
+      'a device that only restarted keeps its id and uploads nothing new',
+      () async {
+        final store = MemoryStore();
+        final phone = device(FakeAuth(accounts()), store: store);
+        await phone.read(syncProvider(Workspace.personal).notifier).connect();
+        phone.read(tasksProvider.notifier).create(title: 'Laundry');
+        await phone.read(syncProvider(Workspace.personal).notifier).syncNow();
+        final id = phone.read(deviceIdProvider);
+        final writes = personal.drive.writes;
+
+        final again = device(
+          FakeAuth(accounts())..connected.add(Workspace.personal),
+          store: MemoryStore({...store.data}),
+        );
+        final ctl = again.read(syncProvider(Workspace.personal).notifier);
+        await ctl.syncNow();
+        await ctl.syncNow();
+        expect(again.read(deviceIdProvider), id);
+        expect(personal.drive.writes, writes);
+      },
+    );
+
+    test('Reconnect with a different account asks before moving the '
+        'workspace there', () async {
+      final auth = FakeAuth(accounts());
+      final phone = device(auth);
+      final ctl = phone.read(syncProvider(Workspace.work).notifier);
+      await ctl.connect();
+      phone
+          .read(tasksProvider.notifier)
+          .create(title: 'Budget', workspace: Workspace.work);
+      await ctl.syncNow();
+
+      // The picker hands back the personal account this time.
+      auth.accounts[Workspace.work] = personal;
+      final other = await ctl.connect();
+      expect(other, 'kyle@gmail.com');
+      expect(personal.drive.files, isEmpty);
+      expect(phone.read(syncProvider(Workspace.work)).email, 'kyle@clinic.org');
+
+      ctl.cancelAccountSwitch();
+      expect(personal.drive.files, isEmpty);
+
+      expect(await ctl.connect(), 'kyle@gmail.com');
+      await ctl.confirmAccountSwitch();
+      expect(phone.read(syncProvider(Workspace.work)).email, 'kyle@gmail.com');
+      expect(personal.drive.files, isNotEmpty);
+    });
+
+    test('an edit made while another device moved the task lands on the '
+        'moved copy, not hidden in the old account', () async {
+      final phone = device(FakeAuth(accounts()));
+      final pc = device(FakeAuth(accounts()));
+      await connectBoth(phone);
+      await connectBoth(pc);
+      final t = phone.read(tasksProvider.notifier).create(title: 'Plan');
+      await syncAll(phone);
+      await syncAll(pc);
+
+      // The phone moves it to Work; meanwhile the PC edits its notes.
+      phone
+          .read(tasksProvider.notifier)
+          .save(t.copyWith(workspace: Workspace.work));
+      // The PC's edit comes later in time than the move.
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      final onPc = pc.read(tasksProvider.notifier).byId(t.id)!;
+      pc.read(tasksProvider.notifier).save(onPc.copyWith(notes: 'secret'));
+      await syncAll(phone);
+      await syncAll(pc);
+      await syncAll(phone);
+      await syncAll(pc);
+
+      for (final c in [phone, pc]) {
+        final moved = c.read(tasksProvider).single;
+        expect(moved.workspace, Workspace.work);
+        expect(moved.notes, 'secret');
+      }
+      final personalText = personal.drive.files.values
+          .map((f) => utf8.decode(f.$2))
+          .join();
+      expect(personalText, isNot(contains('secret')));
+    });
+  });
 }

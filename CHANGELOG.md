@@ -2,7 +2,27 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-25 (Android, web): fixes from a second code audit
+## Next build — 2026-10-26: fixes from a third code audit
+- **A new phone restored from your old one's backup syncs properly.** It used to share the old phone's sync identity, so the two overwrote each other's copy in the cloud and each missed the other's changes. The restored phone now notices and takes its own identity on its first sync. A second sync file appearing in your account is expected.
+- **Reconnect asks before moving a workspace to a different account.** If the account picker hands back another account (Android's often does), you're asked "Switch Work to …?" instead of having every Work task uploaded there.
+- **Older and newer versions can share an account safely.** A device on an older build no longer overwrites things only a newer build understands when you edit a task, note, project, template or reward.
+- **Less data used:** after the app restarts it no longer uploads your whole copy on every sync until you edit something.
+- **An edit isn't lost when another device moved the task** to the other workspace at the same time: it lands on the moved task, and nothing is left behind in the old account.
+- **One damaged sync file no longer stops a workspace syncing**, and a phone with its date set far ahead can't freeze everyone's clocks.
+- **Repeating tasks:** "monthly on the 31st" goes Jan 31, Feb 28, **Mar 31** (it used to stay on the 28th). A weekly task with no due date no longer drifts after you tap Start or Later.
+- **Quick add reads times better:** "pizza tonight at 8" is 8 pm, "gym tomorrow evening at 7" is 7 pm, "call mom at 5:30" is 5:30 pm like "at 5". "Look at 3 houses" and "Buy 1/2 gallon milk" stay titles. "Feb 30" and "4/31" aren't taken as dates, "Feb 29" means the next one, and "this weekend" on a Sunday means today.
+- **Today says "Everything's parked for later"** when every task is snoozed or waiting for its next repeat, instead of suggesting a bigger time window.
+- **The focus screen:** if time runs out while the Stop question or a sheet is open, **Finished** now leaves the screen (it used to leave you on a frozen timer). Tapping the widget's Start for the task already running opens nothing new. A session closed by opening a notification still counts its minutes. A "Time's up" alert can't arrive after you've already tapped Done, and it hides the task name on the lock screen when your phone hides sensitive content.
+- **Celebrations:** Undo and then finishing another task no longer swallows the second celebration. Finishing or starting the same task twice in a day doesn't award XP again (it used to show XP that the total then took back). Confetti respects Reduce Motion.
+- **No more "0 day streak":** Progress shows the days you were active instead.
+- **Wrap-up** doesn't keep a task you've finished since as tomorrow's first thing. **Wrap up** appears at 5 pm without reopening Today.
+- **Restoring settings from a backup** onto a new phone still asks for notification permission, so reminders arrive.
+- **Sensitive info check** (if on) catches more slips: "3/14/2012", "3/14/85", "1985-03-14", "Mrs. O'Brien", "Mr Smith", "patient SMITH", "123 45 6789".
+- **Web app:** updates reach phones on slow connections, a page never mixes old and new files, and the site can't be framed by other sites.
+- Builds are now safer: signing keys are visible only to the steps that use them.
+- Not yet tried on a phone; covered by tests (357).
+
+## Build 137 (Android, web) / 136 (iPhone, Mac) — 2026-10-26: fixes from a second code audit
 - **Sync can't lose a download after a failed save.** If this device couldn't save what it downloaded (storage full, say), it no longer marks those files as read, so after a restart it fetches them again. What one file brought is also kept and shown when a later file fails to download.
 - **An upload still owed survives a restart:** changes merged from another device but not yet uploaded (offline halfway through) go up on the next sync after reopening the app.
 - **A device restored from an old phone backup** (the phone's own, not Gumption's backup file) picks up its newer copy in the cloud instead of overwriting it.

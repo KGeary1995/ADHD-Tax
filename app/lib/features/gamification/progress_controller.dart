@@ -116,14 +116,27 @@ class ProgressController extends Notifier<ProgressStats> {
     return foldEvents(events, resetAt: resetAt);
   }
 
+  /// Start XP comes once per task per day: starting is worth celebrating,
+  /// but starting and stopping the same task again shouldn't be a way to
+  /// collect it.
   CelebrationEvent recordStart(Task t, {bool panic = false}) {
+    if (_recordedOn(ProgressKind.started, t.id, _now())) {
+      return CelebrationEvent(
+        kind: CelebrationKind.started,
+        taskTitle: t.title,
+        award: const XpAward([]),
+        levelBefore: state.level,
+        levelAfter: state.level,
+        workspace: t.workspace,
+      );
+    }
     final award = startXp(t);
     return _record(
       t.title,
       t.workspace,
       award,
       CelebrationKind.started,
-      (e) => e.copyWith(started: 1, panic: panic ? 1 : 0),
+      (e) => e.copyWith(started: 1, panic: panic ? 1 : 0, taskId: t.id),
     );
   }
 
@@ -138,6 +151,21 @@ class ProgressController extends Notifier<ProgressStats> {
     bool keptGoingAfterFive = false,
   }) {
     final now = _now();
+    // Already finished today (done, reopened and done again, or finished on
+    // another device first). Progress counts one finish per task per day
+    // (foldEvents), so celebrating XP and achievements here would show
+    // what the total then takes back.
+    if (_recordedOn(ProgressKind.completed, t.id, now)) {
+      return CelebrationEvent(
+        kind: CelebrationKind.completed,
+        taskTitle: t.title,
+        award: const XpAward([]),
+        levelBefore: state.level,
+        levelAfter: state.level,
+        quick: actualMin == null,
+        workspace: t.workspace,
+      );
+    }
     final award = completionXp(
       t,
       now: now,
@@ -158,13 +186,30 @@ class ProgressController extends Notifier<ProgressStats> {
             actualMin != null && (actualMin - t.estimateMin).abs() <= tolerance
             ? 1
             : 0,
-        oldCleared: now.difference(t.createdAt).inDays >= 7 ? 1 : 0,
+        oldCleared: calendarDaysBetween(t.createdAt, now) >= 7 ? 1 : 0,
         focusMinutes: sessionMin ?? actualMin ?? 0,
         keptGoing: keptGoingAfterFive ? 1 : 0,
         errands: t.requiresLeavingHouse ? 1 : 0,
       ),
       quick: actualMin == null,
     );
+  }
+
+  /// Whether task [id] already has a [kind] event on [day]'s date.
+  bool _recordedOn(ProgressKind kind, String id, DateTime day) {
+    final key = dayKey(day);
+    for (final (_, r) in ref.read(replicasProvider).entries) {
+      for (final e in r.collection(collEvents).entries) {
+        if (e.value.isDeleted) continue;
+        final v = e.value.values;
+        if (v['kind'] != kind.name || v['task'] != id) {
+          continue;
+        }
+        final at = DateTime.tryParse(v['at'] as String? ?? '');
+        if (at != null && dayKey(at) == key) return true;
+      }
+    }
+    return false;
   }
 
   /// Stopped before finishing — still progress, still XP.

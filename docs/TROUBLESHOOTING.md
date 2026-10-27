@@ -43,6 +43,10 @@ Symptom → cause → fix. Every entry here happened on this project; add new on
 | Web/iPhone shows **Reconnect** hourly | Browsers only get ~1 h tokens without a server | Expected; one tap. Token persists across reopenings within the hour. |
 | Android sign-in fails with `DEVELOPER_ERROR` / "Developer console is not set up correctly" | No Android OAuth client for package `com.adhdtax.adhd_tax` + SHA-1 `E9:F6:…:1F:BA`, or the web client id missing (`serverClientId`) | Create both clients in the same Google project. |
 | Web sign-in: "Error 400: origin_mismatch" or console "The given origin is not allowed for the given client ID" | The site's address isn't in the web client's Authorized JavaScript origins | Add the exact origin (scheme + host, no path). |
+| A new phone restored from the old one's backup: both seem to sync, but each misses the other's changes | Before the third audit's fixes: the restored phone had the same `device.id`, so both wrote one cloud file and skipped it when reading | Fixed: the first sync round on the restored phone notices writes under its id that it never made and takes a new id (docs/ARCHITECTURE.md → CRDT replicas → Device id). A second file appears in the account; that's expected. |
+| Reconnect asks "Switch Work to …?" | The account chosen isn't the one the workspace syncs with (Android's picker ignores which one the app asks for) | **Cancel** and Reconnect again with the right account, or **Switch** to move the workspace there (everything here is uploaded to it). |
+| Reconnect: "Couldn't tell which account that is" | The service didn't report an email address for the account | Try again; with OneDrive, check the account has an email or sign-in name. |
+| One task's field "won't change" across devices for a while | A device whose date was set ahead wrote it with a future clock; LWW keeps the latest clock | Fix that device's date. Clocks are only followed up to 10 minutes ahead (`Hlc.maxDrift`), so the rest of the data isn't pinned. Once real time passes that date, edits win again. |
 | Same task appears twice after offline edits | Shouldn't happen: ids are uuids and repeat copies use deterministic ids | Capture both devices' "Back up to Drive" JSON and inspect the `tasks` records' clocks. |
 
 ## CI
@@ -55,6 +59,9 @@ Symptom → cause → fix. Every entry here happened on this project; add new on
 | A push run shows "cancelled" | A newer push on the same branch superseded it (concurrency) | Expected; the newest run publishes. |
 | macOS job skipped | Not a `[mac]` commit, not `main`, not dispatch | Intended (10× minutes). |
 | `web-publish` succeeds but nothing deployed | Cloudflare secrets missing; the job only posts a notice | Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. |
+| Every job fails in seconds with "recent account payments have failed or your spending limit needs to be increased" | GitHub billing (seen on the owner's account 2026-10-26 in another repo) | Fix payment / spending limit at github.com/settings/billing, then re-run. Not a code problem. |
+| A step can't see a secret after the third audit | Secrets now go only into the `env:` of the step that uses them; job-level `env` holds only `HAS_…` flags | Add the secret to that step's `env:`, never to the job. |
+| An action fails to resolve after editing the workflow | Actions are pinned to commit SHAs | Get the SHA for a tag with `gh api repos/<owner>/<action>/commits/<tag> -q .sha` and keep the `# vN` comment. |
 
 ## Web build quirks
 
@@ -63,6 +70,19 @@ Symptom → cause → fix. Every entry here happened on this project; add new on
 | Page reloads itself on every load / offline mode never sticks | Flutter's default bootstrap registers its deprecated service worker, which unregisters all workers and reloads | Keep the custom `web/flutter_bootstrap.js` (no `serviceWorkerSettings`). |
 | Bottom bar under the iPhone home indicator | Flutter web ignores safe areas and drops `viewport-fit=cover` | `WebSafeArea` (`core/safe_area/`) must stay in `app.dart`. Test with `shoot.mjs … --iphone`. |
 | Web build fails to load fonts/CanvasKit behind a proxy | Default build pulls CanvasKit from gstatic | Build with `--no-web-resources-cdn`. |
+| Browser console shows "[Report Only] Refused to …" | The Content Security Policy in `app/web/_headers` is in report-only mode: it reports what it *would* block | Add the missing host to the right directive. Once a full Google, Microsoft and AI round shows no reports, switch it to enforcing (docs/DEPLOYMENT.md → Web headers). |
+| Home-screen web app still runs an old version after a deploy | It opened from the saved copy (slow or no network at launch), and then keeps to it for that session | Close it fully and reopen on a working connection; the new files were saved in the background. |
+
+## Working on the owner's Windows PC
+
+| Symptom | Fix |
+|---|---|
+| `check.sh`: `env: 'bash\r': No such file or directory` | The clone has CRLF line endings. `git config core.autocrlf false && git rm -q --cached -r . && git reset -q --hard` (AGENTS.md → Local setup on Windows). |
+| `wsl.exe ... /mnt/c/...` from Git Bash: "No such file or directory: C:/Program Files/Git/mnt/c/..." | Git Bash rewrote the path. Prefix the command with `MSYS_NO_PATHCONV=1`. |
+| `wsl.exe -- bash -c '... $PATH ...'`: "syntax error near unexpected token `('" | Windows' PATH was expanded into the command. Put the commands in a script file and run `wsl.exe -- bash /mnt/c/.../script.sh`. |
+| Flutter in WSL: "Missing unzip tool. Unable to extract Dart SDK" | `wsl -u root apt-get install -y unzip xz-utils`. |
+| A widget test fails with "A Timer is still pending even after the widget tree was disposed" | A provider started a `Timer`; `pumpApp`'s container outlives the widget tree. Keep timers in widgets (as `OutsideBootstrap` does for `pickerTickProvider` and `dayPartProvider`). |
+| A widget test: "'!keyReservation.contains(key)': is not true" building `HeroControllerScope` | A tab route was pushed over a full-screen page; go_router can't push the tab shell twice. Use `go` for tabs (`openFromOutside`). |
 
 ## Working in a Claude Code cloud session
 

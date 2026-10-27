@@ -114,7 +114,14 @@ class NotesController extends Notifier<List<Note>> {
     }
     replicas.write(
       n.workspace,
-      (r, now) => r.put(collNotes, n.id, docFields(n.toJson()), now),
+      (r, now) => putChanged(
+        r,
+        collNotes,
+        n.id,
+        docFields(n.toJson()),
+        (j) => Note.fromJson(j).toJson(),
+        now,
+      ),
       docs: true,
     );
   }
@@ -188,7 +195,14 @@ class ProjectsController extends Notifier<List<Project>> {
       .read(replicasProvider.notifier)
       .write(
         p.workspace,
-        (r, now) => r.put(collProjects, p.id, docFields(p.toJson()), now),
+        (r, now) => putChanged(
+          r,
+          collProjects,
+          p.id,
+          docFields(p.toJson()),
+          (j) => Project.fromJson(j).toJson(),
+          now,
+        ),
         docs: true,
       );
 }

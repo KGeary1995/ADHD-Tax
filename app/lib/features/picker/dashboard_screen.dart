@@ -558,6 +558,7 @@ class _WrapAndOverwhelmed extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.spec;
+    ref.watch(dayPartProvider); // "Wrap up" appears at 5 pm
     final now = ref.read(clockProvider)();
     Widget link(String text, IconData? icon, VoidCallback onTap) => InkWell(
       borderRadius: BorderRadius.circular(Radii.sm),
@@ -923,10 +924,13 @@ class _SmallerSheetState extends ConsumerState<_SmallerSheet> {
 
   void _use(String step) {
     final text = step.trim();
+    // The task as it is now; deleted or hidden meanwhile, the sheet saves
+    // nothing (saving its old copy would bring the task back).
     final t = ref
         .read(tasksProvider)
-        .firstWhere((x) => x.id == widget.task.id, orElse: () => widget.task);
-    if (text.isEmpty || text == t.nextStep) {
+        .where((x) => x.id == widget.task.id)
+        .firstOrNull;
+    if (t == null || text.isEmpty || text == t.nextStep) {
       Navigator.pop(context);
       return;
     }
@@ -940,7 +944,7 @@ class _SmallerSheetState extends ConsumerState<_SmallerSheet> {
       items.insert(at, ChecklistItem(text));
       updated = t.copyWith(checklist: encodeChecklist(items));
     }
-    ref.read(tasksProvider.notifier).save(updated);
+    ref.read(tasksProvider.notifier).saveEdits(t, updated);
     final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
     messenger.showSnackBar(
@@ -1036,6 +1040,7 @@ class _DesktopHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.spec;
+    ref.watch(dayPartProvider); // "morning" turns into "afternoon"…
     final now = ref.read(clockProvider)();
     const days = [
       'Monday',
@@ -1087,7 +1092,11 @@ class _RightNowPanel extends ConsumerWidget {
     final stats = [
       ('${p.startedOn(now)}', 'Started today'),
       ('$xpToday', 'XP today'),
-      ('$streak', 'Day streak'),
+      // No streak right now: show every day that counted, never a zero
+      // (no shame mechanics).
+      streak > 0
+          ? ('$streak', 'Day streak')
+          : ('${p.activeDays.length}', 'Days active'),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1298,6 +1307,19 @@ class _NothingPanel extends ConsumerWidget {
         'Everything left needs you out of the house.',
         'Up for an errand run?',
         [buttons('I can go out', () => ctl.setWillingToLeave(true))],
+      ),
+      NoPickReason.allLater => (
+        "Everything's parked for later.",
+        "It comes back on its own when it's time. Add something, or take "
+            'the break.',
+        [
+          buttons(
+            'Quick add',
+            () => showQuickAdd(context),
+            "See what's coming",
+            () => context.go('/tasks'),
+          ),
+        ],
       ),
       NoPickReason.allExcluded => (
         "You've passed on everything.",

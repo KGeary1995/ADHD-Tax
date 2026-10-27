@@ -149,6 +149,39 @@ GoRouter buildRouter() => GoRouter(
 
 final routerProvider = Provider<GoRouter>((ref) => buildRouter());
 
+/// Screens the home-screen widget, notifications and other apps may open.
+/// Anything else (a crafted intent or link) is ignored.
+final _openable = RegExp(
+  r'^/(tasks|notes|progress|settings|wrapup|add|focus/[\w-]+)?(\?[\w=&.%-]*)?$',
+);
+
+/// Opens [route] from outside the app (a notification, the widget, a link).
+/// The same task's focus session isn't opened twice; another task's
+/// replaces it. Full-screen pages open on top. A tab replaces the stack:
+/// go_router can't push the tab shell over a page (its navigator key is
+/// single), so a running session then closes, and records its time as it
+/// does (FocusScreen.dispose). Returns false for a route that isn't
+/// [_openable].
+bool openFromOutside(GoRouter router, String route) {
+  if (!_openable.hasMatch(route)) return false;
+  // The top screen, pushed ones included (the configuration's uri is the
+  // location underneath them).
+  final matches = router.routerDelegate.currentConfiguration;
+  final here = matches.isEmpty ? '/' : matches.last.matchedLocation;
+  final path = Uri.parse(route).path;
+  if (path.startsWith('/focus/')) {
+    if (here == path) return true;
+    here.startsWith('/focus/')
+        ? router.pushReplacement(route)
+        : router.push(route);
+  } else if (path == '/wrapup' || path == '/add') {
+    router.push(route);
+  } else {
+    router.go(route);
+  }
+  return true;
+}
+
 class GumptionApp extends ConsumerWidget {
   const GumptionApp({super.key});
 

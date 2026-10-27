@@ -2,6 +2,36 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-26 — A device that finds its id in use takes a new one (third audit)
+Android Auto Backup and iCloud backups copy `device.id` to a restored phone. Keeping the id out of backups would need per-platform storage (Android backup rules can't exclude one key of a shared_preferences file; iOS would need the keychain), and would also have to handle every install already restored. Detecting the clone in sync works everywhere: our own cloud file holding a write stamped with our id that we don't have means someone else has the id, and the device moves to a fresh one. A device whose storage was rolled back looks the same and also moves (its data merges back either way; the cost is one extra file in the account).
+
+### 2026-10-26 — Saves write only what changed (third audit)
+Writing the whole record let an older build overwrite a newer build's value with its own default (an unknown kind of repeat read as "none" and written back). `putChanged` compares with the stored record as this build reads it, so values it can't represent are left alone. Field-level LWW already made this safe for concurrent edits.
+
+### 2026-10-26 — Reconnect to a different account asks first
+Android's account picker ignores the email the app hints, so Reconnect on Work could silently upload every Work task into a personal account. The sign-in is held while Settings asks; Cancel throws it away.
+
+### 2026-10-26 — Outside links: an allowlist, and tabs replace the stack
+Notifications, the Android widget and share/route intents go through `openFromOutside`. Pushing a tab over the focus screen isn't possible in go_router (one shell navigator key), so a tab link ends a running session the ordinary way; the session records its time when it closes. On **iPhone**, widget links still go straight to go_router through Flutter's deep linking: routing them through the method channel would mean Swift changes (a `SceneDelegate` URL handler queuing routes for `takeLaunchRequest`, with `FlutterDeepLinkingEnabled` off) that can only be compiled by an ~100-minute `[ios]` build. Every route is an ordinary screen and none saves data without a tap, and a session closed by a link still counts its time, so this was left for a batch that includes an iPhone build.
+
+### 2026-10-26 — Start and finish XP once per task per day
+`foldEvents` already counted one finish per task per day (two devices finishing offline). Celebrating a second finish showed XP that the total then dropped, and starting and stopping the same task could be repeated for start XP. Both now award nothing the second time that day; the session's time still counts.
+
+### 2026-10-26 — No "0 day streak" on screen
+The streak still ends after more than two missed days in a week (achievements depend on it), but Progress and the desktop Today show **Days active** instead of a zero.
+
+### 2026-10-26 — Quick add: "at 7" still means 7 am
+The audit suggested reading a bare "at 7" typed after 7 am as 7 pm. A test pins the opposite ("Meds at 9" typed at 10 am is 9 am tomorrow), and the documented rule (1–6 pm, 7–12 am) is predictable. What changed: a part of the day now wins ("dinner tonight at 7" is 7 pm), and "at 5:30" follows "at 5".
+
+### 2026-10-26 — A deleted next copy of a repeating task can come back
+Finishing a repeating task again (done, reopened, done; or on a device that hadn't synced the delete) writes its next copy again, even if it was deleted. `stale_edits_test` pins this. Telling a deleted copy from one an Undo removed would need a new synced marker; not worth it until it bothers someone.
+
+### 2026-10-26 — Web: the Content Security Policy starts in report-only mode
+A wrong CSP breaks Google or Microsoft sign-in on the live web app, and there's no browser in this environment to check it. `app/web/_headers` enforces the safe headers (no framing, nosniff, referrer policy) and reports CSP violations in the console; switch it to `Content-Security-Policy` once a full sign-in and sync shows no reports.
+
+### 2026-10-26 — CI: secrets per step, actions pinned to commits
+A moved tag on a third-party action (as with tj-actions in 2025) would otherwise run new code next to the App Store Connect key and the Play upload key. Secrets go only into the steps that use them, actions are pinned to SHAs, and the workflow token is read-only unless a job publishes.
+
 ### 2026-10-26 — OneDrive: the app folder, our own PKCE sign-in, no MSAL
 OneDrive uses Microsoft Graph's **app folder** (`/me/drive/special/approot`, scope `Files.ReadWrite.AppFolder`): the closest match to Drive's appDataFolder, and Microsoft documents it for personal and work or school OneDrive. Difference stated in the privacy policy and the chooser: the folder (**Apps/Gumption**) is visible in OneDrive. Sync files go in `Sync/`, backups in `Backups/`. The checksum is the `cTag`; reads go through the item's pre-signed download link (no bearer token on another host); files over 4 MB use an upload session. The sign-in is **plain OAuth 2.0 with PKCE** against the `common` endpoint (`lib/microsoft/microsoft_auth.dart`, pure Dart), not MSAL: no MSAL Flutter plugin covers Android, iOS, Mac and Windows, and the Google desktop flow already proved the loopback approach. iPhone/iPad/Mac/Windows return to `http://localhost:<port>` (Entra ignores the port for localhost); Android returns through `gumption://auth` (an intent filter on the singleTask `MainActivity`, passed to Dart over `unstuck/android` as an `auth` request), because a Custom Tab can't reliably reach a loopback server in a backgrounded app. User.Read is asked only to show the account's email. The web app (added the same day) uses the same PKCE code in a pop-up: the redirect URI `…/auth/microsoft/` is registered as a *Single-page application* (that's what lets the browser call the token endpoint), and Microsoft caps a browser's refresh token at 24 hours, so web users reconnect daily (Google's web sign-in lasts an hour). A pop-up rather than a full-page redirect keeps the PKCE verifier in memory and the app's state intact; three hand-back routes because Microsoft's pages can cut `window.opener` and iPhone home-screen apps open pop-ups in a separate view. Each workspace still picks one service; switching services always starts a fresh sync state, since the same email can be both a Google and a Microsoft account.
 

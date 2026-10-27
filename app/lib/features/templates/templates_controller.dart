@@ -56,7 +56,14 @@ class TemplatesController extends Notifier<List<Template>> {
     final fields = docFields(saved.toJson());
     replicas.write(
       saved.workspace,
-      (r, now) => r.put(collTemplates, saved.id, fields, now),
+      (r, now) => putChanged(
+        r,
+        collTemplates,
+        saved.id,
+        fields,
+        (j) => Template.fromJson(j).toJson(),
+        now,
+      ),
       docs: true,
     );
     return saved;

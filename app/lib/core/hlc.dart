@@ -27,17 +27,25 @@ class Hlc implements Comparable<Hlc> {
     return _bump(millis, counter);
   }
 
+  /// How far ahead of this device's clock another device's may be before
+  /// it stops pulling ours along.
+  static const maxDrift = Duration(minutes: 10);
+
   /// Advance past a timestamp seen from another node, so later local writes
-  /// sort after everything already merged.
+  /// sort after everything already merged. A remote clock far ahead of ours
+  /// (a device whose date was set into the future) is only followed up to
+  /// [maxDrift], so it can't pin every device's clock to that date.
   Hlc receive(Hlc remote, DateTime now) {
     final wall = now.millisecondsSinceEpoch;
-    final m = math.max(wall, math.max(millis, remote.millis));
-    if (m == wall && m > millis && m > remote.millis) return Hlc(m, 0, node);
-    final c = m == millis && m == remote.millis
-        ? math.max(counter, remote.counter)
+    final limit = wall + maxDrift.inMilliseconds;
+    final r = remote.millis > limit ? Hlc(limit, 0, remote.node) : remote;
+    final m = math.max(wall, math.max(millis, r.millis));
+    if (m == wall && m > millis && m > r.millis) return Hlc(m, 0, node);
+    final c = m == millis && m == r.millis
+        ? math.max(counter, r.counter)
         : m == millis
         ? counter
-        : remote.counter;
+        : r.counter;
     return _bump(m, c);
   }
 
@@ -49,9 +57,11 @@ class Hlc implements Comparable<Hlc> {
       '${millis.toRadixString(36).padLeft(10, '0')}-'
       '${counter.toRadixString(16).padLeft(4, '0')}-$node';
 
+  /// Throws [FormatException] for a string that isn't a packed clock.
   static Hlc parse(String s) {
     final first = s.indexOf('-');
-    final second = s.indexOf('-', first + 1);
+    final second = first < 0 ? -1 : s.indexOf('-', first + 1);
+    if (second < 0) throw FormatException('Not a clock', s);
     return Hlc(
       int.parse(s.substring(0, first), radix: 36),
       int.parse(s.substring(first + 1, second), radix: 16),

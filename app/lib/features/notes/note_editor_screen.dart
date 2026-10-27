@@ -74,7 +74,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   void initState() {
     super.initState();
-    final existing = _notes.byId(widget.noteId);
+    final found = _notes.byId(widget.noteId);
+    // A stale link into a workspace this device doesn't show opens nothing
+    // of it.
+    final existing =
+        found != null &&
+            ref.read(deviceWorkspacesProvider).shown.contains(found.workspace)
+        ? found
+        : null;
     _stored = existing != null;
     final now = ref.read(clockProvider)();
     _note =

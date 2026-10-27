@@ -48,7 +48,9 @@ const _timesUpChannel = AndroidNotificationDetails(
   importance: Importance.high,
   priority: Priority.high,
   category: AndroidNotificationCategory.alarm,
-  visibility: NotificationVisibility.public,
+  // Private: the lock screen shows the title only when the phone's
+  // settings allow showing sensitive content.
+  visibility: NotificationVisibility.private,
 );
 
 const _nudgeChannel = AndroidNotificationDetails(
@@ -140,8 +142,34 @@ class DeviceReminders implements Reminders {
       ? AndroidScheduleMode.exactAllowWhileIdle
       : AndroidScheduleMode.inexactAllowWhileIdle;
 
+  /// Focus notification calls run one at a time, in the order made: each
+  /// is several platform calls, and a "session over" that overtook a
+  /// "running" still being set up would leave a "Time's up" alert
+  /// scheduled for a finished session.
+  Future<void> _focusQueue = Future.value();
+  Future<void> _inOrder(Future<void> Function() f) {
+    final next = _focusQueue.then((_) => f());
+    _focusQueue = next.catchError((Object _) {});
+    return next;
+  }
+
   @override
   Future<void> focusRunning({
+    required String title,
+    required DateTime endsAt,
+  }) => _inOrder(() => _focusRunningNow(title: title, endsAt: endsAt));
+
+  @override
+  Future<void> focusPaused({required String title, required Duration left}) =>
+      _inOrder(() => _focusPausedNow(title: title, left: left));
+
+  @override
+  Future<void> focusTimeUp() => _inOrder(_focusTimeUpNow);
+
+  @override
+  Future<void> focusEnded() => _inOrder(_focusEndedNow);
+
+  Future<void> _focusRunningNow({
     required String title,
     required DateTime endsAt,
   }) async {
@@ -174,8 +202,7 @@ class DeviceReminders implements Reminders {
     );
   }
 
-  @override
-  Future<void> focusPaused({
+  Future<void> _focusPausedNow({
     required String title,
     required Duration left,
   }) async {
@@ -191,14 +218,12 @@ class DeviceReminders implements Reminders {
     );
   }
 
-  @override
-  Future<void> focusTimeUp() async {
+  Future<void> _focusTimeUpNow() async {
     await _android();
     await _plugin.cancel(id: _focusId);
   }
 
-  @override
-  Future<void> focusEnded() async {
+  Future<void> _focusEndedNow() async {
     await _android();
     await _plugin.cancel(id: _focusId);
     await _plugin.cancel(id: _timesUpId);

@@ -137,11 +137,12 @@ The Mac app is built on request, because macOS build machines cost 10x the free 
 
 ## Run it
 
-Requires [Flutter](https://docs.flutter.dev/get-started/install) 3.47+.
+Requires [Flutter](https://docs.flutter.dev/get-started/install) **3.47.7** (the version CI pins). Working on the code, deploying or troubleshooting? Start with [AGENTS.md](AGENTS.md): status, commands, rules and the gotchas that have already bitten, then [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). On Windows, run the checks in WSL (AGENTS.md → Local setup on Windows).
 
 ```bash
 cd app
 flutter pub get
+./tool/check.sh            # format check, analyze, all tests: what CI runs
 flutter run -d chrome      # web
 flutter run -d windows     # Windows desktop (on a Windows PC)
 flutter run                # connected Android phone
@@ -150,12 +151,12 @@ flutter run                # connected Android phone
 Build installable versions:
 
 ```bash
-flutter build apk --release                       # Android → build/app/outputs/flutter-apk/
+flutter build apk --release --no-shrink           # Android → build/app/outputs/flutter-apk/ (--no-shrink is required)
 flutter build windows --release                   # Windows → build/windows/x64/runner/Release/
 flutter build web --release --no-web-resources-cdn # Web → build/web/ (self-contained, no CDN)
 ```
 
-Every push runs CI, which tests the app and builds the web, Android and Windows versions. The Android build is published to the `android-latest` release, and the web app to Cloudflare Pages once it's set up (see above). The Mac app builds on request, to the `macos-latest` release. Every build is also attached to the run's **Artifacts** section.
+Every push (except docs-only changes) runs CI, which tests the app and builds the web and Android versions. The Android build is published to the `android-latest` release, and the web app to Cloudflare Pages once it's set up (see above). Mac, iPhone, Windows and the Play bundle build on request (Run workflow, or `[mac]`, `[ios]`, `[windows]`, `[play]` in the commit message). Every build is also attached to the run's **Artifacts** section. Details: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ### Set up Google sync (one time, about 20 minutes)
 

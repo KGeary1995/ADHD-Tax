@@ -38,15 +38,16 @@ Orientation for any AI coding session (Claude Code, Codex, Cursor, …) or human
 | **Sync services: iCloud** (1.2): per-workspace choice of iCloud (iPhone/iPad) or Google | Done; merged to `main` 2026-10-25 (PR #9) after the owner added the iCloud container to the App ID. **Microsoft OneDrive** next; Samsung isn't possible (docs/DECISIONS.md) | **Yes (TestFlight build 117, 2026-10-25):** the owner reports it "works great" |
 | **Sync services: Microsoft OneDrive** (1.2): third choice in the Connect chooser (Android, iPhone/iPad, Mac, Windows; web added 2026-10-25, PR #12, with the SPA redirect URI in Entra), personal and work or school accounts | Done; merged to `main` 2026-10-25 (PR #11). The owner's Entra app registration and the `MICROSOFT_CLIENT_ID` secret are in place | **Yes (2026-10-25, Build 127):** the owner connected a personal Microsoft account and synced on Android and on the TestFlight iPhone build; the web app works too (PR #12). Work or school accounts not yet tried |
 | Settings from any tab (phone): a gear at the top right of Today, Tasks, Notes and Progress; tab bar stays on Settings; back returns to the tab it came from | Done; merged 2026-10-25 (PR #10) | Not yet (tests and web screenshots at 360 and 390 wide) |
+| **Code audits** (three rounds): sync durability and checkpoints, stale editors and Undo, dates across clock changes (PR #14, #15); device-id clones after a phone restore, write-only-what-changed, Reconnect account check, outside links vs a running focus session, quick-add times and dates, monthly repeats on the 31st, CI secret scoping (third round, `fix/third-audit`) | #14 and #15 merged and shipped (Builds 135, 136/137). Third round: PR open, `check.sh` passes (357 tests) | Not yet on a device. The third round's web security headers (`app/web/_headers`) start with the CSP in report-only mode; see docs/DEPLOYMENT.md → Web headers |
 | Phase 3+ (Calendar, table/timeline views) | Not started | — see docs/PLAN.md |
 
-Last updated: 2026-10-25 (PR #14, fixes from a code audit, merged and shipped as Build 135 / iPhone 135; fixes from a second audit on `fix/full-audit`).
+Last updated: 2026-10-26 (PR #14, first audit's fixes: Build 135. PR #15, second audit's fixes: merged, Build 137 for Android/web, iPhone and Mac 136. Third audit's fixes on `fix/third-audit`, PR open; not yet on a device).
 
 ## Toolchain
 
 | Tool | Version | Notes |
 |---|---|---|
-| Flutter / Dart | **3.47.7** / 3.13.5 | Pinned in `.github/workflows/ci.yml` (`FLUTTER_VERSION`). In Claude Code cloud sessions Flutter is at `/opt/flutter/bin` and not on PATH; `app/tool/check.sh` handles that. It warns about running as root; ignore it. |
+| Flutter / Dart | **3.47.7** / 3.13.5 | Pinned in `.github/workflows/ci.yml` (`FLUTTER_VERSION`). In Claude Code cloud sessions Flutter is at `/opt/flutter/bin` and not on PATH; `app/tool/check.sh` handles that. It warns about running as root; ignore it. On the owner's Windows PC, Flutter lives in WSL Ubuntu (`~/flutter`); see "Local setup on Windows" below. |
 | Java | 17 (Temurin) | Android builds |
 | Node | 22 | Cloudflare deploy (`wrangler@4.145.0`) and the screenshot tool |
 | Python 3 + Pillow, numpy | any recent | Only for `app/tool/make_icons.py` (Pillow, numpy), `app/tool/make_sounds.py` (numpy), `app/tool/make_phosphor.py` and `app/tool/screenshots/store_frames.py` (Pillow) |
@@ -58,7 +59,7 @@ Last updated: 2026-10-25 (PR #14, fixes from a code audit, merged and shipped as
 ```bash
 ./tool/check.sh                      # format check + analyze + all tests: exactly what CI runs. Run before every push.
 flutter pub get
-TZ=America/Los_Angeles flutter test  # 328 tests, ~70 s; CI uses this zone so date code meets a clock change
+TZ=America/Los_Angeles flutter test  # 357 tests, ~70 s; CI uses this zone so date code meets a clock change
 flutter test test/widget/reminders_undo_test.dart   # one file
 dart format lib test                 # CI fails on unformatted code
 flutter run -d chrome                # quickest way to see the app
@@ -68,6 +69,18 @@ python3 tool/make_icons.py           # redraw every app icon (web, iPhone incl. 
 python3 tool/make_phosphor.py        # regenerate lib/core/theme/ph.dart (Phosphor icon constants; add names to its NAMES list)
 python3 tool/make_sounds.py          # regenerate the focus-screen background sounds (numpy)
 ```
+
+### Local setup on Windows (the owner's PC)
+
+`check.sh` is bash, and the tests must run in a time zone with clock changes, which Windows' `TZ` can't do. So Flutter runs in **WSL Ubuntu**, matching CI's Linux runner:
+
+1. Once: `wsl -u root apt-get install -y unzip xz-utils rsync git`, then in WSL `git clone --depth 1 -b 3.47.7 https://github.com/flutter/flutter.git ~/flutter`. The first `~/flutter/bin/flutter --version` downloads the Dart SDK.
+2. Keep the Windows clone on **LF line endings** (`git config core.autocrlf false`, then `git rm -q --cached -r . && git reset -q --hard` once). With CRLF, `check.sh` fails with `env: 'bash
+'` and `dart format` flags every file.
+3. Run the checks on a copy inside WSL, which is much faster than `/mnt/c`: `rsync -a --delete --exclude .git --exclude .dart_tool --exclude build /mnt/c/Users/<you>/ADHD-Tax/ ~/gumption/ && cd ~/gumption/app && ./tool/check.sh`. Format in place on the Windows side with `cd /mnt/c/.../ADHD-Tax/app && ~/flutter/bin/dart format lib test`.
+4. From Git Bash, call `wsl.exe` with `MSYS_NO_PATHCONV=1` (otherwise `/mnt/...` paths get rewritten to `C:/Program Files/Git/mnt/...`), and put anything with `$HOME` or `$PATH` in a script file: an inline `bash -c '...'` gets Windows' PATH (with spaces and parentheses) expanded into it.
+
+There's no Android SDK, Xcode or browser here either: native code is compiled only by CI, and screenshots need Chromium (`app/tool/screenshots/shoot.mjs`).
 
 Seeing UI changes without a phone: `app/tool/screenshots/shoot.mjs` (Playwright) screenshots the web build with demo data at any size, including fake iPhone insets (`--iphone`, `--top 62`). Usage is in the file header. Store screenshots: shoot raw screens, then `python3 tool/screenshots/store_frames.py raw/ out/` adds the captions and phone/iPad frames (steps in its header).
 
@@ -100,7 +113,7 @@ app/android/app/        build.gradle.kts, manifest, proguard rules, sideload.jks
 
 ## How a change ships
 
-1. `main` is the stable copy (PR #1 merged 2026-10-22; PR #7, the iPhone sync fix and the 1.1 redesign, 2026-10-25; PR #8, wording for everyone, PR #9, iCloud sync, PR #10, Settings from any tab, and PR #11, OneDrive sync, and PR #12, OneDrive on the web, PR #13, store screenshots, and PR #14, fixes from a code audit, 2026-10-25). Work on a feature branch made from the latest `main` and open a new PR into `main` for each batch; the owner decides when to merge. A merged PR is finished: follow-up work goes on a fresh branch from `main`, never on top of the merged history.
+1. `main` is the stable copy (PR #1 merged 2026-10-22; PR #7, the iPhone sync fix and the 1.1 redesign, 2026-10-25; PR #8, wording for everyone, PR #9, iCloud sync, PR #10, Settings from any tab, and PR #11, OneDrive sync, and PR #12, OneDrive on the web, PR #13, store screenshots, and PR #14, fixes from a code audit, 2026-10-25; PR #15, a second audit's fixes, 2026-10-26). Work on a feature branch made from the latest `main` and open a new PR into `main` for each batch; the owner decides when to merge. A merged PR is finished: follow-up work goes on a fresh branch from `main`, never on top of the merged history.
 2. `./tool/check.sh` must pass.
 3. Push. CI runs once per commit (push only; docs-only commits, i.e. `*.md` and `docs/`, skip CI entirely): `test` (format, analyze, test, web build), then in parallel:
    - **Android**: builds the APK and replaces the `android-latest` release asset. The phone download link never changes.
@@ -160,4 +173,11 @@ Details, secrets and failure modes: docs/DEPLOYMENT.md.
 - `pumpApp()` defaults to 1400×1000, a desktop size: Tasks shows the filter pills, the list and a detail pane (tapping a row selects it; the editor opens from **Edit task** or a double tap), Notes shows the sidebar (no filter pills), Settings shows one section at a time (tap its `SideItem` first), Today / Progress / the editor / wrap-up are desktop layouts, and Quick add and every `showAppSheet` pop-up is a `Dialog`, not a `BottomSheet`. Pass a phone `size` to test the phone layout. On a phone, Tasks' workspace/project/List-Board choices are in a sheet (tap the square with tooltip 'Show tasks', then **Done**), Quick add hides Priority/dread/Leave the house until **More options**, and Home shows the check-back as a badge (tooltip "Check back on N waiting task(s)") instead of a banner.
 - **Start shows the Started screen for 2.6 s** before Focus (1.2 s with Reduce Motion; none when celebrations are Off). Tests that tap anything on Focus must get past it first: `pastStarted(tester)` from `app_flow_test.dart`. `FieldLabel` and overlines render in capitals, so tests find `'STEP 1 OF 3'`, not `'Step 1 of 3'`.
 - `IconData` can't be extended in this Flutter, so the `phosphor_flutter` package doesn't compile: the Phosphor fonts are vendored in `assets/fonts/` and `tool/make_phosphor.py` writes `Ph` constants from the package's codepoint table in the pub cache. If the cache lacks it: `dart pub cache add phosphor_flutter --version 2.1.0`.
+- **Saves write only the fields that changed** (`putChanged` in `sync/replicas_controller.dart`, used by tasks, notes, projects, templates and rewards). A field this build reads with a fallback (an enum value from a newer build, like a new kind of repeat) is left as stored instead of being stamped with this build's default and overwriting the newer value everywhere. Don't go back to `r.put(coll, id, wholeRecord, now)` for an update.
+- **Device id clones are detected and fixed** (`Replica.lacksOwnWritesIn`, `SyncOutcome.cloned`, `ReplicasController.changeDeviceId`). A phone restored from a backup of another (Android Auto Backup, iCloud backup, Migration Assistant) carries the same `device.id`. Its first sync round reads its "own" cloud file, finds writes stamped with its id that it never made, and takes a new id: new sync file, old one read like any other device's. A device whose storage was rolled back looks identical and does the same (harmless). `syncOnce` also drops a remembered `ownFileId` whose file name no longer matches the device id.
+- **Reconnect never moves a workspace to another account silently.** `SyncController.connect()` returns the new email instead of syncing when it differs from the stored one; the UI asks, then calls `confirmAccountSwitch()` or `cancelAccountSwitch()` (`accounts_panel.dart` `_reconnect`). Android's account picker ignores the email hint, so this is reachable.
+- **Opening a screen from outside goes through `openFromOutside`** (`app.dart`): notifications, the Android widget and share/route intents. It only accepts known routes, doesn't open a second focus session for the same task, swaps one task's session for another's with `pushReplacement`, and pushes full-screen pages (`/wrapup`, `/add`). A tab route **replaces** the stack, because go_router can't push the tab shell over a page (its navigator key is single: "!keyReservation.contains(key)"). A focus session closed that way, or any other way without Done/Stop, records its time in `dispose` (`_bankPartial`, deferred a microtask).
+- **Things on Home that change with the time of day watch `dayPartProvider`** (`picker_controller.dart`): the 5 pm "Wrap up" link, the desktop "Monday evening" header. `OutsideBootstrap` invalidates it at noon, 5 pm, 10 pm and midnight (`nextDayPart`) and on resume. Timers live in that widget, not in providers: a provider timer outlives `pumpApp`'s widget tree and fails tests with "A Timer is still pending".
+- **Start and finish XP come once per task per day** (`ProgressController._recordedOn`). Finishing again (done, reopened, done) or starting again returns a celebration with an empty award and writes no event; `foldEvents` already counted one finish per task per day, so XP shown and then taken back can't happen.
+- **CI secrets go only into the `env:` of the step that uses them**, and jobs test for a secret with a flag (`HAS_ASC_KEY: ${{ secrets.ASC_KEY_ID != '' }}`). Third-party actions are pinned to commit SHAs (`# v4` comments say which tag); the workflow is `permissions: contents: read` by default. To update a pin: `gh api repos/<owner>/<action>/commits/<tag> -q .sha`.
 - Widget tests: `pumpApp()` in `test/widget/app_flow_test.dart` builds the full app with in-memory storage and accepts provider `overrides`. Use `FakeReminders` (`reminders_undo_test.dart`) for notification behavior. Snackbars need `pumpAndSettle()` before tapping their action.

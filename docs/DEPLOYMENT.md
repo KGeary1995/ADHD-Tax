@@ -35,6 +35,13 @@ Every build job first writes `app/google_oauth.json` from secrets and builds wit
 
 **Actions minutes:** the repo is private, so GitHub's free plan gives 2,000 minutes a month. Linux runs count 1×, Windows 2× and macOS 10×. A normal push run now uses roughly 12 billed minutes (test + Android; docs-only commits run nothing); a Windows build adds about 20 and a Mac build about 100. They ran out on 2026-10-22 after 18 Mac builds plus every commit running twice (push and pull_request); both are fixed. When the minutes are gone, every job fails within seconds with no runner and no logs.
 
+### How the workflow handles secrets
+
+- The workflow token is read-only by default (`permissions: contents: read`); the Android, Play and Mac jobs ask for `contents: write` to publish their releases.
+- A secret goes only into the `env:` of the step that uses it. A job that needs to know whether a secret exists gets a flag instead (`HAS_ASC_KEY`, `HAS_UPLOAD_KEY`, `HAS_CLOUDFLARE`: `${{ secrets.X != '' }}`), so no other step in the job, including third-party actions, can read the secret.
+- Third-party actions are pinned to commit SHAs with a `# vN` comment. To move to a newer version: `gh api repos/<owner>/<action>/commits/<tag> -q .sha`, then replace the SHA.
+- `actions/checkout` runs with `persist-credentials: false`; nothing pushes with git (releases use `gh` with `GH_TOKEN`).
+
 ## Secrets and variables (repo → Settings → Secrets and variables → Actions)
 
 | Name | Kind | Used by | Where to get it |
@@ -87,6 +94,14 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 - The first deploy creates the project. If `unstuck.pages.dev` is taken, Cloudflare picks a suffixed name, shown in the job summary. Ours got `unstuck-4o8.pages.dev`. Add that address to the Google web client's JavaScript origins. Never delete or rename the Pages project: everyone's home-screen data belongs to that address.
 - Home-screen installs keep their own storage, separate from Safari tabs.
 - No push notifications: iPhone web apps can't schedule local notifications, and there's no server to send push.
+
+## Web headers (`app/web/_headers`)
+
+Cloudflare Pages applies `_headers` (copied into `build/web` by `flutter build web`) to every response:
+
+- Enforced: `X-Frame-Options: DENY` (no framing), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
+- `Content-Security-Policy-Report-Only`: allows the app itself plus Google sign-in (`accounts.google.com`, `apis.google.com`), the Drive and token endpoints (`www.googleapis.com`, `oauth2.googleapis.com`), Microsoft (`login.microsoftonline.com`, `graph.microsoft.com`) and the AI helper (`api.anthropic.com`); `wasm-unsafe-eval` for CanvasKit; `frame-ancestors 'none'`. Report-only means the browser console lists what it would block without blocking it.
+- **To enforce it:** open the web app with the console open, connect Google and Microsoft, run a sync and an AI breakdown. If nothing is reported, rename the header to `Content-Security-Policy` in `_headers` and push. If something is, add that host to the directive the report names.
 
 ## Google Cloud setup (sync)
 

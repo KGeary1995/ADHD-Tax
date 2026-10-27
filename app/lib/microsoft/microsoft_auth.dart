@@ -34,7 +34,7 @@ abstract class SecretStore {
   Future<void> delete(String key);
 }
 
-class MicrosoftAuth implements AccountAuth {
+class MicrosoftAuth implements AccountAuth, AbandonableSignIn {
   MicrosoftAuth({
     required this.secrets,
     required this.catcher,
@@ -78,9 +78,23 @@ class MicrosoftAuth implements AccountAuth {
     return _client(ws, _Tokens(refresh));
   }
 
+  /// The browser page each workspace's open sign-in is waiting on.
+  final _pending = <Workspace, RedirectCatcher>{};
+
+  /// Gives up on a sign-in still open in the browser (Cancel, or it timed
+  /// out): what it brings back later isn't saved, and the page it waits on
+  /// is let go.
+  @override
+  Future<void> abandon(Workspace ws) async {
+    _generation[ws] = (_generation[ws] ?? 0) + 1;
+    await _pending.remove(ws)?.close();
+  }
+
   @override
   Future<http.Client> connect(Workspace ws, {String? email}) async {
+    final started = _generation[ws] ?? 0;
     final browser = catcher();
+    _pending[ws] = browser;
     try {
       final redirect = await browser.start();
       final verifier = _random(64);
@@ -128,11 +142,17 @@ class MicrosoftAuth implements AccountAuth {
           'registration\'s offline_access permission.',
         );
       }
+      // Cancelled (or Disconnect) while the browser was open: keep
+      // whatever was saved before.
+      if ((_generation[ws] ?? 0) != started) {
+        throw const NeedsReconnect('Sign-in was cancelled.');
+      }
       final tokens = _Tokens(refresh)..take(body, _now());
       _generation[ws] = (_generation[ws] ?? 0) + 1;
       await _save(ws, tokens.refresh);
       return _client(ws, tokens);
     } finally {
+      if (identical(_pending[ws], browser)) _pending.remove(ws);
       await browser.close();
     }
   }

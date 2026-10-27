@@ -41,17 +41,21 @@ class SyncState {
   /// Stored, so a restart in between doesn't forget it.
   final bool uploadOwed;
 
+  /// [uploadedClock] can be set back to null (nothing of ours uploaded
+  /// yet); leaving it out keeps the current value.
   SyncState copyWith({
     String? ownFileId,
     Map<String, String>? seen,
-    String? uploadedClock,
+    Object? uploadedClock = _keep,
     DateTime? lastSyncedAt,
     String? email,
     bool? uploadOwed,
   }) => SyncState(
     ownFileId: ownFileId ?? this.ownFileId,
     seen: seen ?? this.seen,
-    uploadedClock: uploadedClock ?? this.uploadedClock,
+    uploadedClock: identical(uploadedClock, _keep)
+        ? this.uploadedClock
+        : uploadedClock as String?,
     lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
     email: email ?? this.email,
     uploadOwed: uploadOwed ?? this.uploadOwed,
@@ -78,12 +82,15 @@ class SyncState {
   );
 }
 
+const _keep = Object();
+
 class SyncOutcome {
   const SyncOutcome({
     required this.state,
     required this.merged,
     required this.uploaded,
     this.skipped = const [],
+    this.cloned = false,
   });
 
   final SyncState state;
@@ -94,6 +101,11 @@ class SyncOutcome {
 
   /// Remote files that couldn't be read or parsed; retried next round.
   final List<String> skipped;
+
+  /// Our own cloud file holds writes stamped with this device's id that
+  /// this device never made: another install has the same id (a phone
+  /// restored from a backup of this one). The caller should take a new id.
+  final bool cloned;
 }
 
 String filePrefix(String workspace) => 'state.$workspace.';
@@ -138,7 +150,13 @@ Future<SyncOutcome> syncOnce({
   final seen = {...state.seen};
   final skipped = <String>[];
   var merged = false;
-  String? ownFileId = state.ownFileId;
+  var cloned = false;
+  // The id must still name this device's file: after the device id
+  // changes, the old id points at a file we no longer own.
+  String? ownFileId =
+      files.any((f) => f.id == state.ownFileId && f.name == ownName)
+      ? state.ownFileId
+      : null;
 
   try {
     for (final f in files) {
@@ -151,11 +169,18 @@ Future<SyncOutcome> syncOnce({
         final bytes = await remote.read(f.id);
         check();
         final theirs = Replica.decode(utf8.decode(bytes));
+        if (f.name == ownName && replica.lacksOwnWritesIn(theirs)) {
+          cloned = true;
+        }
         if (replica.merge(theirs, now())) merged = true;
         seen[f.name] = f.checksum;
       } on FormatException {
         skipped.add(f.name);
       } on TypeError {
+        skipped.add(f.name);
+      } on ArgumentError {
+        // Includes RangeError: a clock that doesn't parse (a damaged file,
+        // or a newer build's format). Skip the file, keep syncing the rest.
         skipped.add(f.name);
       }
     }
@@ -165,12 +190,6 @@ Future<SyncOutcome> syncOnce({
     // A later file failed: save and show what the earlier ones brought.
     if (merged && onMerged != null) await onMerged();
     rethrow;
-  }
-
-  // Our own file went missing (deleted in Drive, or a different account):
-  // forget its id so we recreate it.
-  if (ownFileId != null && !files.any((f) => f.id == ownFileId)) {
-    ownFileId = null;
   }
 
   if (merged && onMerged != null) await onMerged();
@@ -183,10 +202,13 @@ Future<SyncOutcome> syncOnce({
   // workspace (e.g. a Work task in the Personal account) until this device
   // happens to edit something. It can't ping-pong: the next round merges
   // nothing new, so nobody uploads again.
-  if (ownFileId == null ||
-      local != state.uploadedClock ||
-      merged ||
-      state.uploadOwed) {
+  // A clone's own file belongs to the other install now: never overwrite
+  // it. The caller takes a new id, and the next round uploads under it.
+  if (!cloned &&
+      (ownFileId == null ||
+          local != state.uploadedClock ||
+          merged ||
+          state.uploadOwed)) {
     final bytes = utf8.encode(replica.encode());
     if (ownFileId == null) {
       ownFileId = await remote.create(ownName, bytes);
@@ -207,5 +229,6 @@ Future<SyncOutcome> syncOnce({
     merged: merged,
     uploaded: uploaded,
     skipped: skipped,
+    cloned: cloned,
   );
 }
