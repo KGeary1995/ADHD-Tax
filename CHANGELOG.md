@@ -2,7 +2,7 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-26: fixes from a third code audit
+## Build 140 (Android, web) / 139 (iPhone) / 141 (Mac) — 2026-10-27: fixes from a third code audit
 - **A new phone restored from your old one's backup syncs properly.** It used to share the old phone's sync identity, so the two overwrote each other's copy in the cloud and each missed the other's changes. The restored phone now notices and takes its own identity on its first sync. A second sync file appearing in your account is expected.
 - **Reconnect asks before moving a workspace to a different account.** If the account picker hands back another account (Android's often does), you're asked "Switch Work to …?" instead of having every Work task uploaded there.
 - **Older and newer versions can share an account safely.** A device on an older build no longer overwrites things only a newer build understands when you edit a task, note, project, template or reward.
