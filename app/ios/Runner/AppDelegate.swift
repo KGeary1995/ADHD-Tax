@@ -30,28 +30,80 @@ let appGroup = "group.com.adhdtax.adhdTax"
 }
 
 /// The iOS side of the "unstuck/android" channel (the name predates iOS):
-/// hands Dart text queued by the share extension, and stores the current
-/// pick for the home-screen widget. Widget taps arrive as unstuck:// links,
-/// which Flutter routes directly.
-class UnstuckBridge: NSObject, FlutterPlugin {
+/// hands Dart widget taps and text queued by the share extension, and
+/// stores the current pick for the home-screen widget.
+///
+/// Widget taps arrive as unstuck://app/<route> links. Flutter's own deep
+/// linking is off (Info.plist), so they come here and reach Dart through
+/// takeLaunchRequest like Android's, and so through openFromOutside's
+/// checks. Other links (Google Sign-In's) are left to their plugins.
+class UnstuckBridge: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelegate {
+  private let channel: FlutterMethodChannel
+  /// The latest widget tap not yet taken by Dart.
+  private var pendingRoute: String?
+
+  init(channel: FlutterMethodChannel) {
+    self.channel = channel
+  }
+
   static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(
       name: "unstuck/android", binaryMessenger: registrar.messenger())
-    registrar.addMethodCallDelegate(UnstuckBridge(), channel: channel)
+    let bridge = UnstuckBridge(channel: channel)
+    registrar.addMethodCallDelegate(bridge, channel: channel)
+    registrar.addSceneDelegate(bridge)
+  }
+
+  // A tap that launched the app.
+  func scene(
+    _ scene: UIScene, willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions?
+  ) -> Bool {
+    guard let contexts = connectionOptions?.urlContexts else { return false }
+    return open(contexts)
+  }
+
+  // A tap while the app was running or suspended.
+  func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) -> Bool {
+    open(URLContexts)
+  }
+
+  private func open(_ contexts: Set<UIOpenURLContext>) -> Bool {
+    guard let url = contexts.map(\.url).first(where: { $0.scheme == "unstuck" }) else {
+      return false
+    }
+    pendingRoute = UnstuckBridge.route(from: url)
+    // Dart takes it now if it's running; otherwise its first
+    // takeLaunchRequest does.
+    channel.invokeMethod("pending", arguments: nil)
+    return true
+  }
+
+  /// unstuck://app/focus/<id>?min=N → /focus/<id>?min=N. Dart checks the
+  /// route against its allowlist.
+  static func route(from url: URL) -> String {
+    guard url.host == "app",
+      let parts = URLComponents(url: url, resolvingAgainstBaseURL: false)
+    else { return "/" }
+    var route = parts.percentEncodedPath.isEmpty ? "/" : parts.percentEncodedPath
+    if let query = parts.percentEncodedQuery, !query.isEmpty { route += "?" + query }
+    return route
   }
 
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let defaults = UserDefaults(suiteName: appGroup)
     switch call.method {
     case "takeLaunchRequest":
+      if let route = pendingRoute {
+        pendingRoute = nil
+        result(["type": "route", "route": route])
+        return
+      }
       // One shared item at a time; the rest wait for the next resume.
-      var queue = defaults?.array(forKey: "pendingShares") as? [[String: String]] ?? []
-      if queue.isEmpty {
+      guard let next = takeShare(defaults) else {
         result(nil)
         return
       }
-      let next = queue.removeFirst()
-      defaults?.set(queue, forKey: "pendingShares")
       result([
         "type": "share",
         "text": next["text"] ?? "",
@@ -65,6 +117,39 @@ class UnstuckBridge: NSObject, FlutterPlugin {
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  /// The oldest share waiting. The share extension writes each one as its
+  /// own file in the App Group's "Shares" folder (ShareViewController), so
+  /// the extension adding one while the app takes another can't lose
+  /// either: a shared list in UserDefaults was read and rewritten by both
+  /// processes. The old list is still emptied first, for anything queued
+  /// by an older extension.
+  private func takeShare(_ defaults: UserDefaults?) -> [String: String]? {
+    var legacy = defaults?.array(forKey: "pendingShares") as? [[String: String]] ?? []
+    if !legacy.isEmpty {
+      let next = legacy.removeFirst()
+      defaults?.set(legacy, forKey: "pendingShares")
+      return next
+    }
+    guard
+      let folder = FileManager.default
+        .containerURL(forSecurityApplicationGroupIdentifier: appGroup)?
+        .appendingPathComponent("Shares", isDirectory: true),
+      let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path)
+    else { return nil }
+    // Names start with the time in milliseconds, so they sort oldest first.
+    for name in names.filter({ $0.hasSuffix(".json") }).sorted() {
+      let file = folder.appendingPathComponent(name)
+      let data = try? Data(contentsOf: file)
+      try? FileManager.default.removeItem(at: file)
+      if let data,
+        let share = (try? JSONSerialization.jsonObject(with: data)) as? [String: String]
+      {
+        return share
+      }
+    }
+    return nil
   }
 }
 

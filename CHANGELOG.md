@@ -2,6 +2,12 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
+## Next build — 2026-10-27: iPhone widget taps and shares, web security policy on
+- **iPhone widget taps** now open screens the same careful way Android's do: tapping Start for the task already running opens nothing new, and another task's Start replaces the running one instead of stacking a second session.
+- **iPhone Share → Gumption** can't lose a share made at the same moment the app was opening another one.
+- **Web app:** the site's security policy now blocks anything it doesn't expect (before, it only reported). Emoji and other scripts still load their fonts.
+- Not yet tried on a phone; covered by tests (359). The iPhone changes are compiled only by the iPhone build.
+
 ## Build 140 (Android, web) / 139 (iPhone) / 141 (Mac) — 2026-10-27: fixes from a third code audit
 - **A new phone restored from your old one's backup syncs properly.** It used to share the old phone's sync identity, so the two overwrote each other's copy in the cloud and each missed the other's changes. The restored phone now notices and takes its own identity on its first sync. A second sync file appearing in your account is expected.
 - **Reconnect asks before moving a workspace to a different account.** If the account picker hands back another account (Android's often does), you're asked "Switch Work to …?" instead of having every Work task uploaded there.

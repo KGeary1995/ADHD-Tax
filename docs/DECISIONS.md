@@ -2,6 +2,15 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-10-27 — iPhone widget links go through the channel, like Android's
+Flutter's deep linking is off on iOS (`FlutterDeepLinkingEnabled` false). `UnstuckBridge` (AppDelegate.swift) registers as a scene delegate with the plugin registrar (`addSceneDelegate`), so it gets `unstuck://` links both at launch (`willConnectTo`) and while running (`openURLContexts`) without overriding `SceneDelegate`, and returns false for anything else so Google Sign-In's own links still reach its plugin. It holds the route and calls `pending`; Dart takes it with `takeLaunchRequest` and opens it through `openFromOutside`. A request taken before `OutsideBootstrap` listens is held in `ChannelDeviceBridge._held`, since a broadcast stream would drop it. The `/add` redirect stays as a fallback. Supersedes the iPhone part of "Outside links: an allowlist" below.
+
+### 2026-10-27 — iPhone shares are queued one file each
+The share extension and the app both read and rewrote the `pendingShares` list in the App Group's UserDefaults: a share made while the app was taking another could vanish. Now the extension writes each share as its own file in the App Group's `Shares/` folder (written as `.tmp`, then renamed to `<ms>-<uuid>.json`), and the app reads and deletes the oldest. Two processes never rewrite the same thing. The app still empties the old list first, for shares an older extension queued.
+
+### 2026-10-27 — Web: the Content Security Policy is enforced
+Checked with headless Chrome against a local build served with `_headers`: the app starts with no refusals. Flutter fetches fallback fonts (emoji, other scripts, Roboto) from `fonts.gstatic.com`, which the report-only policy would have blocked (shown by fetching one under the old policy), so it's now in `connect-src` and `font-src`. Google and Microsoft sign-in and the AI helper weren't exercised (no accounts in the test browser); their hosts come from the code. If one breaks on the web, the console names the blocked host and directive. Supersedes "starts in report-only mode" below.
+
 ### 2026-10-26 — A device that finds its id in use takes a new one (third audit)
 Android Auto Backup and iCloud backups copy `device.id` to a restored phone. Keeping the id out of backups would need per-platform storage (Android backup rules can't exclude one key of a shared_preferences file; iOS would need the keychain), and would also have to handle every install already restored. Detecting the clone in sync works everywhere: our own cloud file holding a write stamped with our id that we don't have means someone else has the id, and the device moves to a fresh one. A device whose storage was rolled back looks the same and also moves (its data merges back either way; the cost is one extra file in the account).
 

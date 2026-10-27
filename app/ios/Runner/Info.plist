@@ -80,8 +80,10 @@
 		</dict>
 	</array>
 	<!-- Widget links go straight to the app's routes. -->
+	<!-- Off: widget links go through UnstuckBridge (AppDelegate.swift) to
+	     openFromOutside, like Android's, not straight to go_router. -->
 	<key>FlutterDeepLinkingEnabled</key>
-	<true/>
+	<false/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSMicrophoneUsageDescription</key>
