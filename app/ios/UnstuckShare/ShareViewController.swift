@@ -38,12 +38,28 @@ class ShareViewController: SLComposeServiceViewController {
     }
   }
 
+  /// One file per share in the App Group's "Shares" folder, named so they
+  /// sort oldest first (UnstuckBridge.takeShare in the app). Written under
+  /// a temporary name and then renamed, so the app never reads half a file.
   private func queue(title: String, link: String) {
-    let defaults = UserDefaults(suiteName: appGroup)
-    var pending = defaults?.array(forKey: "pendingShares") as? [[String: String]] ?? []
     // Same shape as Android: the subject becomes the title, text the notes.
-    pending.append(["subject": title.trimmingCharacters(in: .whitespacesAndNewlines), "text": link])
-    defaults?.set(pending, forKey: "pendingShares")
+    let share = ["subject": title.trimmingCharacters(in: .whitespacesAndNewlines), "text": link]
+    if let folder = FileManager.default
+      .containerURL(forSecurityApplicationGroupIdentifier: appGroup)?
+      .appendingPathComponent("Shares", isDirectory: true),
+      let data = try? JSONSerialization.data(withJSONObject: share)
+    {
+      let name = "\(Int64(Date().timeIntervalSince1970 * 1000))-\(UUID().uuidString)"
+      let temp = folder.appendingPathComponent(name + ".tmp")
+      do {
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try data.write(to: temp)
+        try FileManager.default.moveItem(
+          at: temp, to: folder.appendingPathComponent(name + ".json"))
+      } catch {
+        try? FileManager.default.removeItem(at: temp)
+      }
+    }
     extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
   }
 

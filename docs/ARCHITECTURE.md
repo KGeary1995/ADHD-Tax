@@ -216,9 +216,9 @@ Every bottom sheet goes through `showAppSheet` (`widgets/ui.dart`): a modal bott
 `DeviceBridge` (`device_bridge.dart`) is the Dart end of the `unstuck/android` method channel on both phones (the name predates iOS). `OutsideBootstrap` acts on its requests, polls it on resume, and pushes the current pick for the widgets.
 
 **iOS** (`ios/Runner/AppDelegate.swift`, `ios/UnstuckWidget`, `ios/UnstuckShare`):
-- The share extension (Apple's compose sheet) queues `{subject, text}` in the App Group `group.com.adhdtax.adhdTax`; `takeLaunchRequest` hands one over per call, and the app opens Quick add with it on resume.
+- The share extension (Apple's compose sheet) writes each `{subject, text}` as its own JSON file in the `Shares/` folder of the App Group `group.com.adhdtax.adhdTax`; `takeLaunchRequest` hands over the oldest per call (after anything left in the old `pendingShares` list), and the app opens Quick add with it on resume.
 - `updateWidget` stores the pick in the App Group and reloads WidgetKit timelines. The SwiftUI widget (small, medium, large with "Next up") only displays it.
-- Widget taps open `unstuck://app/<route>`, which Flutter's deep linking hands to go_router directly (so, unlike Android, not through `openFromOutside`; see docs/DECISIONS.md, 2026-10-26); `/add` is a redirect that sets `quickAddRequested`.
+- Widget taps open `unstuck://app/<route>`. Flutter's deep linking is off; `UnstuckBridge` is a scene delegate (`addSceneDelegate`) that keeps the route and calls `pending`, and Dart takes it with `takeLaunchRequest` and opens it through `openFromOutside`, like Android. `/add` also stays a redirect that sets `quickAddRequested`.
 - Notifications use the same `DeviceReminders` as Android (no ongoing countdown on iOS; at most 60 scheduled, soonest first, because iOS keeps 64).
 
 **Android** — `MainActivity.kt` (launchMode `singleTask`, Flutter deep linking off) talks to Dart over the channel:
@@ -250,7 +250,7 @@ Navigation (`app.dart`): phones get the divider-tab bar (2 px `line2` rule, four
 
 - `index.html`: home-screen metadata (`apple-mobile-web-app-*`, `apple-touch-icon.png`) and registers `offline.js`.
 - `offline.js`: network-first service worker. Opening the app (`navigate`) falls back to the saved copy after 4 s, offline or on a 5xx, and a page opened that way (`resultingClientId` in `fromSaved`) gets every file from the saved copy, so it runs one consistent version. A page that opened fresh only falls back when the network *fails*, never because it's slow, so a new `main.dart.js` never runs with an old CanvasKit. Every fresh response is saved, even one that arrives after the saved copy answered (`event.waitUntil` is called during the event). The first visit loads before the worker runs, so `index.html` sends it the page's loaded resources once it's active (`postMessage({warm})`) and it saves them: the next launch opens offline.
-- `_headers`: Cloudflare Pages response headers (no framing, nosniff, referrer policy, and a Content Security Policy in report-only mode for now; docs/DEPLOYMENT.md → Web headers).
+- `_headers`: Cloudflare Pages response headers (no framing, nosniff, referrer policy, and an enforced Content Security Policy; docs/DEPLOYMENT.md → Web headers).
 - `flutter_bootstrap.js`: custom, so Flutter's deprecated service worker isn't registered. That worker unregisters all workers and reloads the page.
 - `WebSafeArea`: Flutter web reports no safe-area insets and rewrites the viewport tag, dropping `viewport-fit=cover`. `insets_web.dart` re-adds `viewport-fit=cover`, measures `env(safe-area-inset-*)` with a hidden element, and feeds the values into `MediaQuery`.
 

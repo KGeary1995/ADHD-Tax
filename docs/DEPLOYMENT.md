@@ -100,8 +100,9 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 Cloudflare Pages applies `_headers` (copied into `build/web` by `flutter build web`) to every response:
 
 - Enforced: `X-Frame-Options: DENY` (no framing), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
-- `Content-Security-Policy-Report-Only`: allows the app itself plus Google sign-in (`accounts.google.com`, `apis.google.com`), the Drive and token endpoints (`www.googleapis.com`, `oauth2.googleapis.com`), Microsoft (`login.microsoftonline.com`, `graph.microsoft.com`) and the AI helper (`api.anthropic.com`); `wasm-unsafe-eval` for CanvasKit; `frame-ancestors 'none'`. Report-only means the browser console lists what it would block without blocking it.
-- **To enforce it:** open the web app with the console open, connect Google and Microsoft, run a sync and an AI breakdown. If nothing is reported, rename the header to `Content-Security-Policy` in `_headers` and push. If something is, add that host to the directive the report names.
+- `Content-Security-Policy` (enforced since 2026-10-27): allows the app itself plus Google sign-in (`accounts.google.com`, `apis.google.com`), the Drive and token endpoints (`www.googleapis.com`, `oauth2.googleapis.com`), Microsoft (`login.microsoftonline.com`, `graph.microsoft.com`), the AI helper (`api.anthropic.com`) and Flutter's fallback fonts (`fonts.gstatic.com`: emoji and other scripts); `wasm-unsafe-eval` for CanvasKit; `frame-ancestors 'none'`.
+- **When the web app starts calling a new host**, add it to the right directive, or the browser blocks it. The console says "Refused to connect to … because it violates … connect-src" (or `img-src`, `script-src`…).
+- **Testing it locally:** serve `build/web` with the `_headers` lines added as response headers (a few lines of Python `http.server`) and load it in Chrome with the console open, or headless: `chrome --headless=new --enable-logging=stderr --virtual-time-budget=20000 --dump-dom http://localhost:PORT/`, then look for "Refused" in the log.
 
 ## Google Cloud setup (sync)
 

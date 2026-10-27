@@ -75,15 +75,28 @@ class NoDeviceBridge implements DeviceBridge {
 class ChannelDeviceBridge implements DeviceBridge {
   ChannelDeviceBridge() {
     _channel.setMethodCallHandler((call) async {
-      if (call.method == 'request') {
-        final r = OutsideRequest.fromMap(call.arguments);
-        if (r != null) _incoming.add(r);
+      switch (call.method) {
+        // Android: the request itself.
+        case 'request':
+          final r = OutsideRequest.fromMap(call.arguments);
+          if (r != null) _deliver(r);
+        // iOS: a widget tap is waiting; take it.
+        case 'pending':
+          await poll();
       }
     });
   }
 
   static const _channel = MethodChannel('unstuck/android');
   final _incoming = StreamController<OutsideRequest>.broadcast();
+
+  /// Requests that arrived before anything listened to [requests] (a
+  /// broadcast stream would drop them), e.g. an iOS widget tap during
+  /// startup.
+  final _held = <OutsideRequest>[];
+
+  void _deliver(OutsideRequest r) =>
+      _incoming.hasListener ? _incoming.add(r) : _held.add(r);
 
   Future<OutsideRequest?> _take() async {
     try {
@@ -101,13 +114,16 @@ class ChannelDeviceBridge implements DeviceBridge {
   Stream<OutsideRequest> get requests async* {
     final first = await _take();
     if (first != null) yield first;
+    while (_held.isNotEmpty) {
+      yield _held.removeAt(0);
+    }
     yield* _incoming.stream;
   }
 
   @override
   Future<void> poll() async {
     final r = await _take();
-    if (r != null) _incoming.add(r);
+    if (r != null) _deliver(r);
   }
 
   @override
@@ -128,8 +144,9 @@ final deviceBridgeProvider = Provider<DeviceBridge>(
       : const NoDeviceBridge(),
 );
 
-/// Set by the `/add` route (an iOS widget's + opens unstuck://app/add);
-/// OutsideBootstrap opens Quick add when it sees it.
+/// Set by the `/add` route; OutsideBootstrap opens Quick add when it sees
+/// it. iOS widget links now arrive through the channel, but `/add` stays a
+/// redirect so an `/add` that reaches the router another way still works.
 final quickAddRequested = ValueNotifier<bool>(false);
 
 /// Splits shared text into a task title and notes: the subject or first
