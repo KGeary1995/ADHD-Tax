@@ -2,7 +2,7 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build — 2026-10-27: iPhone widget taps and shares, web security policy on
+## Build 144 (iPhone) / 145 (Android, web) — 2026-10-27: iPhone widget taps and shares, web security policy on
 - **iPhone widget taps** now open screens the same careful way Android's do: tapping Start for the task already running opens nothing new, and another task's Start replaces the running one instead of stacking a second session.
 - **iPhone Share → Gumption** can't lose a share made at the same moment the app was opening another one.
 - **Web app:** the site's security policy now blocks anything it doesn't expect (before, it only reported). Emoji and other scripts still load their fonts.
