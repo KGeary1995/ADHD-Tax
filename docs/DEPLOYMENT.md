@@ -39,7 +39,7 @@ Every build job first writes `app/google_oauth.json` from secrets and builds wit
 
 - The workflow token is read-only by default (`permissions: contents: read`); the Android, Play and Mac jobs ask for `contents: write` to publish their releases.
 - A secret goes only into the `env:` of the step that uses it. A job that needs to know whether a secret exists gets a flag instead (`HAS_ASC_KEY`, `HAS_UPLOAD_KEY`, `HAS_CLOUDFLARE`: `${{ secrets.X != '' }}`), so no other step in the job, including third-party actions, can read the secret.
-- Third-party actions are pinned to commit SHAs with a `# vN` comment. To move to a newer version: `gh api repos/<owner>/<action>/commits/<tag> -q .sha`, then replace the SHA.
+- Third-party actions are pinned to commit SHAs with a `# vX.Y.Z` comment, all on releases that run on Node 24 (GitHub warns about actions still on Node 20). To move to a newer version: `gh api repos/<owner>/<action>/releases/latest -q .tag_name`, then `gh api repos/<owner>/<action>/commits/<tag> -q .sha`, and replace the SHA and the comment. Read the major-version release notes first: `upload-artifact` and `download-artifact` must stay on compatible majors (v4 and later are).
 - `actions/checkout` runs with `persist-credentials: false`; nothing pushes with git (releases use `gh` with `GH_TOKEN`).
 
 ## Secrets and variables (repo → Settings → Secrets and variables → Actions)
