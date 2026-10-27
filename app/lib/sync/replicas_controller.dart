@@ -158,9 +158,89 @@ class ReplicasController extends Notifier<ReplicaSet> {
   /// True once they're on disk; sync only then records the files as read,
   /// or a failed write would leave them neither saved nor fetched again.
   Future<bool> remoteMerged(Workspace ws) {
+    // Every workspace: the moved copy may arrive in the other workspace's
+    // round, after the edit landed on the tombstone here.
+    final moved = {for (final w in Workspace.values) ..._settleTombstones(w)};
+    for (final other in moved) {
+      if (other != ws) _persist(other, state[other]);
+    }
     final saved = _persist(ws, state[ws]);
     state = state.bumped(tasks: true, events: true, docs: true);
+    for (final w in moved) {
+      state = state.bumped(localWrite: w);
+    }
     return saved;
+  }
+
+  /// An edit synced in for a record that's deleted here (one device moved
+  /// a task to the other workspace, or deleted it, while another edited
+  /// it) would otherwise sit as hidden text in this workspace's account.
+  /// Once the record's live copy in the other workspace is here too,
+  /// carries each such edit there (where it's newer) and blanks it here.
+  /// With no live copy (a plain delete), it's left as it was. Returns the
+  /// workspaces written to.
+  Set<Workspace> _settleTombstones(Workspace ws) {
+    final now = _now();
+    final r = state[ws];
+    final touched = <Workspace>{};
+    for (final coll in r.collections.toList()) {
+      for (final MapEntry(key: id, value: rec)
+          in r.collection(coll).entries.toList()) {
+        if (!rec.isDeleted) continue;
+        final stray = {
+          for (final f in rec.values.entries)
+            if (f.key != 'deleted' && f.value != null) f.key: f.value,
+        };
+        if (stray.isEmpty) continue;
+        var carried = false;
+        for (final (other, o) in state.entries) {
+          if (other == ws) continue;
+          final live = o.get(coll, id);
+          if (live == null || live.isDeleted) continue;
+          carried = true;
+          final newer = {
+            for (final f in stray.entries)
+              // Which workspace it's in belongs to the move, not the edit.
+              if (f.key != 'workspace' &&
+                  (live.clocks[f.key] ?? '').compareTo(rec.clocks[f.key]!) < 0)
+                f.key: f.value,
+          };
+          if (newer.isNotEmpty && o.put(coll, id, newer, now)) {
+            touched.add(other);
+          }
+        }
+        if (!carried) continue;
+        r.put(coll, id, {for (final k in stray.keys) k: null}, now);
+        touched.add(ws);
+      }
+    }
+    return touched;
+  }
+
+  /// Another install is using this device's id (a phone restored from a
+  /// backup of this one, while the old one is still in use): take a new id
+  /// so the two stop writing one sync file and skipping each other's
+  /// changes. Every replica is re-owned; sync then creates a new file per
+  /// workspace, and the old file is read like any other device's.
+  void changeDeviceId() {
+    final id = const Uuid().v4();
+    _store.write('device.id', id);
+    ref.invalidate(deviceIdProvider);
+    final replicas = {
+      for (final (ws, r) in state.entries)
+        ws: Replica.decode(r.encode(), node: id),
+    };
+    state = ReplicaSet(
+      replicas,
+      tasksVersion: state.tasksVersion + 1,
+      eventsVersion: state.eventsVersion + 1,
+      docsVersion: state.docsVersion + 1,
+      localWrites: state.localWrites,
+      unsaved: state.unsaved,
+    );
+    for (final e in replicas.entries) {
+      _persist(e.key, e.value);
+    }
   }
 
   /// Merges a backup file in. Returns true if it added or changed anything.
@@ -306,6 +386,38 @@ T? docFromRecord<T>(
   } on Object {
     return null; // Written by a newer build in a way we can't read: skip.
   }
+}
+
+/// Writes [fields] to record [id] in [coll], skipping those this build
+/// reads back unchanged from what's stored ([normalize] parses a stored
+/// record and writes it out again, e.g. `(j) => Task.fromJson(j).toJson()`).
+/// A field this build reads with a fallback (a value from a newer build it
+/// doesn't know, like a new kind of repeat) or doesn't know at all is left
+/// as it is, instead of being stamped with this build's default and
+/// overwriting the newer value on every device.
+bool putChanged(
+  Replica r,
+  String coll,
+  String id,
+  Map<String, Object?> fields,
+  Map<String, Object?> Function(Map<String, Object?>) normalize,
+  DateTime now,
+) {
+  final stored = r.get(coll, id);
+  if (stored == null || stored.isDeleted) return r.put(coll, id, fields, now);
+  final Map<String, Object?> before;
+  try {
+    before = normalize({...stored.values, 'id': id});
+  } on Object {
+    return r.put(coll, id, fields, now);
+  }
+  return r.put(coll, id, {
+    for (final e in fields.entries)
+      if (e.key == 'deleted' ||
+          !before.containsKey(e.key) ||
+          before[e.key] != e.value)
+        e.key: e.value,
+  }, now);
 }
 
 /// A notes-style record's fields (the id is the record key).

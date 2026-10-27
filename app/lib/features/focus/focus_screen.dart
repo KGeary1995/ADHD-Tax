@@ -12,6 +12,7 @@ import '../../core/theme/app_themes.dart';
 import '../../widgets/ui.dart';
 import '../gamification/progress_controller.dart';
 import '../reminders/reminders.dart';
+import '../settings/device_workspaces.dart';
 import '../settings/settings_controller.dart';
 import '../tasks/tasks_controller.dart';
 import 'company.dart';
@@ -64,12 +65,18 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
   /// The checklist drawer at the bottom is open.
   bool _check = false;
 
-  DateTime _now() => ref.read(clockProvider)();
+  DateTime _now() => _clock();
 
   // Read up front: dispose() can't use ref.
   late final Reminders _reminders;
   late final bool _alerts;
   late final AmbientPlayer _ambient;
+  late final DateTime Function() _clock;
+  late final TasksController _tasks;
+  late final ProgressController _progress;
+
+  /// The session started (the task was marked started and earned its XP).
+  bool _began = false;
 
   Duration get _elapsed => _runningSince == null
       ? _banked
@@ -85,11 +92,19 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
     _reminders = ref.read(remindersProvider);
     _alerts = ref.read(settingsProvider).timerAlerts;
     _ambient = ref.read(ambientPlayerProvider);
+    _clock = ref.read(clockProvider);
+    _tasks = ref.read(tasksProvider.notifier);
+    _progress = ref.read(progressProvider.notifier);
     _runningSince = _now();
     _tick = Timer.periodic(const Duration(seconds: 1), (_) => _onTick());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final task = ref.read(tasksProvider.notifier).byId(widget.taskId);
-      if (task == null) return;
+      // A stale link to a task in a workspace this device doesn't show:
+      // the screen says it doesn't exist, so nothing may start either.
+      if (task == null ||
+          !ref.read(deviceWorkspacesProvider).shown.contains(task.workspace)) {
+        return;
+      }
       if (task.status == TaskStatus.done ||
           task.status == TaskStatus.archived) {
         setState(() {
@@ -105,6 +120,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
 
   /// Starts the session: marks the task started and awards start XP.
   void _begin(Task task) {
+    _began = true;
     ref.read(tasksProvider.notifier).markStarted(task.id);
     // XP for starting — the hard part — before any work is done.
     final started = ref
@@ -142,6 +158,18 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
 
   @override
   void dispose() {
+    // Closed without Done or Stop (a notification or the widget opened
+    // something else, or the app swapped sessions): the time still counts.
+    // Saved just after, not while the widget tree is being torn down.
+    if (_began && !_finished) {
+      scheduleMicrotask(() {
+        try {
+          _bankPartial();
+        } on Object {
+          // The whole app is closing: nothing left to save it to.
+        }
+      });
+    }
     _introTimer?.cancel();
     _tick?.cancel();
     _ambient.stop();
@@ -313,22 +341,33 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
 
   void _stop() {
     if (_finished) return;
+    _bankPartial();
+    _leave();
+  }
+
+  /// Ends the session as stopped early: a minute or more is added to the
+  /// task's time and earns partial XP. Uses no ref, so dispose can call it.
+  void _bankPartial() {
     _finished = true;
-    final tasks = ref.read(tasksProvider.notifier);
-    final task = tasks.byId(widget.taskId);
+    final task = _tasks.byId(widget.taskId);
     if (task != null && _elapsed.inSeconds >= 60) {
       final worked = _minutesWorked;
-      tasks.pause(task.id, minutesWorked: worked);
-      ref
-          .read(progressProvider.notifier)
-          .recordPartial(task, worked, keptGoingAfterFive: _keptGoing);
+      _tasks.pause(task.id, minutesWorked: worked);
+      _progress.recordPartial(task, worked, keptGoingAfterFive: _keptGoing);
     }
-    _leave();
   }
 
   void _leave() {
     _tick?.cancel();
     if (_alerts) _reminders.focusEnded();
+    // Time can run out while a sheet or the Stop dialog is open; the
+    // time's-up choice then leaves from under it. Close those first, or
+    // the pop below would close one of them instead of this screen.
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).popUntil((r) => r is! PopupRoute);
+    Navigator.of(context).popUntil((r) => r is! PopupRoute);
     if (context.canPop()) {
       context.pop();
     } else {

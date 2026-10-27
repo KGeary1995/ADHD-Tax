@@ -70,7 +70,14 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   @override
   void initState() {
     super.initState();
-    final existing = ref.read(tasksProvider.notifier).byId(widget.taskId);
+    final found = ref.read(tasksProvider.notifier).byId(widget.taskId);
+    // A stale link into a workspace this device doesn't show opens nothing
+    // of it.
+    final existing =
+        found != null &&
+            ref.read(deviceWorkspacesProvider).shown.contains(found.workspace)
+        ? found
+        : null;
     _isNew = existing == null;
     final now = ref.read(clockProvider)();
     _task =

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../app.dart' show routerProvider;
+import '../../app.dart' show openFromOutside, routerProvider;
 import '../../data/models/task.dart';
 import '../../widgets/task_chips.dart';
 import '../../core/providers.dart';
@@ -31,6 +31,7 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
   String? _lastWidget;
   late final AppLifecycleListener _lifecycle;
   Timer? _pickerRefresh;
+  Timer? _dayPart;
 
   @override
   void initState() {
@@ -40,7 +41,13 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
         ref.read(deviceBridgeProvider).poll();
         // Time passed while the app was away; see pickerTickProvider.
         ref.invalidate(pickerTickProvider);
+        ref.invalidate(dayPartProvider);
       },
+    );
+    ref.listenManual(
+      dayPartProvider,
+      (_, now) => _scheduleDayPart(now),
+      fireImmediately: true,
     );
     ref.listenManual(
       pickerTickProvider,
@@ -81,9 +88,21 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
     );
   }
 
+  /// Moves Home on to the next part of the day ([dayPartProvider]).
+  void _scheduleDayPart(DateTime now) {
+    _dayPart?.cancel();
+    _dayPart = Timer(
+      nextDayPart(now).difference(now) + const Duration(milliseconds: 500),
+      () {
+        if (mounted) ref.invalidate(dayPartProvider);
+      },
+    );
+  }
+
   @override
   void dispose() {
     _pickerRefresh?.cancel();
+    _dayPart?.cancel();
     _lifecycle.dispose();
     quickAddRequested.removeListener(_quickAddFromRoute);
     _sub?.cancel();
@@ -101,10 +120,8 @@ class _OutsideBootstrapState extends ConsumerState<OutsideBootstrap> {
         showQuickAdd(nav, initialTitle: t.title, initialNotes: t.notes);
       case OpenRoute(route: '/add'):
         if (nav != null) showQuickAdd(nav);
-      case OpenRoute(:final route) when route.startsWith('/focus/'):
-        router.push(route);
       case OpenRoute(:final route):
-        router.go(route);
+        openFromOutside(router, route);
       case AuthRedirect(:final url):
         // Nobody waiting (the app restarted mid sign-in): nothing to do.
         authRedirects.add(url);

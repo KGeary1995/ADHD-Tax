@@ -18,24 +18,50 @@ final _patterns = <String, RegExp>{
     r'\b(dob|d\.o\.b\.?|date of birth|birth ?date)\b',
     caseSensitive: false,
   ),
-  'Birth date': RegExp(r'\b\d{1,2}[/-]\d{1,2}[/-](19\d{2}|200\d)\b'),
-  'Social security number': RegExp(r'\b\d{3}-\d{2}-\d{4}\b'),
+  'Social security number': RegExp(r'\b\d{3}[- ]\d{2}[- ]\d{4}\b'),
   'Record or account number': RegExp(
     r'\b(mrn|med(ical)? ?rec(ord)?|acct|account) ?(#|no\.?|number)?:? ?\d{4,}\b',
     caseSensitive: false,
   ),
   'Long ID number': RegExp(r'\b\d{7,}\b'),
-  // "pt John Smith", "patient Mary Jones", "Mrs. Lopez".
+  // "pt John Smith", "patient SMITH", "Mrs. O'Brien", "Mr McDonald".
   "Someone's name": RegExp(
-    r'\b([Pp]t\.?|[Pp]atient|[Mm]rs?\.|[Mm]s\.)\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?\b',
+    r"\b([Pp]t\.?|[Pp]atient|[Mm]rs?\.?|[Mm]s\.?)\s+[A-Z][A-Za-z'’-]+"
+    r"(\s+[A-Z][A-Za-z'’-]+)?",
   ),
 };
 
-List<PhiHit> scanForPhi(String text) {
+/// 3/14/1985, 3-14-85, 1985-03-14.
+final _slashDate = RegExp(r'\b(\d{1,2})[/-](\d{1,2})[/-](\d{4}|\d{2})\b');
+final _isoDate = RegExp(r'\b((?:19|20)\d{2})-(\d{2})-(\d{2})\b');
+
+/// A date in an earlier year looks like a birth date; this year's or a
+/// later one is more likely when something is due.
+String? _birthDate(String text, DateTime now) {
+  int fullYear(String y) {
+    if (y.length == 4) return int.parse(y);
+    final yy = int.parse(y);
+    return yy > now.year % 100 ? 1900 + yy : 2000 + yy;
+  }
+
+  for (final m in _slashDate.allMatches(text)) {
+    if (fullYear(m.group(3)!) < now.year) return m.group(0);
+  }
+  for (final m in _isoDate.allMatches(text)) {
+    if (int.parse(m.group(1)!) < now.year) return m.group(0);
+  }
+  return null;
+}
+
+List<PhiHit> scanForPhi(String text, {DateTime? now}) {
   final hits = <PhiHit>[];
   for (final e in _patterns.entries) {
     final m = e.value.firstMatch(text);
     if (m != null) hits.add(PhiHit(e.key, m.group(0)!));
+  }
+  final born = _birthDate(text, now ?? DateTime.now());
+  if (born != null) {
+    hits.insert(hits.isEmpty ? 0 : 1, PhiHit('Birth date', born));
   }
   return hits;
 }

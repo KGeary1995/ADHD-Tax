@@ -26,10 +26,13 @@ class ChecklistItem {
 
 final _box = RegExp(r'^\[( |x|X)\]\s*');
 
+/// A box with nothing after it (`[ ]`) is skipped, as [encodeChecklist]
+/// skips it, so an item's index means the same in both.
 List<ChecklistItem> parseChecklist(String raw) => [
   for (final line in raw.split('\n'))
     if (line.trim().isNotEmpty)
-      switch (_box.firstMatch(line.trim())) {
+      ?switch (_box.firstMatch(line.trim())) {
+        final m? when line.trim().substring(m.end).trim().isEmpty => null,
         final m? => ChecklistItem(
           line.trim().substring(m.end).trim(),
           done: m.group(1) != ' ',

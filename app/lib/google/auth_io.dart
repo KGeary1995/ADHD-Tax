@@ -97,7 +97,7 @@ class MobileGoogleAuth implements GoogleAuth {
 /// Also iPhone and iPad ([inApp]): the sign-in page opens in an in-app
 /// Safari sheet, which closes itself once Google redirects back. Each
 /// workspace keeps its own refresh token, so two accounts work side by side.
-class DesktopGoogleAuth implements GoogleAuth {
+class DesktopGoogleAuth implements GoogleAuth, AbandonableSignIn {
   DesktopGoogleAuth({FlutterSecureStorage? storage, this.inApp = false})
     : _storage =
           storage ??
@@ -154,8 +154,18 @@ class DesktopGoogleAuth implements GoogleAuth {
     return _client(ws, creds);
   }
 
+  /// Bumped by [abandon]: a sign-in that finishes after it isn't saved.
+  final _generation = <Workspace, int>{};
+
+  /// Gives up on a sign-in still open in the browser (Cancel, or it timed
+  /// out): what it brings back later isn't saved over the sign-in this
+  /// workspace already had.
+  @override
+  void abandon(Workspace ws) => _generation[ws] = (_generation[ws] ?? 0) + 1;
+
   @override
   Future<http.Client> connect(Workspace ws, {String? email}) async {
+    final started = _generation[ws] ?? 0;
     final base = http.Client();
     try {
       final creds = await obtainAccessCredentialsViaUserConsent(
@@ -177,6 +187,9 @@ class DesktopGoogleAuth implements GoogleAuth {
         },
         customPostAuthPage: _doneHtml,
       );
+      if ((_generation[ws] ?? 0) != started) {
+        throw const NeedsReconnect('Sign-in was cancelled.');
+      }
       await _save(ws, creds);
       return _client(ws, creds);
     } finally {
@@ -200,6 +213,12 @@ class DesktopGoogleAuth implements GoogleAuth {
       jsonDecode(raw) as Map<String, dynamic>,
     ).refreshToken;
     if (token == null) return;
+    // Revoking ends the whole grant for this app and account, so the other
+    // workspace, if it's signed in here (often the same account), would be
+    // signed out too. Then the grant stays listed in the Google account
+    // until both disconnect.
+    final other = Workspace.values.firstWhere((w) => w != ws);
+    if (await _storage.read(key: _key(other)) != null) return;
     // Best effort: revoke so the grant disappears from the Google account.
     try {
       await http.post(

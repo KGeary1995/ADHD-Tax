@@ -95,7 +95,14 @@ class RewardsController extends Notifier<List<Reward>> {
       .read(replicasProvider.notifier)
       .write(
         r.workspace,
-        (rep, now) => rep.put(collRewards, r.id, docFields(r.toJson()), now),
+        (rep, now) => putChanged(
+          rep,
+          collRewards,
+          r.id,
+          docFields(r.toJson()),
+          (j) => Reward.fromJson(j).toJson(),
+          now,
+        ),
         docs: true,
       );
 }

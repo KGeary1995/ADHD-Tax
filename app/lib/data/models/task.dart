@@ -93,6 +93,8 @@ class Task {
     this.checklist = '',
     this.tags = '',
     this.reviewedAt,
+    this.repeatFrom,
+    this.repeatDay = 0,
   }) : assert(ugh >= 0 && ugh <= 3);
 
   final String id;
@@ -151,6 +153,15 @@ class Task {
   /// Last time it was kept on purpose in the weekly reset, so it isn't
   /// asked about again for another week.
   final DateTime? reviewedAt;
+
+  /// A repeating copy with no due date: the day it was scheduled for, which
+  /// the next copy counts from. Start and Later change [scheduledStart], so
+  /// that can't be the anchor. Null for anything else.
+  final DateTime? repeatFrom;
+
+  /// A monthly series' day of the month (31 for "the 31st"), so a copy
+  /// moved to Feb 28 comes back on Mar 31. 0 when unknown.
+  final int repeatDay;
 
   List<ChecklistItem> get steps => parseChecklist(checklist);
 
@@ -213,6 +224,8 @@ class Task {
     String? checklist,
     String? tags,
     Object? reviewedAt = _unset,
+    Object? repeatFrom = _unset,
+    int? repeatDay,
   }) {
     return Task(
       id: id,
@@ -260,6 +273,10 @@ class Task {
       reviewedAt: identical(reviewedAt, _unset)
           ? this.reviewedAt
           : reviewedAt as DateTime?,
+      repeatFrom: identical(repeatFrom, _unset)
+          ? this.repeatFrom
+          : repeatFrom as DateTime?,
+      repeatDay: repeatDay ?? this.repeatDay,
     );
   }
 
@@ -295,6 +312,8 @@ class Task {
     'checklist': checklist,
     'tags': tags,
     'reviewedAt': reviewedAt?.toIso8601String(),
+    'repeatFrom': repeatFrom?.toIso8601String(),
+    'repeatDay': repeatDay,
   };
 
   factory Task.fromJson(Map<String, Object?> j) {
@@ -302,19 +321,21 @@ class Task {
         j[k] == null ? null : DateTime.parse(j[k] as String);
     T byName<T extends Enum>(List<T> values, String k, T fallback) =>
         values.asNameMap()[j[k]] ?? fallback;
+    // Whole numbers may arrive as 15.0 from a JSON writer other than Dart's.
+    int? intAt(String k) => (j[k] as num?)?.toInt();
 
     return Task(
       id: j['id'] as String,
       title: j['title'] as String,
       notes: j['notes'] as String? ?? '',
       firstStep: j['firstStep'] as String? ?? '',
-      estimateMin: j['estimateMin'] as int? ?? 15,
+      estimateMin: intAt('estimateMin') ?? 15,
       requiresLeavingHouse: j['requiresLeavingHouse'] as bool? ?? false,
       location: j['location'] as String? ?? '',
       priority: byName(Priority.values, 'priority', Priority.p3),
       dueAt: date('dueAt'),
       hardDeadline: j['hardDeadline'] as bool? ?? false,
-      ugh: (j['ugh'] as int? ?? 0).clamp(0, 3),
+      ugh: (intAt('ugh') ?? 0).clamp(0, 3),
       energy: byName(Energy.values, 'energy', Energy.medium),
       workspace: byName(Workspace.values, 'workspace', Workspace.personal),
       status: byName(TaskStatus.values, 'status', TaskStatus.todo),
@@ -324,8 +345,8 @@ class Task {
       updatedAt: date('updatedAt')!,
       startedAt: date('startedAt'),
       completedAt: date('completedAt'),
-      actualMin: j['actualMin'] as int?,
-      skipCount: j['skipCount'] as int? ?? 0,
+      actualMin: intAt('actualMin'),
+      skipCount: intAt('skipCount') ?? 0,
       lastSkippedAt: date('lastSkippedAt'),
       repeat: byName(Repeat.values, 'repeat', Repeat.none),
       repeatFromDone: j['repeatFromDone'] as bool? ?? false,
@@ -335,6 +356,8 @@ class Task {
       checklist: j['checklist'] as String? ?? '',
       tags: j['tags'] as String? ?? '',
       reviewedAt: date('reviewedAt'),
+      repeatFrom: date('repeatFrom'),
+      repeatDay: intAt('repeatDay') ?? 0,
     );
   }
 

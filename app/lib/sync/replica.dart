@@ -128,6 +128,24 @@ class Replica {
     return changed;
   }
 
+  /// Whether [other] holds a write stamped with this replica's [node] that
+  /// this replica doesn't have. A copy of our own file should only ever
+  /// hold our older writes; anything newer came from another install using
+  /// the same id (or from before this device's storage was rolled back).
+  bool lacksOwnWritesIn(Replica other) {
+    final mark = '-$node';
+    for (final c in other._data.entries) {
+      for (final r in c.value.entries) {
+        for (final f in r.value.clocks.entries) {
+          if (!f.value.endsWith(mark)) continue;
+          final mine = _data[c.key]?[r.key]?.clocks[f.key];
+          if (mine == null || f.value.compareTo(mine) > 0) return true;
+        }
+      }
+    }
+    return false;
+  }
+
   Map<String, Object?> toJson() => {
     'v': 1,
     'node': node,
@@ -156,8 +174,12 @@ class Replica {
     return Replica(
       owner,
       clock: Hlc(clock.millis, clock.counter, owner),
-      // Someone else's file: none of its writes are ours.
-      lastLocalWrite: node == null ? j['local'] as String? : null,
+      // Our own saved replica keeps its record of our latest write (sync
+      // compares it with what was uploaded). Anyone else's file re-owned as
+      // ours, e.g. a backup from another device: none of its writes are ours.
+      lastLocalWrite: node == null || node == j['node']
+          ? j['local'] as String?
+          : null,
       data: data,
     );
   }

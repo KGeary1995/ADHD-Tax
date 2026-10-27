@@ -80,7 +80,16 @@ class Suggestion {
 }
 
 /// Why nothing was suggested, so the UI can offer a useful next move.
-enum NoPickReason { noOpenTasks, nothingFitsTime, allNeedLeaving, allExcluded }
+enum NoPickReason {
+  noOpenTasks,
+  nothingFitsTime,
+  allNeedLeaving,
+  allExcluded,
+
+  /// Every open task is set to come back later (snoozed, or the next copy
+  /// of a repeating task): a bigger window wouldn't help.
+  allLater,
+}
 
 class PickResult {
   const PickResult.found(Suggestion this.suggestion) : noPickReason = null;
@@ -170,7 +179,12 @@ class PickerEngine {
         .where((t) => t.isOpen && ctx.workspaces.contains(t.workspace))
         .toList();
     if (open.isEmpty) return NoPickReason.noOpenTasks;
-    final notExcluded = open.where((t) => !exclude.contains(t.id)).toList();
+    final ready = open.where((t) {
+      final sched = t.scheduledStart;
+      return sched == null || !sched.isAfter(ctx.now);
+    }).toList();
+    if (ready.isEmpty) return NoPickReason.allLater;
+    final notExcluded = ready.where((t) => !exclude.contains(t.id)).toList();
     if (notExcluded.isEmpty) return NoPickReason.allExcluded;
     final stayIn = notExcluded.where((t) => !t.requiresLeavingHouse);
     if (!ctx.willingToLeave && stayIn.isEmpty) {

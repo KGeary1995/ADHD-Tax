@@ -83,6 +83,9 @@ class _VoiceButtonState extends State<VoiceButton> {
     setState(() => _listening = true);
     await speech.listen(
       onResult: (r) {
+        // A last result can arrive after the sheet (and its text field)
+        // closed.
+        if (!mounted) return;
         final text = '$before$joiner${r.recognizedWords}';
         widget.controller.value = TextEditingValue(
           text: text,

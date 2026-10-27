@@ -108,7 +108,10 @@ class _CelebrationOverlayState extends ConsumerState<CelebrationOverlay> {
       _shown = true;
     });
     if (steps.isNotEmpty) {
-      if (level == CelebrationLevel.party) _playConfetti();
+      // Reduce Motion: the cards, without confetti flying across them.
+      if (level == CelebrationLevel.party && !context.reduceMotion) {
+        _playConfetti();
+      }
       HapticFeedback.mediumImpact();
     } else {
       _toastTimer = Timer(const Duration(seconds: 3), _dismiss);
@@ -127,12 +130,17 @@ class _CelebrationOverlayState extends ConsumerState<CelebrationOverlay> {
   void _dismiss() {
     _toastTimer?.cancel();
     if (!mounted) return;
+    final shown = _current;
     setState(() {
       _current = null;
       _steps = const [];
       _shown = false;
     });
-    ref.read(celebrationQueueProvider.notifier).pop();
+    // By identity: an Undo may already have taken this one out of the
+    // queue, and popping the head would then drop the next one unseen.
+    if (shown != null) {
+      ref.read(celebrationQueueProvider.notifier).remove(shown);
+    }
   }
 
   @override
@@ -143,6 +151,11 @@ class _CelebrationOverlayState extends ConsumerState<CelebrationOverlay> {
         ..addPostFrameCallback((_) {
           if (!mounted) return;
           final cur = _current;
+          // Taken back (Undo): stop showing it.
+          if (cur != null && !q.any((x) => identical(x, cur))) {
+            _dismiss();
+            return;
+          }
           // A finish shouldn't wait behind a toast.
           if (cur != null && _steps.isEmpty && q.length > 1) {
             _toastTimer?.cancel();

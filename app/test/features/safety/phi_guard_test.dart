@@ -18,7 +18,13 @@ void main() {
 
   test('leaves ordinary work tasks alone', () {
     expect(scanForPhi('Order more OCT paper'), isEmpty);
-    expect(scanForPhi('Staff huddle agenda for 10/20/2026'), isEmpty);
+    expect(
+      scanForPhi(
+        'Staff huddle agenda for 10/20/2026',
+        now: DateTime(2026, 10, 1),
+      ),
+      isEmpty,
+    );
     expect(
       scanForPhi('Follow up with Dr. Patel on schedule template'),
       isEmpty,

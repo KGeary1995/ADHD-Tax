@@ -237,12 +237,18 @@ class SyncController extends Notifier<WorkspaceSync> {
   /// Interactive sign-in, then a first sync. Also used for "Reconnect".
   /// [via] picks the service (and remembers it); left out, it's the one
   /// this workspace already uses.
-  Future<void> connect({SyncService? via}) async {
+  /// Signs in and starts syncing. Returns the account's email, without
+  /// syncing anything, when it isn't the account this workspace already
+  /// syncs with (Android's account picker ignores which one we asked for):
+  /// moving every task into a different account needs a yes first, through
+  /// [confirmAccountSwitch] or [cancelAccountSwitch].
+  Future<String?> connect({SyncService? via}) async {
     // A different service is a different place, even for the same email.
     final switched = via != null && via != service;
     if (switched) ref.read(keyValueStoreProvider).write(_serviceKey, via.name);
     final attempt = ++_attempt;
     _generation++;
+    cancelAccountSwitch();
     state = WorkspaceSync(SyncPhase.connecting, email: _sync.email);
     try {
       final http.Client? client;
@@ -255,39 +261,114 @@ class SyncController extends Notifier<WorkspaceSync> {
         client = await _auth
             .connect(workspace, email: _sync.email)
             .timeout(connectTimeout);
-        if (!ref.mounted) return;
+        if (!ref.mounted) return null;
         if (attempt != _attempt) {
           client.close();
-          return;
+          return null;
         }
         remote = _remoteFor(client);
       }
       final email = await remote.accountEmail();
-      if (!ref.mounted || attempt != _attempt) return;
-      _client?.close();
-      _client = client;
-      _remote = remote;
-      // A different account is a different Drive: start its sync state
-      // fresh so everything local gets uploaded there.
-      if (email != _sync.email || switched) _sync = SyncState(email: email);
-      _restoreFailures = 0;
-      _retry?.cancel();
-      _save();
-      _startTimer();
-      await syncNow();
+      if (!ref.mounted || attempt != _attempt) return null;
+      // Sync keys everything to the account; without one it would sit on
+      // "connecting" for good.
+      if (email == null) {
+        throw const NeedsReconnect(
+          "Couldn't tell which account that is. Try again.",
+        );
+      }
+      final was = _sync.email;
+      if (!switched &&
+          was != null &&
+          email.toLowerCase() != was.toLowerCase()) {
+        _pendingSwitch = (client: client, remote: remote, email: email);
+        state = WorkspaceSync(
+          SyncPhase.needsReconnect,
+          email: was,
+          lastSyncedAt: _sync.lastSyncedAt,
+          message: email.startsWith(iCloudAccountPrefix)
+              ? 'This device is signed in to a different iCloud account.'
+              : 'Signed in as $email, not $was.',
+        );
+        return email;
+      }
+      await _adopt(
+        client,
+        remote,
+        email,
+        fresh: switched || email.toLowerCase() != was?.toLowerCase(),
+      );
     } on Object catch (e) {
-      if (!ref.mounted || attempt != _attempt) return;
+      if (e is TimeoutException) _abandonSignIn();
+      if (!ref.mounted || attempt != _attempt) return null;
       state = WorkspaceSync(
         _sync.email == null ? SyncPhase.disconnected : SyncPhase.needsReconnect,
         email: _sync.email,
         lastSyncedAt: _sync.lastSyncedAt,
         message: e is TimeoutException
-            ? 'Sign-in didn\'t finish. Try again.'
+            ? "Sign-in didn't finish. Try again."
             : e is NeedsReconnect
             ? e.reason
-            : 'Couldn\'t connect: ${_describe(e)}',
+            : "Couldn't connect: ${_describe(e)}",
       );
     }
+    return null;
+  }
+
+  /// A sign-in left open in the browser stops counting: if it finishes
+  /// later, its token isn't saved over this workspace's.
+  void _abandonSignIn() {
+    if (_iCloud) return;
+    if (_auth case final AbandonableSignIn a) a.abandon(workspace);
+  }
+
+  /// A sign-in to a different account than this workspace's, waiting for
+  /// the user to say whether to move the workspace there.
+  ({http.Client? client, AccountRemoteStore remote, String email})?
+  _pendingSwitch;
+
+  /// Yes: this workspace syncs with the account [connect] reported from
+  /// now on, starting with an upload of everything here.
+  Future<void> confirmAccountSwitch() async {
+    final p = _pendingSwitch;
+    if (p == null) return;
+    _pendingSwitch = null;
+    _generation++;
+    try {
+      await _adopt(p.client, p.remote, p.email, fresh: true);
+    } on Object catch (e) {
+      state = WorkspaceSync(
+        SyncPhase.needsReconnect,
+        email: _sync.email,
+        lastSyncedAt: _sync.lastSyncedAt,
+        message: "Couldn't connect: ${_describe(e)}",
+      );
+    }
+  }
+
+  /// No: forget that sign-in; nothing was synced with it.
+  void cancelAccountSwitch() {
+    _pendingSwitch?.client?.close();
+    _pendingSwitch = null;
+  }
+
+  Future<void> _adopt(
+    http.Client? client,
+    AccountRemoteStore remote,
+    String? email, {
+    required bool fresh,
+  }) async {
+    _client?.close();
+    _client = client;
+    _remote = remote;
+    // A different account is a different Drive: start its sync state
+    // fresh so everything local gets uploaded there.
+    if (fresh) _sync = SyncState(email: email);
+    _restoreFailures = 0;
+    _retry?.cancel();
+    _save();
+    _startTimer();
+    await syncNow();
   }
 
   /// Gives up on a sign-in that's still open (the user closed the Google
@@ -295,6 +376,7 @@ class SyncController extends Notifier<WorkspaceSync> {
   void cancelConnect() {
     if (state.phase != SyncPhase.connecting) return;
     _attempt++;
+    _abandonSignIn();
     state = WorkspaceSync(
       _sync.email == null ? SyncPhase.disconnected : SyncPhase.needsReconnect,
       email: _sync.email,
@@ -311,6 +393,7 @@ class SyncController extends Notifier<WorkspaceSync> {
     _debounce?.cancel();
     _retry?.cancel();
     _restoreFailures = 0;
+    cancelAccountSwitch();
     final email = _sync.email;
     _client?.close();
     _client = null;
@@ -392,6 +475,12 @@ class SyncController extends Notifier<WorkspaceSync> {
         if (!current()) return;
         _ownChecked = true;
         _sync = out.state;
+        if (out.cloned) {
+          // Another install shares our id: take a new one and upload under
+          // it now. The other workspace notices on its next round.
+          ref.read(replicasProvider.notifier).changeDeviceId();
+          _again = true;
+        }
         // Only record which files were read once what they brought is on
         // disk (this round's merge, or an earlier one whose save failed):
         // otherwise after a restart they'd be skipped and the data gone.

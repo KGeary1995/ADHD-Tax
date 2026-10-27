@@ -147,16 +147,19 @@ class _StartedViewState extends State<StartedView>
                       Text.rich(
                         TextSpan(
                           children: [
-                            TextSpan(
-                              text: '+${widget.xp} XP',
-                              style: TextStyle(
-                                color: s.accentText,
-                                fontWeight: FontWeight.w800,
+                            // Already started today: no XP this time, so
+                            // no "+0".
+                            if (widget.xp > 0) ...[
+                              TextSpan(
+                                text: '+${widget.xp} XP',
+                                style: TextStyle(
+                                  color: s.accentText,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
-                            ),
-                            const TextSpan(
-                              text: ' · Starting was the hard part.',
-                            ),
+                              const TextSpan(text: ' · '),
+                            ],
+                            const TextSpan(text: 'Starting was the hard part.'),
                           ],
                         ),
                         textAlign: TextAlign.center,

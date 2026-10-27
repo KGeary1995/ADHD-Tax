@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_themes.dart';
 import '../../data/models/task.dart';
+import '../../icloud/icloud_store.dart' show iCloudAccountPrefix;
 import '../../sync/sync_controller.dart';
 import '../../widgets/ui.dart';
 import '../../core/theme/ph.dart';
@@ -128,8 +129,9 @@ class _WorkspaceRow extends ConsumerWidget {
       );
     } else if (!sync.isConnected || sync.phase == SyncPhase.needsReconnect) {
       trailing = FilledButton(
-        onPressed: () =>
-            sync.isConnected ? ctl.connect() : _chooseAndConnect(context, ref),
+        onPressed: () => sync.isConnected
+            ? _reconnect(context, ref)
+            : _chooseAndConnect(context, ref),
         style: FilledButton.styleFrom(
           backgroundColor: s.onSurface,
           foregroundColor: s.background,
@@ -236,7 +238,10 @@ class _WorkspaceRow extends ConsumerWidget {
   Future<void> _chooseAndConnect(BuildContext context, WidgetRef ref) async {
     final ctl = ref.read(syncProvider(workspace).notifier);
     final services = ref.read(availableSyncServicesProvider);
-    if (services.length == 1) return ctl.connect(via: services.single);
+    if (services.length == 1) {
+      await ctl.connect(via: services.single);
+      return;
+    }
     final pick = await showAppSheet<SyncService>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -283,6 +288,34 @@ class _WorkspaceRow extends ConsumerWidget {
       ),
     );
     if (pick != null) await ctl.connect(via: pick);
+  }
+
+  /// Reconnect signs in again. Picking a different account than this
+  /// workspace syncs with would upload everything to it, so ask first.
+  Future<void> _reconnect(BuildContext context, WidgetRef ref) async {
+    final ctl = ref.read(syncProvider(workspace).notifier);
+    final was = ref.read(syncProvider(workspace)).accountLabel;
+    final other = await ctl.connect();
+    if (other == null) return;
+    if (!context.mounted) return ctl.cancelAccountSwitch();
+    final name = other.startsWith(iCloudAccountPrefix)
+        ? "this device's iCloud account"
+        : other;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => ConfirmDialog(
+        title: 'Switch ${workspace.label} to $name?',
+        body:
+            '${workspace.label} syncs with $was. Switching uploads all of '
+            'its tasks and notes to $name.',
+        confirm: 'Switch',
+      ),
+    );
+    if (ok == true) {
+      await ctl.confirmAccountSwitch();
+    } else {
+      ctl.cancelAccountSwitch();
+    }
   }
 
   Future<void> _export(BuildContext context, WidgetRef ref) async {

@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../data/storage/key_value_store.dart';
 import '../../core/theme/app_themes.dart';
 import '../../sync/backup_file.dart';
 import '../../sync/replicas_controller.dart';
@@ -210,12 +213,31 @@ Future<void> _restore(BuildContext context, WidgetRef ref) async {
   );
 }
 
+/// [raw] settings from another device, with what belongs to this one kept
+/// as it is: whether this device already asked for notification
+/// permission (a restore onto a new phone must still ask, or reminders
+/// silently never arrive).
+String _keepDeviceOnly(String raw, KeyValueStore store) {
+  try {
+    final theirs = Map<String, Object?>.from(jsonDecode(raw) as Map);
+    final mine = store.read('settings.v1');
+    final asked = mine == null
+        ? false
+        : (jsonDecode(mine) as Map)['askedForNotifications'] == true;
+    return jsonEncode({...theirs, 'askedForNotifications': asked});
+  } on Object {
+    return raw;
+  }
+}
+
 /// Writes a backup's settings into this device and reloads what reads
 /// them. Only [backupSettingKeys] are accepted, whatever the file holds.
 void restoreSettings(WidgetRef ref, Map<String, String> settings) {
   final store = ref.read(keyValueStoreProvider);
   for (final k in backupSettingKeys) {
-    if (settings[k] case final v?) store.write(k, v);
+    if (settings[k] case final v?) {
+      store.write(k, k == 'settings.v1' ? _keepDeviceOnly(v, store) : v);
+    }
   }
   ref
     ..invalidate(settingsProvider)

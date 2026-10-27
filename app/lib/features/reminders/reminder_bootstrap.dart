@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../app.dart' show routerProvider;
+import '../../app.dart' show openFromOutside, routerProvider;
 import '../../core/providers.dart';
 import '../../data/models/task.dart';
 import '../gamification/progress_controller.dart';
@@ -40,9 +40,7 @@ class _ReminderBootstrapState extends ConsumerState<ReminderBootstrap> {
 
   void _open(String route) {
     if (!mounted) return;
-    final router = ref.read(routerProvider);
-    // Full-screen pages stack on top of Home; tabs replace each other.
-    route.startsWith('/wrapup') ? router.push(route) : router.go(route);
+    openFromOutside(ref.read(routerProvider), route);
   }
 
   @override

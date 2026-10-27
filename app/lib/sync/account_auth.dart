@@ -19,6 +19,13 @@ class WrongAccount extends NeedsReconnect {
   const WrongAccount(super.reason);
 }
 
+/// A sign-in that opens a browser page and can be given up on while it's
+/// open (Cancel, or the wait timed out): finishing afterwards must not
+/// save its token over the one the workspace already had.
+abstract interface class AbandonableSignIn {
+  void abandon(Workspace ws);
+}
+
 /// Signs a workspace into an account (Google, Microsoft) and hands back an
 /// HTTP client that authenticates its file API. Each workspace has its own.
 abstract class AccountAuth {

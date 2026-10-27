@@ -289,6 +289,8 @@ void main() {
 
   test('after this device\'s storage is rolled back, its newer copy in the '
       'cloud is merged back in, not overwritten', () async {
+    // From here a rollback looks just like another install using this
+    // device's id, so the device also moves to a new id (sync_controller).
     final remote = FaultRemote();
     final now = DateTime.now();
     final old = Replica('this-device');
@@ -314,7 +316,8 @@ void main() {
       checkOwn: true,
     );
     expect(old.get(collTasks, 'new'), isNotNull);
-    expect(out.uploaded, isTrue);
+    expect(out.cloned, isTrue);
+    expect(out.uploaded, isFalse);
     expect(utf8.decode(await remote.data.read(id)), contains('Made later'));
   });
 

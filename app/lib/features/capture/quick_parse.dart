@@ -94,6 +94,13 @@ const _monthNames =
     'january|february|march|april|may|june|july|august|september|october|'
     'november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec';
 
+/// Words that may follow a bare "at 5" and still leave it a time.
+const _whenWords =
+    'today|tonight|tomorrow|tmrw|tmr|on|next|this|in|by|due|for|every|'
+    'morning|afternoon|evening|night|weekend|eod|end|'
+    'monday|mon|tuesday|tues|tue|wednesday|weds|wed|thursday|thurs|thur|thu|'
+    'friday|fri|saturday|sat|sunday|sun|$_monthNames';
+
 const _numberWords = {
   'a': 1,
   'an': 1,
@@ -182,6 +189,8 @@ QuickParse parseQuickAdd(
   int? hour;
   var minute = 0;
   int? defaultHour;
+  // The hour came without am/pm and was guessed: "at 5" is 5 pm.
+  var guessed = false;
   if (!ignore.contains(qkDue)) {
     // Times first, so "at 2" isn't read as a date.
     if (take(
@@ -201,16 +210,28 @@ QuickParse parseQuickAdd(
         case final m?) {
       hour = int.parse(m.group(1)!);
       minute = int.parse(m.group(2)!);
+      // "at 5:30" means 5:30 pm, like "at 5". Written with two digits
+      // ("05:30", "17:30") it's read as it is.
+      if (m.group(1)!.length == 1) {
+        guessed = true;
+        if (hour.between(1, 6)) hour += 12;
+      }
     } else if (take(_re(r'\b(?:at\s+)?(noon|midday)\b')) case _?) {
       hour = 12;
     } else if (take(
-          _re(r'(?<![\w])(?:at|@)\s*(\d{1,2})(?![\w:/%.])'),
+          // Only with nothing after it but a date or time word: "Look at 3
+          // houses" isn't due at 3.
+          _re(
+            r'(?<![\w])(?:at|@)\s*(\d{1,2})(?![\w:/%.])'
+            '(?=\\s*(?:\$|[,.;!?#]|(?:$_whenWords)\\b))',
+          ),
           (m) => (int.tryParse(m.group(1)!) ?? 0).between(1, 12),
         )
         case final m?) {
       // "at 5" means 5 pm; "at 9" means 9 am.
       final h = int.parse(m.group(1)!);
       hour = h <= 6 ? h + 12 : h;
+      guessed = true;
     }
 
     final relative = take(
@@ -254,7 +275,8 @@ QuickParse parseQuickAdd(
     } else if (take(_re(r'\bnext\s+week\b')) case _?) {
       day = _addDays(now, 8 - now.weekday);
     } else if (take(_re(r'\b(?:this\s+|on\s+the\s+)?weekend\b')) case _?) {
-      day = _addDays(now, (6 - now.weekday) % 7);
+      // On a Sunday, this weekend is today.
+      day = _addDays(now, now.weekday == DateTime.sunday ? 0 : 6 - now.weekday);
     } else if (take(
           _re(
             r'\bin\s+(\d+|a|an|one|two|three|four|five|six|seven)\s+(days?|weeks?)\b',
@@ -269,6 +291,10 @@ QuickParse parseQuickAdd(
           _re(
             '(?<![\\w])$_pre($_monthNames)\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b',
           ),
+          (m) => _validDate(
+            _months[m.group(1)!.toLowerCase().substring(0, 3)]!,
+            int.parse(m.group(2)!),
+          ),
         )
         case final m?) {
       day = _dateIn(
@@ -278,6 +304,10 @@ QuickParse parseQuickAdd(
       );
     } else if (take(
           _re('(?<![\\w])$_pre(\\d{1,2})(?:st|nd|rd|th)?\\s+($_monthNames)\\b'),
+          (m) => _validDate(
+            _months[m.group(2)!.toLowerCase().substring(0, 3)]!,
+            int.parse(m.group(1)!),
+          ),
         )
         case final m?) {
       day = _dateIn(
@@ -291,7 +321,9 @@ QuickParse parseQuickAdd(
             '$_pre'
             r'(\d{1,2})/(\d{1,2})(?:/(\d{2}|\d{4}))?(?![\w/])',
           ),
-          (m) => _validDate(int.parse(m.group(1)!), int.parse(m.group(2)!)),
+          (m) =>
+              _validDate(int.parse(m.group(1)!), int.parse(m.group(2)!)) &&
+              !_looksLikeFraction(m, rest),
         )
         case final m?) {
       final y = m.group(3);
@@ -303,6 +335,13 @@ QuickParse parseQuickAdd(
               int.parse(m.group(2)!),
             );
     }
+  }
+
+  // A guessed hour follows the part of the day: "tonight at 8" is 8 pm,
+  // "tomorrow morning at 5" is 5 am.
+  if (hour != null && guessed && defaultHour != null) {
+    if (defaultHour >= 12 && hour < 12) hour += 12;
+    if (defaultHour < 12 && hour >= 12) hour -= 12;
   }
 
   DateTime? dueAt;
@@ -393,14 +432,42 @@ int? _partHour(String? part) => switch (part?.toLowerCase()) {
   _ => null,
 };
 
+/// A day that exists in that month in some year: Feb 29 does, Feb 30 and
+/// Apr 31 don't.
 bool _validDate(int month, int day) =>
-    month >= 1 && month <= 12 && day >= 1 && day <= 31;
+    month >= 1 &&
+    month <= 12 &&
+    day >= 1 &&
+    day <= DateTime(2024, month + 1, 0).day; // 2024 is a leap year
+
+/// "1/2 gallon": a small fraction with a word after it, not Jan 2. A date
+/// written that way has "on", "by"… in front, or a year.
+bool _looksLikeFraction(RegExpMatch m, String text) {
+  if (m.group(3) != null) return false;
+  if (RegExp(r'^\s*[a-z]', caseSensitive: false).hasMatch(m.group(0)!)) {
+    return false; // "by 1/2"
+  }
+  final a = int.parse(m.group(1)!);
+  final b = int.parse(m.group(2)!);
+  if (a >= b || !const {2, 3, 4, 8}.contains(b)) return false;
+  return RegExp(
+    r'^\s*[a-z]',
+    caseSensitive: false,
+  ).hasMatch(text.substring(m.end));
+}
 
 /// The next [month]/[day] from today: a date already past this year means
-/// next year.
+/// next year, and Feb 29 the next year that has one.
 DateTime _dateIn(DateTime now, int month, int day) {
-  final d = DateTime(now.year, month, day);
-  return d.isBefore(_day(now)) ? DateTime(now.year + 1, month, day) : d;
+  DateTime inYear(int y) {
+    while (DateTime(y, month, day).day != day) {
+      y++;
+    }
+    return DateTime(y, month, day);
+  }
+
+  final d = inYear(now.year);
+  return d.isBefore(_day(now)) ? inYear(d.year + 1) : d;
 }
 
 String _dueLabel(DateTime d, DateTime now) {

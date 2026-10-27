@@ -89,18 +89,30 @@ class _Loopback implements RedirectCatcher {
 /// browser to `gumption://auth?…`, which brings Gumption back to the front
 /// (MainActivity's intent filter) and arrives in [authRedirects].
 class _AndroidLink implements RedirectCatcher {
+  /// Completes with an error when the sign-in is given up on, so [open]
+  /// doesn't wait for a redirect forever.
+  final _gaveUp = Completer<Uri>();
+  bool _opened = false;
+
   @override
   Future<String> start() async => MicrosoftConfig.androidRedirect;
 
   @override
   Future<Uri> open(Uri url) async {
+    _opened = true;
     final back = authRedirects.stream.first;
     await launchUrl(url, mode: LaunchMode.inAppBrowserView);
-    return back;
+    return Future.any([back, _gaveUp.future]);
   }
 
   @override
-  Future<void> close() async {}
+  Future<void> close() async {
+    if (_opened && !_gaveUp.isCompleted) {
+      _gaveUp.completeError(
+        const NeedsReconnect("Sign-in didn't finish. Try again."),
+      );
+    }
+  }
 }
 
 const _doneHtml = '''<!doctype html>

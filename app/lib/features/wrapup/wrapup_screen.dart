@@ -42,7 +42,12 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
     final now = ref.read(clockProvider)();
     // Reopened later the same evening: keep what was chosen.
     final tomorrow = DateTime(now.year, now.month, now.day + 1);
-    _pick = s.pinnedFor(tomorrow);
+    // Finished (or deleted) since: nothing is chosen any more.
+    final pinned = s.pinnedFor(tomorrow);
+    final task = pinned == null
+        ? null
+        : ref.read(tasksProvider.notifier).byId(pinned);
+    _pick = task != null && task.isOpen ? pinned : null;
   }
 
   @override
@@ -59,7 +64,8 @@ class _WrapUpScreenState extends ConsumerState<WrapUpScreen> {
   void _finish() {
     final now = ref.read(clockProvider)();
     final tasks = ref.read(tasksProvider.notifier);
-    final chosen = _pick == null ? null : tasks.byId(_pick!);
+    final found = _pick == null ? null : tasks.byId(_pick!);
+    final chosen = found != null && found.isOpen ? found : null;
     final step = _firstStep.text.trim();
     if (chosen != null && step.isNotEmpty && chosen.nextStep.isEmpty) {
       tasks.save(chosen.copyWith(firstStep: step));

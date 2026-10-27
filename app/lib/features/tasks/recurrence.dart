@@ -21,28 +21,31 @@ Task? nextOccurrence(Task done, DateTime finishedAt) {
 
   DateTime? dueAt;
   DateTime showFrom;
+  int? day;
   final due = done.dueAt;
   if (due != null) {
-    var next = advance(
-      done.repeatFromDone
-          ? DateTime(today.year, today.month, today.day, due.hour, due.minute)
-          : due,
-      r,
-    );
+    final base = done.repeatFromDone
+        ? DateTime(today.year, today.month, today.day, due.hour, due.minute)
+        : due;
+    day = done.repeatFromDone ? null : seriesDay(done.repeatDay, base);
+    var next = advance(base, r, day: day);
     // Finished late: skip the dates already missed rather than stacking up
     // overdue copies.
     while (!next.isAfter(finishedAt)) {
-      next = advance(next, r);
+      next = advance(next, r, day: day);
     }
     dueAt = next;
     showFrom = DateTime(next.year, next.month, next.day - leadDays(r));
   } else {
+    // Counted from the day this copy was scheduled for: Start and Later
+    // change scheduledStart, so it's only the anchor for an older copy.
     final anchor = done.repeatFromDone
         ? today
-        : _day(done.scheduledStart ?? done.createdAt);
-    var next = advance(anchor, r);
+        : _day(done.repeatFrom ?? done.scheduledStart ?? done.createdAt);
+    day = done.repeatFromDone ? null : seriesDay(done.repeatDay, anchor);
+    var next = advance(anchor, r, day: day);
     while (!next.isAfter(today)) {
-      next = advance(next, r);
+      next = advance(next, r, day: day);
     }
     showFrom = next;
   }
@@ -69,11 +72,25 @@ Task? nextOccurrence(Task done, DateTime finishedAt) {
     'reviewedAt': null,
     // The next round starts with every box unticked.
     'checklist': resetChecklist(done.checklist),
+    'repeatFrom': due == null && !done.repeatFromDone
+        ? showFrom.toIso8601String()
+        : null,
+    'repeatDay': r == Repeat.monthly ? (day ?? 0) : 0,
   });
 }
 
-/// One period after [d], keeping the time of day.
-DateTime advance(DateTime d, Repeat r) {
+/// A monthly series' day of the month: [stored] (from an earlier copy)
+/// when [d] is the last day of a month too short for it (the 31st moved to
+/// Feb 28), otherwise [d]'s own day. A date edited to some other day starts
+/// a new series day.
+int seriesDay(int stored, DateTime d) {
+  final last = DateTime(d.year, d.month + 1, 0).day;
+  return stored > d.day && d.day == last ? stored : d.day;
+}
+
+/// One period after [d], keeping the time of day. A monthly step lands on
+/// [day] (default [d]'s day), or the month's last day if it's shorter.
+DateTime advance(DateTime d, Repeat r, {int? day}) {
   DateTime plusDays(int n) =>
       DateTime(d.year, d.month, d.day + n, d.hour, d.minute);
   switch (r) {
@@ -93,12 +110,13 @@ DateTime advance(DateTime d, Repeat r) {
     case Repeat.biweekly:
       return plusDays(14);
     case Repeat.monthly:
-      // Jan 31 → Feb 28, not Mar 3.
+      // Jan 31 → Feb 28, not Mar 3; then Mar 31 again, given day 31.
+      final want = day ?? d.day;
       final lastDay = DateTime(d.year, d.month + 2, 0).day;
       return DateTime(
         d.year,
         d.month + 1,
-        d.day > lastDay ? lastDay : d.day,
+        want > lastDay ? lastDay : want,
         d.hour,
         d.minute,
       );

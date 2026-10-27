@@ -130,6 +130,21 @@ final pickerTickProvider = Provider<({DateTime now, DateTime next})>((ref) {
   return (now: now, next: nextPickerBoundary(tasks, now));
 });
 
+/// Rebuilds when the part of the day changes (noon, 5 pm, 10 pm, midnight):
+/// Home's "Wrap up" link appears at 5 pm and the desktop header says
+/// "morning" or "evening". Watch it, then read the clock. The app shell
+/// (OutsideBootstrap) invalidates it at [nextDayPart] and on resume.
+final dayPartProvider = Provider<DateTime>((ref) => ref.read(clockProvider)());
+
+/// The next of today's noon, 5 pm and 10 pm, or else midnight.
+DateTime nextDayPart(DateTime now) {
+  for (final h in const [12, 17, 22]) {
+    final at = DateTime(now.year, now.month, now.day, h);
+    if (at.isAfter(now)) return at;
+  }
+  return DateTime(now.year, now.month, now.day + 1);
+}
+
 /// When what's eligible next changes by itself: the earliest start time
 /// of a snoozed or scheduled open task or check-back date of a waiting
 /// one, or else midnight (last night's wrap-up pick lapses).

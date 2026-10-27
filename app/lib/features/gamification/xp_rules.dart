@@ -55,12 +55,23 @@ XpAward completionXp(
   if (actualMin != null && actualMin <= t.estimateMin) {
     lines.add(const XpLine('Beat your estimate', 10));
   }
-  if (now.difference(t.createdAt).inDays >= 7) {
+  if (calendarDaysBetween(t.createdAt, now) >= 7) {
     lines.add(const XpLine('Cleared an old task', 20));
   }
   if (t.requiresLeavingHouse) lines.add(const XpLine('Got out the door', 10));
   return XpAward(lines);
 }
+
+/// Whole calendar days from [from]'s date to [to]'s. A 24-hour count comes
+/// up a day short across the spring clock change.
+int calendarDaysBetween(DateTime from, DateTime to) =>
+    (DateTime(
+              to.year,
+              to.month,
+              to.day,
+            ).difference(DateTime(from.year, from.month, from.day)).inHours /
+            24)
+        .round();
 
 /// Small win for stopping after "just 5 minutes" — it still counts.
 XpAward partialXp(int minutes) =>
