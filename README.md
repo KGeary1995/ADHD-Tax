@@ -156,7 +156,7 @@ flutter build windows --release                   # Windows → build/windows/x6
 flutter build web --release --no-web-resources-cdn # Web → build/web/ (self-contained, no CDN)
 ```
 
-Every push (except docs-only changes) runs CI, which tests the app and builds the web and Android versions. The Android build is published to the `android-latest` release, and the web app to Cloudflare Pages once it's set up (see above). Mac, iPhone, Windows and the Play bundle build on request (Run workflow, or `[mac]`, `[ios]`, `[windows]`, `[play]` in the commit message). Every build is also attached to the run's **Artifacts** section. Details: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Every push (except docs-only changes) runs CI, which tests the app and builds the web version. Pushes to `main` also build the Android version (on another branch, add `[android]` to the commit message). The Android build is published to the `android-latest` release, and the web app to Cloudflare Pages once it's set up (see above). Mac, iPhone, Windows and the Play bundle build on request (Run workflow, or `[mac]`, `[ios]`, `[windows]`, `[play]` in the commit message). Every build is also attached to the run's **Artifacts** section. Details: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ### Set up Google sync (one time, about 20 minutes)
 

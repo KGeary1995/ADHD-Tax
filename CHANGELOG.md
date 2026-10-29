@@ -2,6 +2,10 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
+## CI only, 2026-10-28: the Android app builds from `main` only
+- **The phone link (`android-latest`) now updates only when a change lands on `main`**, not on every push to a work-in-progress branch. A branch push still runs the tests and the web build. To get a phone build from a branch, add `[android]` to the commit message or use Run workflow.
+- Saves about 7 Actions minutes per branch push (68 such pushes in October), and the Android build caches Gradle so it should be quicker on `main` too. Nothing in the app changed.
+
 ## Build 144 (iPhone) / 145 (Android, web) — 2026-10-27: iPhone widget taps and shares, web security policy on
 - **iPhone widget taps** now open screens the same careful way Android's do: tapping Start for the task already running opens nothing new, and another task's Start replaces the running one instead of stacking a second session.
 - **iPhone Share → Gumption** can't lose a share made at the same moment the app was opening another one.

@@ -6,7 +6,7 @@ Everything about getting builds onto devices: CI, release links, secrets, signin
 
 | Platform | Built by | Delivered via | Link |
 |---|---|---|---|
-| Android | CI `android` job, every push | GitHub release **`android-latest`** (asset replaced each build) | `https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/Gumption.apk` (the same file is also published as `Unstuck.apk`, so links from before the rename keep working) |
+| Android | CI `android` job, pushes to `main` (or Run workflow, or `[android]` in the commit message) | GitHub release **`android-latest`** (asset replaced each build) | `https://github.com/KGeary1995/ADHD-Tax/releases/download/android-latest/Gumption.apk` (the same file is also published as `Unstuck.apk`, so links from before the rename keep working) |
 | Mac | CI `macos` job, on `[mac]` commits or Run workflow | GitHub release **`macos-latest`** | `https://github.com/KGeary1995/ADHD-Tax/releases/download/macos-latest/Gumption-macOS.zip` |
 | iPhone / iPad (native) | CI `ios` job, on `[ios]` commits or Run workflow | App Store Connect → **TestFlight** (needs the Apple secrets; until then the job only compiles) | TestFlight app on the device |
 | Web (and iPhone without an Apple account) | CI `test` job builds; `web-publish` deploys | Cloudflare Pages project `unstuck` (or repo variable `CLOUDFLARE_PROJECT`) | **`https://unstuck-4o8.pages.dev`** (project created by Build 39; the suffix is Cloudflare's because `unstuck` was taken) |
@@ -22,7 +22,7 @@ Triggers: `push` (except docs-only commits) and `workflow_dispatch` (Run workflo
 | Job | Runs on | Does | Publishes |
 |---|---|---|---|
 | `test` | ubuntu | `pub get` → `dart format --set-exit-if-changed` → `flutter analyze` → `flutter test` (with `TZ=America/Los_Angeles`, so date code meets a clock change) → web build | artifact `unstuck-web` |
-| `android` | ubuntu, after `test` | `flutter build apk --release --no-shrink --build-number=<run_number>` | `android-latest` release, except on `pull_request` |
+| `android` | ubuntu, after `test`; `main`, Run workflow or `[android]` only | `flutter build apk --release --no-shrink --build-number=<run_number>` | `android-latest` release, except on `pull_request` |
 | `play` | ubuntu, after `test`; dispatch or `[play]` in the commit message | Decodes the upload keystore from secrets, `UPLOAD_KEYSTORE=… flutter build appbundle --release --no-shrink --build-number=<run_number>` (`build.gradle.kts` signs with the upload key when that variable is set). Fails with a message if the secrets are missing | `play-latest` release |
 | `windows` | windows, after `test` | `flutter build windows --release` | artifact only |
 | `web-publish` | ubuntu, after `test`, push or dispatch | `wrangler pages project create` (first time) + `pages deploy --branch=main` | Cloudflare Pages; skipped with a notice if secrets are missing |
