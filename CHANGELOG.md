@@ -2,7 +2,7 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build: wording that names no other platforms
+## Next build (iPhone 1.1.1): wording that names no other platforms
 - **Settings → Sync:** the Google account choice now reads "Any device, including the web", and "This device shows" gives "a copy on a work computer or in a work profile" as its example. Both used to name Android or Windows, which shows in the App Store screenshots (Apple guideline 2.3.10).
 
 ## CI only, 2026-10-28: the Android app builds from `main` only
