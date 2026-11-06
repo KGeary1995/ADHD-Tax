@@ -359,8 +359,8 @@ class _ShowOnDevice extends ConsumerWidget {
                   ? 'Only ${device.primary.label} tasks and notes appear '
                         'here, and new ones go to ${device.primary.label}.'
                   : 'Use Personal or Work if this copy of Gumption is for '
-                        'one side only, like a second copy in an Android '
-                        'work profile.',
+                        'one side only, like a copy on a work computer or '
+                        'in a work profile.',
               if (hidden.isNotEmpty)
                 '${hidden.join(' and ')} from the other side '
                     '${tasks + notes == 1 ? 'is' : 'are'} hidden on this '
