@@ -2,6 +2,9 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
+## Next build (iPhone 1.1.1): wording that names no other platforms
+- **Settings → Sync:** the Google account choice now reads "Any device, including the web", and "This device shows" gives "a copy on a work computer or in a work profile" as its example. Both used to name Android or Windows, which shows in the App Store screenshots (Apple guideline 2.3.10).
+
 ## CI only, 2026-10-28: the Android app builds from `main` only
 - **The phone link (`android-latest`) now updates only when a change lands on `main`**, not on every push to a work-in-progress branch. A branch push still runs the tests and the web build. To get a phone build from a branch, add `[android]` to the commit message or use Run workflow.
 - Saves about 7 Actions minutes per branch push (68 such pushes in October), and the Android build caches Gradle so it should be quicker on `main` too. Nothing in the app changed.

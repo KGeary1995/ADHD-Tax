@@ -269,8 +269,8 @@ class _WorkspaceRow extends ConsumerWidget {
                   SyncService.google => SheetChoice(
                     title: 'Google account',
                     subtitle:
-                        'Any device, including Android, Windows and the '
-                        'web. Signs in to Google.',
+                        'Any device, including the web. Signs in to '
+                        'Google.',
                     onTap: () => Navigator.pop(ctx, SyncService.google),
                   ),
                   SyncService.onedrive => SheetChoice(
