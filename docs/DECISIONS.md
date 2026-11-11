@@ -2,6 +2,12 @@
 
 Why things are the way they are. Read before "simplifying" something that looks odd. Newest first. Each entry: decision, why, and what would make us revisit it.
 
+### 2026-11-11 — The live web app deploys from `main` only
+`web-publish` deployed every push, from any branch, to the one production address (it has to be one address: a home-screen app's data belongs to it). So friends' web apps ran unmerged branch work, and a branch run finishing after a `main` run replaced it. It now runs only for `main` and Run workflow, like Android since 2026-10-28. Branch pushes still build the web app in `test`, so a broken build still fails there. To try a branch on the live address, use Run workflow on that branch. Revisit if branch previews are wanted: deploy with `--branch="$GITHUB_REF_NAME"` for a separate preview address and storage.
+
+### 2026-11-11 — Quick add only drops small words beside a taken date
+The cleanup after Quick add takes out a date stripped "at/on/by/in/for…" from the start and end of every title, so "Log in" saved as "Log" with no chip to warn. Taken dates and times now leave a marker gap, and only a small word or comma beside one is dropped. "Log in tomorrow" still becomes "Log" (it reads like "in tomorrow"); the Due chip shows, and tapping it restores the words. Revisit if that case comes up in real use.
+
 ### 2026-10-27 — iPhone widget links go through the channel, like Android's
 Flutter's deep linking is off on iOS (`FlutterDeepLinkingEnabled` false). `UnstuckBridge` (AppDelegate.swift) registers as a scene delegate with the plugin registrar (`addSceneDelegate`), so it gets `unstuck://` links both at launch (`willConnectTo`) and while running (`openURLContexts`) without overriding `SceneDelegate`, and returns false for anything else so Google Sign-In's own links still reach its plugin. It holds the route and calls `pending`; Dart takes it with `takeLaunchRequest` and opens it through `openFromOutside`. A request taken before `OutsideBootstrap` listens is held in `ChannelDeviceBridge._held`, since a broadcast stream would drop it. The `/add` redirect stays as a fallback. Supersedes the iPhone part of "Outside links: an allowlist" below.
 

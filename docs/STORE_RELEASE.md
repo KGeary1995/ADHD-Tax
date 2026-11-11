@@ -91,9 +91,7 @@ USPTO search for marks containing "gumption": 38 results, 18 live. Not legal adv
 
 1. **[you] Join the Apple Developer Program** as an individual: $99/yr, Apple ID with two-factor sign-in, approval in 1–2 days.
 2. **[you] One-time Apple setup:** README → *Install on iPhone and iPad*, steps 2–5. That covers the identifiers, the App Group, the App Store Connect app record, the API key and four GitHub secrets.
-3. **[you] iPhone sign-in client for Google sync:**
-   - Google Cloud → Clients → Create → **iOS**, bundle id `com.adhdtax.adhdTax`.
-   - Add the client id as the `GOOGLE_IOS_CLIENT_ID` secret.
+3. **[done] Google sync on iPhone** uses the Desktop client's browser sign-in (since Build 110), so no iOS client is needed. The `GOOGLE_IOS_CLIENT_ID` secret is no longer read (removed 2026-11-11) and can be deleted.
 4. **[Claude] TestFlight build:** an `[ios]` push builds, signs and uploads it.
    - **[you]** install via TestFlight and try everything on a real iPhone, especially widgets, Share, notifications and Google sync, none of which has run on a device yet.
    - Friends can join as external testers through a public link. That needs a short Beta App Review, about a day.

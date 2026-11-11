@@ -21,11 +21,11 @@ Triggers: `push` (except docs-only commits) and `workflow_dispatch` (Run workflo
 
 | Job | Runs on | Does | Publishes |
 |---|---|---|---|
-| `test` | ubuntu | `pub get` → `dart format --set-exit-if-changed` → `flutter analyze` → `flutter test` (with `TZ=America/Los_Angeles`, so date code meets a clock change) → web build | artifact `unstuck-web` |
-| `android` | ubuntu, after `test`; `main`, Run workflow or `[android]` only | `flutter build apk --release --no-shrink --build-number=<run_number>` | `android-latest` release, except on `pull_request` |
+| `test` | ubuntu | `pub get` → `dart format --set-exit-if-changed` → `flutter analyze` → `flutter test` (with `TZ=America/Los_Angeles`, so date code meets a clock change) → web build | artifact `unstuck-web`, kept 1 day (only `web-publish` reads it) |
+| `android` | ubuntu, after `test`; `main`, Run workflow or `[android]` only | `flutter build apk --release --no-shrink --build-number=<run_number>` | `android-latest` release |
 | `play` | ubuntu, after `test`; dispatch or `[play]` in the commit message | Decodes the upload keystore from secrets, `UPLOAD_KEYSTORE=… flutter build appbundle --release --no-shrink --build-number=<run_number>` (`build.gradle.kts` signs with the upload key when that variable is set). Fails with a message if the secrets are missing | `play-latest` release |
 | `windows` | windows, after `test` | `flutter build windows --release` | artifact only |
-| `web-publish` | ubuntu, after `test`, push or dispatch | `wrangler pages project create` (first time) + `pages deploy --branch=main` | Cloudflare Pages; skipped with a notice if secrets are missing |
+| `web-publish` | ubuntu, after `test`; `main` or Run workflow only (since 2026-11-11: a branch push used to replace the live web app) | `wrangler pages project create` (first time) + `pages deploy --branch=main` | Cloudflare Pages; skipped with a notice if secrets are missing |
 | `macos` | macos-latest, after `test`; dispatch or `[mac]` in the commit message | `flutter build macos --release` → `ditto` zip | `macos-latest` release |
 | `ios` | macos-latest, after `test`; dispatch or `[ios]` in the commit message | Adds Google's reversed client id as a URL scheme. Without Apple secrets: `flutter build ios --no-codesign` (compile check). With them: `flutter build ios --config-only`, then `xcodebuild archive` and `-exportArchive` with `ios/ExportOptions.plist` (`destination: upload`), signing automatically through the API key (`-allowProvisioningUpdates`) | TestFlight |
 
@@ -49,7 +49,6 @@ Every build job first writes `app/google_oauth.json` from secrets and builds wit
 | `GOOGLE_WEB_CLIENT_ID` | secret | all builds | Google Auth Platform → Clients → Web application |
 | `GOOGLE_DESKTOP_CLIENT_ID` | secret | all builds (used by Mac/Windows and, since 2026-10-24, the iPhone app) | Clients → Desktop app |
 | `GOOGLE_DESKTOP_CLIENT_SECRET` | secret | all builds (used by Mac/Windows and, since 2026-10-24, the iPhone app) | Clients → Desktop app |
-| `GOOGLE_IOS_CLIENT_ID` | secret | all builds (used by iOS) | Clients → iOS, bundle id `com.adhdtax.adhdTax` |
 | `MICROSOFT_CLIENT_ID` | secret | all builds (OneDrive sync; the web build also needs the SPA redirect URI, README → *Set up OneDrive sync*) | entra.microsoft.com → App registrations → Gumption → Application (client) ID. Public client, no secret. Setup: README → *Set up OneDrive sync*. Empty: OneDrive isn't offered |
 | `APPLE_TEAM_ID` | secret | `ios` | developer.apple.com → Membership details |
 | `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` | secret | `ios` | App Store Connect → Users and Access → Integrations → Team Keys, **Admin** access; `ASC_KEY_P8` is the whole `.p8` file |
@@ -90,7 +89,7 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 
 ## iPhone / web hosting (Cloudflare Pages)
 
-- `web-publish` always deploys with `--branch=main` to a project whose production branch is `main`, so the address never changes. This matters: **an iPhone home-screen app's data belongs to its address**, so changing the URL starts it empty.
+- `web-publish` runs only for `main` and Run workflow, and always deploys with `--branch=main` to a project whose production branch is `main`, so the address never changes. This matters: **an iPhone home-screen app's data belongs to its address**, so changing the URL starts it empty.
 - The first deploy creates the project. If `unstuck.pages.dev` is taken, Cloudflare picks a suffixed name, shown in the job summary. Ours got `unstuck-4o8.pages.dev`. Add that address to the Google web client's JavaScript origins. Never delete or rename the Pages project: everyone's home-screen data belongs to that address.
 - Home-screen installs keep their own storage, separate from Safari tabs.
 - No push notifications: iPhone web apps can't schedule local notifications, and there's no server to send push.
@@ -100,7 +99,7 @@ The Google client ids and the desktop "secret" end up inside the shipped apps. T
 Cloudflare Pages applies `_headers` (copied into `build/web` by `flutter build web`) to every response:
 
 - Enforced: `X-Frame-Options: DENY` (no framing), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
-- `Content-Security-Policy` (enforced since 2026-10-27): allows the app itself plus Google sign-in (`accounts.google.com`, `apis.google.com`), the Drive and token endpoints (`www.googleapis.com`, `oauth2.googleapis.com`), Microsoft (`login.microsoftonline.com`, `graph.microsoft.com`), the AI helper (`api.anthropic.com`) and Flutter's fallback fonts (`fonts.gstatic.com`: emoji and other scripts); `wasm-unsafe-eval` for CanvasKit; `frame-ancestors 'none'`.
+- `Content-Security-Policy` (enforced since 2026-10-27): allows the app itself plus Google sign-in (`accounts.google.com`, `apis.google.com`), the Drive and token endpoints (`www.googleapis.com`, `oauth2.googleapis.com`), Microsoft (`login.microsoftonline.com`, `graph.microsoft.com`, and OneDrive's download and upload links on `my.microsoftpersonalcontent.com`, `*.files.1drv.com` and `*.sharepoint.com`, added 2026-11-11 after a review found the enforced policy blocked them; check one real OneDrive sync in the web console), the AI helper (`api.anthropic.com`) and Flutter's fallback fonts (`fonts.gstatic.com`: emoji and other scripts); `wasm-unsafe-eval` for CanvasKit; `frame-ancestors 'none'`.
 - **When the web app starts calling a new host**, add it to the right directive, or the browser blocks it. The console says "Refused to connect to … because it violates … connect-src" (or `img-src`, `script-src`…).
 - **Testing it locally:** serve `build/web` with the `_headers` lines added as response headers (a few lines of Python `http.server`) and load it in Chrome with the console open, or headless: `chrome --headless=new --enable-logging=stderr --virtual-time-budget=20000 --dump-dom http://localhost:PORT/`, then look for "Refused" in the log.
 

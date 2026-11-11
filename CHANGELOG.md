@@ -2,7 +2,43 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build (iPhone 1.1.1): wording that names no other platforms
+## Next build: fixes from a fourth code audit
+- **Quick add keeps your words.** "Log in", "Check in", "Turn the heater on" and "In person meeting" used to lose their "in", "on" or "at". Now a small word is dropped only when it sat next to a date that was taken out ("Pay rent, Friday" → "Pay rent").
+- **Quick add reads dates better:** "Plan today's agenda" is no longer due today, "Dec 1, 2027" keeps its year, and "Call back in 2 hours" is no longer read as a 2-hour task.
+- **Status → Done in the task editor** now finishes the task properly: a repeating task gets its next copy, XP is awarded, and wrap-up counts it. Changing it back from Done clears the finish date.
+- **OneDrive on the web** can read other devices' files again. The web app's security policy (enforced since Build 145) blocked OneDrive's download addresses. Not yet confirmed with a real account.
+- **Sync:**
+  - A phone restored from a backup, with both Personal and Work connected, no longer loses Work changes that were downloading at the moment it took a new device id, and no longer writes into the old phone's sync file.
+  - An iPhone no longer marks an iCloud file as read while the newest version is still downloading. It tries that file again next round.
+  - When Google refuses to renew a sign-in (access removed, an admin policy, or unused for months), Settings now shows **Reconnect** instead of an error that never clears.
+  - A Microsoft outage no longer asks you to sign in again; the next round retries.
+  - A sync round cancelled partway (for example by Reconnect) saves what it had already brought in.
+- **Reminders** no longer end up mixed (for example weekend check-ins after you chose weekdays only) when settings change twice in quick succession.
+- **Focus minutes** from a second session on a task you already finished that day now count in Progress.
+- **A damaged or newer-format setting** falls back to its default instead of stopping the app from opening.
+- **Smaller fixes:**
+  - The "Due tomorrow" reason under a pick goes by calendar day.
+  - A repeat finish no longer shows "+1 coins" it doesn't give.
+  - A stale Work link on a Personal-only device no longer pops "Time's up".
+  - The desktop "Right now" panel turns over at midnight.
+  - "Saved as a template → Edit" works after the editor has closed.
+  - Notes with no title show their "Linked from" list.
+  - The sensitive-info check catches "Patient: Smith".
+- **Wording:**
+  - The in-app guide names all three sync services and, on iPhone and iPad, explains widgets, Share and reminders.
+  - The sensitive-info warning says "your cloud storage" instead of "Google Drive".
+  - The privacy page mentions the web version's fonts from Google.
+- **Sharing:**
+  - Sharing plain text from an iPhone puts the first line in the title and the rest in notes, as on Android.
+  - Android shares of styled text no longer arrive empty.
+- **CI:**
+  - The live web app now updates only from `main` or Run workflow; a branch push no longer replaces it.
+  - The web build artifact is kept for one day.
+  - The duplicate Android and Mac artifacts are gone (the releases have them).
+  - The unused iOS Google client id was removed.
+- Faster on large libraries: Notes counts tags in one pass, and the editors no longer rescan every note for links on each keystroke.
+
+## iPhone 1.1.1: wording that names no other platforms
 - **Settings → Sync:** the Google account choice now reads "Any device, including the web", and "This device shows" gives "a copy on a work computer or in a work profile" as its example. Both used to name Android or Windows, which shows in the App Store screenshots (Apple guideline 2.3.10).
 
 ## CI only, 2026-10-28: the Android app builds from `main` only
