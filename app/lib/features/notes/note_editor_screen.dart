@@ -216,12 +216,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final n = _note.copyWith(title: _title.text, body: _body.text);
     if (n.isEmpty) return;
     final t = ref.read(templatesProvider.notifier).fromNote(n);
+    final router = GoRouter.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Saved as a template: ${t.name}'),
         action: SnackBarAction(
           label: 'Edit',
-          onPressed: () => context.push('/template/${t.id}'),
+          // The router, not this screen's context: the editor may be
+          // closed by the time Edit is tapped.
+          onPressed: () => router.push('/template/${t.id}'),
         ),
       ),
     );
@@ -508,7 +511,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                   ),
                   NoteLinksPanel(
                     text: '${_title.text}\n${_body.text}',
-                    title: _title.text,
+                    // A note with no title is linked to by its first line.
+                    title: _note
+                        .copyWith(title: _title.text, body: _body.text)
+                        .heading,
                     noteId: _note.id,
                     workspace: _note.workspace,
                     projectId: _note.projectId,

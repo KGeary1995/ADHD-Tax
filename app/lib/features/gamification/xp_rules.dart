@@ -20,8 +20,8 @@ class XpAward {
 
   int get total => lines.fold(0, (s, l) => s + l.amount);
 
-  /// Reward-shop currency: 1 coin per 10 XP, at least 1.
-  int get coins => math.max(1, total ~/ 10);
+  /// Reward-shop currency: 1 coin per 10 XP, at least 1 (none for no XP).
+  int get coins => total <= 0 ? 0 : math.max(1, total ~/ 10);
 }
 
 const _priorityMult = {

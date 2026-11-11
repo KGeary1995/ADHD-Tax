@@ -229,6 +229,36 @@ class LinkSuggestionBar extends ConsumerWidget {
   }
 }
 
+// The editor rebuilds the panel on every keystroke; these scan every task
+// and note, so they rerun only when their inputs or the data change.
+final _targets = Provider.autoDispose
+    .family<List<LinkTarget>, (String, Workspace, String)>((ref, k) {
+      final (names, workspace, noteId) = k;
+      final tasks = ref.watch(tasksProvider);
+      final notes = ref.watch(notesProvider);
+      return [
+        for (final name in names.split('\n'))
+          if (name.isNotEmpty)
+            resolveLink(
+              name,
+              workspace: workspace,
+              tasks: tasks,
+              notes: notes,
+              excludeNoteId: noteId,
+            ),
+      ];
+    });
+
+final _backlinks = Provider.autoDispose
+    .family<List<Note>, (String, Workspace, String)>(
+      (ref, k) => notesLinkingTo(
+        k.$1,
+        workspace: k.$2,
+        notes: ref.watch(notesProvider),
+        excludeNoteId: k.$3,
+      ),
+    );
+
 /// Under a note: what its `[[links]]` point at, and the notes that link
 /// to it. Hidden when there's neither.
 class NoteLinksPanel extends ConsumerWidget {
@@ -244,7 +274,8 @@ class NoteLinksPanel extends ConsumerWidget {
   /// Title and body, where the links are written.
   final String text;
 
-  /// The note's own title; other notes link to it by this name.
+  /// The note's heading (its title, or else its first line); other notes
+  /// link to it by this name.
   final String title;
   final String noteId;
   final Workspace workspace;
@@ -252,26 +283,12 @@ class NoteLinksPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tasks = ref.watch(tasksProvider);
-    final notes = ref.watch(notesProvider);
-    final targets = [
-      for (final name in wikiLinksIn(text))
-        resolveLink(
-          name,
-          workspace: workspace,
-          tasks: tasks,
-          notes: notes,
-          excludeNoteId: noteId,
-        ),
-    ];
+    final targets = ref.watch(
+      _targets((wikiLinksIn(text).join('\n'), workspace, noteId)),
+    );
     final backlinks = title.trim().isEmpty
         ? const <Note>[]
-        : notesLinkingTo(
-            title,
-            workspace: workspace,
-            notes: notes,
-            excludeNoteId: noteId,
-          );
+        : ref.watch(_backlinks((title, workspace, noteId)));
     if (targets.isEmpty && backlinks.isEmpty) return const SizedBox.shrink();
 
     return Padding(

@@ -52,6 +52,12 @@ String qkTag(String tag) => 'tag:$tag';
 
 RegExp _re(String p) => RegExp(p, caseSensitive: false);
 
+/// A four-per-em space: whitespace to every pattern, but never typed.
+const _gap = '\u2005';
+
+/// An optional year after a written date: "Dec 1, 2027".
+const _year = r'(?:,?\s+(20\d\d)\b)?';
+
 const _pre = r'(?:(?:due|by|on|for)\s+)?';
 const _partOfDay = r'(?:\s+(morning|afternoon|evening|night))?';
 
@@ -120,13 +126,16 @@ QuickParse parseQuickAdd(
 }) {
   var rest = ' $text ';
   final bits = <QuickBit>[];
+  // What a taken date or time leaves behind: a space only the dangling-word
+  // cleanup below looks for.
+  var blank = ' ';
 
   /// Finds the first match [accept] allows, blanks it out of [rest], and
   /// returns it.
   RegExpMatch? take(RegExp re, [bool Function(RegExpMatch m)? accept]) {
     for (final m in re.allMatches(rest)) {
       if (accept != null && !accept(m)) continue;
-      rest = '${rest.substring(0, m.start)} ${rest.substring(m.end)}';
+      rest = '${rest.substring(0, m.start)}$blank${rest.substring(m.end)}';
       return m;
     }
     return null;
@@ -156,20 +165,22 @@ QuickParse parseQuickAdd(
   if (!ignore.contains(qkLength)) {
     final hm = take(
       _re(
-        r'(?<![\w.])(?:for\s+)?(\d{1,2})\s*h(?:ours?|rs?)?\s*(?:and\s+)?'
+        r'(?<![\w.])(?<!\bin\s+)(?:for\s+)?(\d{1,2})\s*h(?:ours?|rs?)?\s*(?:and\s+)?'
         r'(\d{1,2})\s*m(?:in(?:ute)?s?)?\b',
       ),
     );
     if (hm != null) {
       estimate = int.parse(hm.group(1)!) * 60 + int.parse(hm.group(2)!);
-    } else if (take(_re(r'\b(?:for\s+)?(?:half\s+an?\s+hour|half\s+hour)\b'))
+    } else if (take(
+          _re(r'(?<!\bin\s+)\b(?:for\s+)?(?:half\s+an?\s+hour|half\s+hour)\b'),
+        )
         case _?) {
       estimate = 30;
-    } else if (take(_re(r'\b(?:for\s+)?an\s+hour\b')) case _?) {
+    } else if (take(_re(r'(?<!\bin\s+)\b(?:for\s+)?an\s+hour\b')) case _?) {
       estimate = 60;
     } else if (take(
           _re(
-            r'(?<![\w.:/])(?:for\s+)?(\d+(?:\.\d+)?)\s*'
+            r'(?<![\w.:/])(?<!\bin\s+)(?:for\s+)?(\d+(?:\.\d+)?)\s*'
             r'(minutes?|mins?|m|hours?|hrs?|h)\b',
           ),
         )
@@ -192,6 +203,7 @@ QuickParse parseQuickAdd(
   // The hour came without am/pm and was guessed: "at 5" is 5 pm.
   var guessed = false;
   if (!ignore.contains(qkDue)) {
+    blank = _gap;
     // Times first, so "at 2" isn't read as a date.
     if (take(
           _re(
@@ -237,7 +249,7 @@ QuickParse parseQuickAdd(
     final relative = take(
       _re(
         '(?<![\\w])$_pre(today|tonight|tomorrow|tmrw|tmr|eod|end of day)'
-        '$_partOfDay\\b',
+        "$_partOfDay\\b(?!['’])",
       ),
     );
     if (relative != null) {
@@ -253,7 +265,7 @@ QuickParse parseQuickAdd(
     } else if (take(
           _re(
             '(?<![\\w])$_pre(next\\s+|this\\s+)?'
-            '(${_weekdays.keys.join('|')})$_partOfDay\\b',
+            "(${_weekdays.keys.join('|')})$_partOfDay\\b(?!['’])",
           ),
           // "sat" and "sun" are also plain words: abbreviations need
           // "on", "by", "next"... in front.
@@ -289,7 +301,8 @@ QuickParse parseQuickAdd(
       day = _addDays(now, days.clamp(0, 3650));
     } else if (take(
           _re(
-            '(?<![\\w])$_pre($_monthNames)\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b',
+            '(?<![\\w])$_pre($_monthNames)\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b'
+            '$_year',
           ),
           (m) => _validDate(
             _months[m.group(1)!.toLowerCase().substring(0, 3)]!,
@@ -301,9 +314,13 @@ QuickParse parseQuickAdd(
         now,
         _months[m.group(1)!.toLowerCase().substring(0, 3)]!,
         int.parse(m.group(2)!),
+        year: m.group(3),
       );
     } else if (take(
-          _re('(?<![\\w])$_pre(\\d{1,2})(?:st|nd|rd|th)?\\s+($_monthNames)\\b'),
+          _re(
+            '(?<![\\w])$_pre(\\d{1,2})(?:st|nd|rd|th)?\\s+($_monthNames)\\b'
+            '$_year',
+          ),
           (m) => _validDate(
             _months[m.group(2)!.toLowerCase().substring(0, 3)]!,
             int.parse(m.group(1)!),
@@ -314,6 +331,7 @@ QuickParse parseQuickAdd(
         now,
         _months[m.group(2)!.toLowerCase().substring(0, 3)]!,
         int.parse(m.group(1)!),
+        year: m.group(3),
       );
     } else if (take(
           _re(
@@ -335,6 +353,7 @@ QuickParse parseQuickAdd(
               int.parse(m.group(2)!),
             );
     }
+    blank = ' ';
   }
 
   // A guessed hour follows the part of the day: "tonight at 8" is 8 pm,
@@ -390,15 +409,16 @@ QuickParse parseQuickAdd(
     bits.add(QuickBit(qkTag(t), '#$t'));
   }
 
-  var title = rest.replaceAll(RegExp(r'\s+'), ' ').trim();
-  // Words left dangling by what was taken out: "Pay rent by" → "Pay rent".
-  final dangling = _re(
-    r'^(?:at|on|by|due|for|in|from|@|-|,)\s+|\s+(?:at|on|by|due|for|in|from|@|-|,)$|[\s,;-]+$',
-  );
+  // Words left dangling beside a taken date: "Pay rent, Friday" → "Pay
+  // rent". Only beside one, so "Log in" and "Turn it on" keep their words.
+  const d = r'(?:(?<![\w])(?:at|on|by|due|for|in|from)(?![\w])|[@,;-])';
+  final dangling = _re('^\\s*$_gap\\s*$d|$d\\s*$_gap\\s*\$');
+  var title = rest;
   for (var prev = ''; prev != title;) {
     prev = title;
-    title = title.replaceAll(dangling, '').trim();
+    title = title.replaceAll(dangling, _gap);
   }
+  title = title.replaceAll(RegExp(r'\s+'), ' ').trim();
   // Only extras typed ("tomorrow 2pm"): keep what was typed as the title.
   if (title.isEmpty) title = text.trim();
 
@@ -458,7 +478,8 @@ bool _looksLikeFraction(RegExpMatch m, String text) {
 
 /// The next [month]/[day] from today: a date already past this year means
 /// next year, and Feb 29 the next year that has one.
-DateTime _dateIn(DateTime now, int month, int day) {
+DateTime _dateIn(DateTime now, int month, int day, {String? year}) {
+  if (year != null) return DateTime(int.parse(year), month, day);
   DateTime inYear(int y) {
     while (DateTime(y, month, day).day != day) {
       y++;

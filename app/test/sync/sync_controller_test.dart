@@ -12,6 +12,8 @@ import 'package:adhd_tax/sync/remote_store.dart';
 import 'package:adhd_tax/sync/replicas_controller.dart';
 import 'package:adhd_tax/sync/sync_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:googleapis_auth/googleapis_auth.dart'
+    show ServerRequestFailedException;
 import 'package:adhd_tax/features/notes/notes_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -25,6 +27,12 @@ class FakeAccount {
   final drive = FakeRemote();
   final backups = <String, String>{};
   bool reject = false;
+
+  /// Thrown by the next listing, like an error from the sign-in library.
+  Object? fail;
+
+  /// While set, reads wait for it: a slow download.
+  Completer<void>? gate;
 }
 
 class _AccountRemote implements AccountRemoteStore {
@@ -33,6 +41,7 @@ class _AccountRemote implements AccountRemoteStore {
 
   void _check() {
     if (account.reject) throw const NeedsReconnect('token revoked');
+    if (account.fail case final e?) throw e;
   }
 
   @override
@@ -50,7 +59,11 @@ class _AccountRemote implements AccountRemoteStore {
   }
 
   @override
-  Future<List<int>> read(String id) => account.drive.read(id);
+  Future<List<int>> read(String id) async {
+    await account.gate?.future;
+    return account.drive.read(id);
+  }
+
   @override
   Future<String> create(String name, List<int> bytes) =>
       account.drive.create(name, bytes);
@@ -404,6 +417,21 @@ void main() {
     personal.reject = false;
     await pc.read(syncProvider(Workspace.personal).notifier).connect();
     expect(pc.read(syncProvider(Workspace.personal)).phase, SyncPhase.synced);
+  });
+
+  test('Google refusing to renew the sign-in asks to reconnect', () async {
+    final pc = device(FakeAuth(accounts()));
+    await pc.read(syncProvider(Workspace.personal).notifier).connect();
+    personal.fail = ServerRequestFailedException(
+      'invalid_grant',
+      statusCode: 400,
+      responseContent: null,
+    );
+    await pc.read(syncProvider(Workspace.personal).notifier).syncNow();
+    expect(
+      pc.read(syncProvider(Workspace.personal)).phase,
+      SyncPhase.needsReconnect,
+    );
   });
 
   test('restart restores the session silently', () async {
@@ -877,6 +905,57 @@ void main() {
           c.read(tasksProvider).map((t) => t.title).toSet();
       expect(titles(old), contains('New phone'));
       expect(titles(restored), contains('Old phone, later'));
+    });
+
+    test('a restored phone with both workspaces connected keeps what '
+        "Work's round was reading when Personal changed the id", () async {
+      final store = MemoryStore();
+      final old = device(FakeAuth(accounts()), store: store);
+      await connectBoth(old);
+      old.read(tasksProvider.notifier).create(title: 'Before the restore');
+      await syncAll(old);
+      final restoredStore = MemoryStore({...store.data});
+
+      // The old phone keeps going (so the restored one is a clone), and
+      // another computer adds to Work.
+      old.read(tasksProvider.notifier).create(title: 'Old phone, later');
+      await syncAll(old);
+      final mac = device(FakeAuth(accounts()));
+      await mac.read(syncProvider(Workspace.work).notifier).connect();
+      mac
+          .read(tasksProvider.notifier)
+          .create(title: 'From the Mac', workspace: Workspace.work);
+      await mac.read(syncProvider(Workspace.work).notifier).syncNow();
+
+      final restored = device(
+        FakeAuth(accounts())..connected.addAll(Workspace.values),
+        store: restoredStore,
+      );
+      final oldId = restored.read(deviceIdProvider);
+      String oldWorkFile() => work.drive.files.entries
+          .firstWhere((e) => e.value.$1.contains(oldId))
+          .key;
+      final oldPhoneWrote = work.drive.text(oldWorkFile());
+      // Work's start-up round is still downloading when Personal's finds
+      // the shared id and takes a new one.
+      work.gate = Completer<void>();
+      final workRound = restored
+          .read(syncProvider(Workspace.work).notifier)
+          .syncNow();
+      await pumpEventQueue();
+      await restored.read(syncProvider(Workspace.personal).notifier).syncNow();
+      expect(restored.read(deviceIdProvider), isNot(oldId));
+      work.gate!.complete();
+      await workRound;
+      await pumpEventQueue(); // the round it starts again
+
+      expect(
+        restored.read(tasksProvider).map((t) => t.title),
+        contains('From the Mac'),
+      );
+      // What that round merged went into the replaced copy; it must be
+      // read again, not uploaded into the old phone's file.
+      expect(work.drive.text(oldWorkFile()), oldPhoneWrote);
     });
 
     test(

@@ -67,16 +67,16 @@ jobs:
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
           GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
           GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
-          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
           MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
         run: |
-          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
-            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" "$MICROSOFT_CLIENT_ID" > google_oauth.json
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$MICROSOFT_CLIENT_ID" > google_oauth.json
       - run: flutter build web --release --no-web-resources-cdn --dart-define-from-file=google_oauth.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: unstuck-web
           path: app/build/web
+          retention-days: 1 # only web-publish in this run reads it
 
   # Only on main (what the phone link should serve), Run workflow, or a
   # commit message containing [android]. A branch push built it every time:
@@ -120,22 +120,16 @@ jobs:
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
           GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
           GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
-          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
           MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
         run: |
-          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
-            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" "$MICROSOFT_CLIENT_ID" > google_oauth.json
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$MICROSOFT_CLIENT_ID" > google_oauth.json
       - run: flutter build apk --release --no-shrink --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: unstuck-android
-          path: app/build/app/outputs/flutter-apk/app-release.apk
       # One rolling release, so the phone download link never changes:
       # https://github.com/<owner>/<repo>/releases/download/android-latest/Gumption.apk
       # Unstuck.apk is the same file under the name used before the rename,
       # so links already shared with friends keep working.
       - name: Publish to android-latest release
-        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -200,11 +194,10 @@ jobs:
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
           GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
           GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
-          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
           MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
         run: |
-          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
-            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" "$MICROSOFT_CLIENT_ID" > google_oauth.json
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$MICROSOFT_CLIENT_ID" > google_oauth.json
       # Same versionCode scheme as the APK (the run number), and --no-shrink
       # for the same reason.
       - name: Build the bundle
@@ -266,11 +259,10 @@ jobs:
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
           GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
           GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
-          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
           MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
         run: |
-          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
-            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" "$MICROSOFT_CLIENT_ID" > google_oauth.json
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$MICROSOFT_CLIENT_ID" > google_oauth.json
       - run: flutter build windows --release --dart-define-from-file=google_oauth.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -279,11 +271,15 @@ jobs:
 
   # The iPhone version: the web build, hosted on Cloudflare Pages and added
   # to the home screen from Safari. Needs two repository secrets (README →
-  # "Install on iPhone"); until they exist this job just says so.
+  # "Install on iPhone"); until they exist this job just says so. Only from
+  # main or Run workflow, like Android: it deploys to the one live address,
+  # so a branch push would put unmerged work in front of everyone.
   web-publish:
     name: Publish web app (iPhone)
     needs: test
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: >-
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
@@ -360,11 +356,10 @@ jobs:
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
           GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
           GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
-          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
           MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
         run: |
-          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
-            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" "$MICROSOFT_CLIENT_ID" > google_oauth.json
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$MICROSOFT_CLIENT_ID" > google_oauth.json
       - run: flutter build macos --release --build-number=${{ github.run_number }} --dart-define-from-file=google_oauth.json
       # Re-sign the finished app with the owner's Developer ID certificate
       # (inside out, hardened runtime, same entitlements), then notarize it
@@ -424,10 +419,6 @@ jobs:
           xcrun stapler staple "$app"
           spctl --assess --type execute --verbose=2 "$app"
       - run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/Gumption.app" Gumption-macOS.zip
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: unstuck-macos
-          path: app/Gumption-macOS.zip
       - name: Publish to macos-latest release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -478,25 +469,16 @@ jobs:
         shell: bash
         env:
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
           # The iPhone signs in with the Desktop client's browser flow (one
           # sign-in per workspace); without these, sync says "not set up".
           GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
           GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
           MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
         run: |
-          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","GOOGLE_IOS_CLIENT_ID":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
-            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$GOOGLE_IOS_CLIENT_ID" "$MICROSOFT_CLIENT_ID" > google_oauth.json
+          printf '{"GOOGLE_WEB_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_ID":"%s","GOOGLE_DESKTOP_CLIENT_SECRET":"%s","MICROSOFT_CLIENT_ID":"%s"}\n' \
+            "$GOOGLE_WEB_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_ID" "$GOOGLE_DESKTOP_CLIENT_SECRET" "$MICROSOFT_CLIENT_ID" > google_oauth.json
           if [ -z "$GOOGLE_DESKTOP_CLIENT_ID" ] || [ -z "$GOOGLE_DESKTOP_CLIENT_SECRET" ]; then
             echo "::warning::GOOGLE_DESKTOP_CLIENT_ID/SECRET are empty: Google sync will be off in this iPhone build."
-          fi
-          # Google Sign-In returns to the app through the reversed client id.
-          if [ -n "$GOOGLE_IOS_CLIENT_ID" ]; then
-            reversed=$(echo "$GOOGLE_IOS_CLIENT_ID" | awk -F. '{for (i=NF; i>0; i--) printf "%s%s", $i, (i>1 ? "." : "")}')
-            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:1 dict" \
-              -c "Add :CFBundleURLTypes:1:CFBundleURLSchemes array" \
-              -c "Add :CFBundleURLTypes:1:CFBundleURLSchemes:0 string $reversed" \
-              ios/Runner/Info.plist
           fi
       - name: Compile only (no Apple keys yet)
         if: env.HAS_ASC_KEY != 'true'

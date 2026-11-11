@@ -184,10 +184,9 @@ Future<SyncOutcome> syncOnce({
         skipped.add(f.name);
       }
     }
-  } on SyncCancelled {
-    rethrow;
   } on Object {
-    // A later file failed: save and show what the earlier ones brought.
+    // A later file failed, or the round was cancelled: save and show what
+    // the earlier ones brought (a second round wouldn't merge them again).
     if (merged && onMerged != null) await onMerged();
     rethrow;
   }

@@ -7,6 +7,7 @@ library;
 import 'dart:math' as math;
 
 import '../../data/models/task.dart';
+import '../gamification/xp_rules.dart' show calendarDaysBetween;
 import '../insights/estimate_calibration.dart';
 
 class PickerContext {
@@ -220,7 +221,7 @@ class PickerEngine {
         // Hard deadlines start ramping earlier.
         final halfLife = t.hardDeadline ? 24.0 : 12.0;
         u = 1 / (1 + hoursLeft / halfLife);
-        reason = 'Due ${_humanizeHours(hoursLeft)}';
+        reason = 'Due ${_humanizeDue(hoursLeft, ctx.now, due)}';
       }
       parts.add(_Part(w.urgency * u, u > 0.25 ? reason : null));
     }
@@ -322,9 +323,11 @@ class _Part {
   final bool always;
 }
 
-String _humanizeHours(double h) {
+/// By calendar day past 24 hours: at 11 pm Monday, Wednesday morning is
+/// "in 2 days", not "tomorrow".
+String _humanizeDue(double h, DateTime now, DateTime due) {
   if (h < 1) return 'within the hour';
   if (h < 24) return 'in ${h.round()} hours';
-  final d = (h / 24).round();
+  final d = calendarDaysBetween(now, due);
   return d == 1 ? 'tomorrow' : 'in $d days';
 }

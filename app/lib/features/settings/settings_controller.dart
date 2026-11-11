@@ -103,24 +103,15 @@ class AppSettings {
   );
 
   /// Pins a task as tomorrow's first thing ([taskId] null clears it).
-  AppSettings pinForTomorrow(String? taskId, DateTime now) => AppSettings(
-    appearance: appearance,
-    celebration: celebration,
-    quoteSeconds: quoteSeconds,
-    phiGuard: phiGuard,
-    timerAlerts: timerAlerts,
-    nudges: nudges,
-    nudgeTimes: nudgeTimes,
-    nudgeWeekdaysOnly: nudgeWeekdaysOnly,
-    askedForNotifications: askedForNotifications,
-    wrapUp: wrapUp,
-    wrapUpTime: wrapUpTime,
-    pinnedTaskId: taskId,
-    pinnedDay: taskId == null
-        ? null
-        : dayKeyOf(DateTime(now.year, now.month, now.day + 1)),
-    timerBlocks: timerBlocks,
-  );
+  /// Through JSON, so a setting added later can't be left out here.
+  AppSettings pinForTomorrow(String? taskId, DateTime now) =>
+      AppSettings.fromJson({
+        ...toJson(),
+        'pinnedTaskId': taskId,
+        'pinnedDay': taskId == null
+            ? null
+            : dayKeyOf(DateTime(now.year, now.month, now.day + 1)),
+      });
 
   /// The pinned task id, if it was pinned for [now]'s day.
   String? pinnedFor(DateTime now) =>
@@ -148,30 +139,34 @@ class AppSettings {
     celebration:
         CelebrationLevel.values.asNameMap()[j['celebration']] ??
         CelebrationLevel.normal,
-    quoteSeconds: j['quoteSeconds'] as int? ?? 20,
+    quoteSeconds: _as<int>(j['quoteSeconds']) ?? 20,
     // Off unless turned on (it was on by default before 1.1; saved
     // settings keep their value).
-    phiGuard: j['phiGuard'] as bool? ?? false,
-    timerAlerts: j['timerAlerts'] as bool? ?? true,
-    nudges: j['nudges'] as bool? ?? true,
+    phiGuard: _as<bool>(j['phiGuard']) ?? false,
+    timerAlerts: _as<bool>(j['timerAlerts']) ?? true,
+    nudges: _as<bool>(j['nudges']) ?? true,
     nudgeTimes: j['nudgeTimes'] is List
         ? [
             for (final m in j['nudgeTimes'] as List)
               if (m is int && m >= 0 && m < 24 * 60) m,
           ]
         : const [8 * 60 + 45, 13 * 60 + 15],
-    nudgeWeekdaysOnly: j['nudgeWeekdaysOnly'] as bool? ?? false,
-    askedForNotifications: j['askedForNotifications'] as bool? ?? false,
-    wrapUp: j['wrapUp'] as bool? ?? true,
+    nudgeWeekdaysOnly: _as<bool>(j['nudgeWeekdaysOnly']) ?? false,
+    askedForNotifications: _as<bool>(j['askedForNotifications']) ?? false,
+    wrapUp: _as<bool>(j['wrapUp']) ?? true,
     wrapUpTime: switch (j['wrapUpTime']) {
       final int m when m >= 0 && m < 24 * 60 => m,
       _ => 20 * 60 + 30,
     },
-    pinnedTaskId: j['pinnedTaskId'] as String?,
-    pinnedDay: j['pinnedDay'] as String?,
-    timerBlocks: j['timerBlocks'] as bool? ?? false,
+    pinnedTaskId: _as<String>(j['pinnedTaskId']),
+    pinnedDay: _as<String>(j['pinnedDay']),
+    timerBlocks: _as<bool>(j['timerBlocks']) ?? false,
   );
 }
+
+/// A setting of the wrong type (a newer build's, or a damaged backup)
+/// falls back to its default instead of failing every launch.
+T? _as<T>(Object? v) => v is T ? v : null;
 
 final settingsProvider = NotifierProvider<SettingsController, AppSettings>(
   SettingsController.new,
@@ -181,8 +176,15 @@ class SettingsController extends Notifier<AppSettings> {
   @override
   AppSettings build() {
     final raw = ref.read(keyValueStoreProvider).read(_settingsKey);
-    if (raw == null) return const AppSettings();
-    return AppSettings.fromJson(jsonDecode(raw) as Map<String, Object?>);
+    Object? j;
+    try {
+      j = raw == null ? null : jsonDecode(raw);
+    } on FormatException {
+      j = null; // Damaged: start from the defaults rather than not at all.
+    }
+    return j is Map<String, Object?>
+        ? AppSettings.fromJson(j)
+        : const AppSettings();
   }
 
   void update(AppSettings Function(AppSettings) f) {

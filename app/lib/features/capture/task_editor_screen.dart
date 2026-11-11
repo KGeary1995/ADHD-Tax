@@ -59,6 +59,8 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   /// the section vanish under your finger.
   late final bool _showFirstStep;
   late final bool _isNew;
+  Task? _linkedFor;
+  List<Widget> _linked = const [];
   late final TextEditingController _title;
   late final TextEditingController _firstStep;
   late final TextEditingController _notes;
@@ -139,7 +141,16 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     if (_isNew) {
       tasks.save(t);
     } else {
-      tasks.saveEdits(_original, t);
+      // Done and back go through complete/reopen, which make the next
+      // repeat, award XP and set or clear completedAt.
+      final was = _original.status;
+      tasks.saveEdits(_original, t.copyWith(status: was));
+      if (t.status == TaskStatus.done && was != TaskStatus.done) {
+        markDoneWithUndo(context, ref, tasks.byId(t.id)!);
+      } else if (t.status != was) {
+        if (was == TaskStatus.done) tasks.reopen(t.id);
+        tasks.setStatus(t.id, t.status);
+      }
     }
     _close();
   }
@@ -242,12 +253,15 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     final t = ref
         .read(templatesProvider.notifier)
         .fromTask(_task.copyWith(title: _title.text.trim()));
+    final router = GoRouter.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Saved as a template: ${t.name}'),
         action: SnackBarAction(
           label: 'Edit',
-          onPressed: () => context.push('/template/${t.id}'),
+          // The router, not this screen's context: the editor may be
+          // closed by the time Edit is tapped.
+          onPressed: () => router.push('/template/${t.id}'),
         ),
       ),
     );
@@ -938,9 +952,13 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       ],
     );
 
-    final linked = _isNew
-        ? const <Widget>[]
-        : [_TaskNotes(task: _task), _Related(task: _task)];
+    // Same instances until the task changes, so typing (which rebuilds this
+    // screen) doesn't rescan every note for links.
+    if (!_isNew && !identical(_linkedFor, _task)) {
+      _linkedFor = _task;
+      _linked = [_TaskNotes(task: _task), _Related(task: _task)];
+    }
+    final linked = _linked;
 
     return Scaffold(
       backgroundColor: Colors.transparent,

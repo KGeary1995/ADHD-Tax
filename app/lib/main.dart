@@ -16,7 +16,14 @@ void main() {
   runZonedGuarded(_start, (error, stack) {
     // Anything that escapes before the first frame would otherwise leave a
     // black screen; show it instead.
-    if (!_started) runApp(StartupErrorApp(error: error, stack: stack));
+    if (!_started) {
+      runApp(StartupErrorApp(error: error, stack: stack));
+    } else {
+      // Later ones go to the log, not nowhere.
+      FlutterError.reportError(
+        FlutterErrorDetails(exception: error, stack: stack),
+      );
+    }
   });
 }
 

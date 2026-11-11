@@ -649,9 +649,7 @@ class _Pick extends ConsumerWidget {
     final steps = t.steps;
     final current = steps.indexWhere((i) => !i.done);
     final step = t.nextStep;
-    final due = t.dueAt == null
-        ? null
-        : 'Due ${_dueText(t.dueAt!, now)}${t.hardDeadline ? '' : ''}';
+    final due = t.dueAt == null ? null : 'Due ${_dueText(t.dueAt!, now)}';
     final titleSize = large ? 56.0 : (compact ? 26.0 : 34.0);
 
     return Column(
@@ -1086,6 +1084,7 @@ class _RightNowPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.spec;
     final p = ref.watch(progressProvider);
+    ref.watch(dayPartProvider); // "today" turns over at midnight
     final now = ref.read(clockProvider)();
     final xpToday = p.xpOn(now);
     final streak = streakWithGrace(p.activeDays, now);

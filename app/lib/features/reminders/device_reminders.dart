@@ -229,8 +229,13 @@ class DeviceReminders implements Reminders {
     await _plugin.cancel(id: _timesUpId);
   }
 
+  /// Queued like the focus calls: two runs at once would cancel and
+  /// schedule over each other and leave a mix of old and new reminders.
   @override
-  Future<void> scheduleNudges(List<Nudge> nudges) async {
+  Future<void> scheduleNudges(List<Nudge> nudges) =>
+      _inOrder(() => _scheduleNudgesNow(nudges));
+
+  Future<void> _scheduleNudgesNow(List<Nudge> nudges) async {
     await _android();
     for (final p in await _plugin.pendingNotificationRequests()) {
       if (p.id >= _firstNudgeId) await _plugin.cancel(id: p.id);

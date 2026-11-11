@@ -101,4 +101,41 @@ void main() {
   test('only extras typed: the text stays as the title', () {
     expect(p('tomorrow').title, 'tomorrow');
   });
+
+  test('words like "in" and "on" stay unless a date was beside them', () {
+    for (final s in [
+      'Log in',
+      'Check in',
+      'Turn the heater on',
+      'In person meeting',
+      'Things to sign for',
+    ]) {
+      expect(p(s).title, s, reason: s);
+    }
+    expect(p('Turn the heater on #home').title, 'Turn the heater on');
+    expect(p('Pay rent, Friday').title, 'Pay rent');
+    expect(p('Friday - pay rent').title, 'pay rent');
+    expect(p('Call mom - at 5pm').title, 'Call mom');
+  });
+
+  test("today's and Monday's aren't dates", () {
+    for (final s in ["Plan today's agenda", "Prep Monday's meeting"]) {
+      final r = p(s);
+      expect(r.title, s, reason: s);
+      expect(r.dueAt, isNull, reason: s);
+    }
+  });
+
+  test('a written year is kept', () {
+    final r = p('Renew passport Dec 1, 2027');
+    expect(r.title, 'Renew passport');
+    expect(r.dueAt, DateTime(2027, 12, 1, 17));
+    expect(p('Renew passport 1 Dec 2027').dueAt, DateTime(2027, 12, 1, 17));
+  });
+
+  test('"in 2 hours" is when, not how long', () {
+    expect(p('Call back in 2 hours').estimateMin, isNull);
+    expect(p('Check oven in an hour').estimateMin, isNull);
+    expect(p('Walk for 2 hours').estimateMin, 120);
+  });
 }

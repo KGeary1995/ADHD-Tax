@@ -161,4 +161,29 @@ void main() {
     expect(tasks.length, 20);
     expect(tasks['3']!.isDeleted, isTrue);
   });
+
+  test('a round cancelled after a merge still saves what it merged', () async {
+    final remote = FakeRemote();
+    final a = Device('a')..replica.put('tasks', '1', {'title': 'x'}, now());
+    final b = Device('b')..replica.put('tasks', '2', {'title': 'y'}, now());
+    await sync(a, remote);
+    await sync(b, remote);
+    final c = Device('c');
+    var saved = false;
+    final before = remote.reads;
+    await expectLater(
+      syncOnce(
+        replica: c.replica,
+        remote: remote,
+        workspace: 'personal',
+        state: c.state,
+        now: now,
+        // Cancelled on reading the second file, the first one merged.
+        current: () => remote.reads < before + 2,
+        onMerged: () async => saved = true,
+      ),
+      throwsA(isA<SyncCancelled>()),
+    );
+    expect(saved, isTrue);
+  });
 }

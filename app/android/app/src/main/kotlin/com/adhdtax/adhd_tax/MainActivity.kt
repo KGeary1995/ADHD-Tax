@@ -61,8 +61,10 @@ class MainActivity : FlutterActivity() {
         return when (intent.action) {
             Intent.ACTION_SEND -> {
                 if (intent.type?.startsWith("text/") != true) return null
-                val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
-                val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT) ?: ""
+                // CharSequence: some apps share styled text, which
+                // getStringExtra reads as null.
+                val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString() ?: ""
+                val subject = intent.getCharSequenceExtra(Intent.EXTRA_SUBJECT)?.toString() ?: ""
                 if (text.isBlank() && subject.isBlank()) null
                 else mapOf("type" to "share", "text" to text, "subject" to subject)
             }

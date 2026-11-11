@@ -1043,50 +1043,6 @@ class OutlineButton extends StatelessWidget {
   }
 }
 
-/// A quiet action: an icon and an ink2 label, no box.
-class QuietAction extends StatelessWidget {
-  const QuietAction({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = context.spec;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(Radii.md),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 44),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 18, color: s.ink2),
-              const SizedBox(width: Gap.s3),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: s.label(color: s.ink2),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// A 44px square icon button with a 2px outline (Tasks' filter, the
 /// Settings gear).
 class SquareIconButton extends StatelessWidget {
@@ -1285,17 +1241,6 @@ class _StarPainter extends CustomPainter {
   @override
   bool shouldRepaint(_StarPainter old) =>
       old.color != color || old.glow != glow;
-}
-
-/// The old name for the mark, kept for callers.
-class GumptionMark extends StatelessWidget {
-  const GumptionMark({super.key, this.size = 22, this.color});
-  final double size;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) =>
-      StarMark(size: size, color: color ?? context.spec.star);
 }
 
 /// Logo mark plus the word "Gumption".
@@ -1649,4 +1594,35 @@ Future<T?> showAppSheet<T>({
     constraints: const BoxConstraints(maxWidth: 640),
     builder: builder,
   );
+}
+
+/// A dashed rounded outline, for empty slots.
+class DashedBorder extends CustomPainter {
+  DashedBorder(this.color, {this.radius = Radii.md});
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          (Offset.zero & size).deflate(1),
+          Radius.circular(radius),
+        ),
+      );
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    for (final m in path.computeMetrics()) {
+      for (var d = 0.0; d < m.length; d += 9) {
+        canvas.drawPath(m.extractPath(d, d + 5), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(DashedBorder old) =>
+      old.color != color || old.radius != radius;
 }

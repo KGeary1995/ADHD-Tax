@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:googleapis/drive/v3.dart' show DetailedApiRequestError;
+import 'package:googleapis_auth/googleapis_auth.dart'
+    show AccessDeniedException, ServerRequestFailedException;
 import 'package:http/http.dart' as http;
 
 import '../core/providers.dart';
@@ -453,14 +455,19 @@ class SyncController extends Notifier<WorkspaceSync> {
           return;
         }
         _restoreFailures = 0;
+        final replica = ref.read(replicasProvider)[workspace];
         final out = await syncOnce(
-          replica: ref.read(replicasProvider)[workspace],
+          replica: replica,
           remote: remote,
           workspace: workspace.name,
           state: _sync,
           now: _now,
           checkOwn: !_ownChecked,
-          current: current,
+          // The other workspace taking a new device id replaces this replica
+          // mid-round: stop before uploading the old copy, and go again.
+          current: () =>
+              current() &&
+              identical(ref.read(replicasProvider)[workspace], replica),
           // Saved and shown before the upload, which may still fail.
           onMerged: () async {
             final saved = await ref
@@ -495,7 +502,9 @@ class SyncController extends Notifier<WorkspaceSync> {
         );
       } while (_again);
     } on SyncCancelled {
-      // Disconnected or switched account mid-round: nothing to report.
+      // Disconnected or switched account mid-round: nothing to report. Still
+      // current means the replica was replaced: read into the new one.
+      if (current()) scheduleMicrotask(syncNow);
     } on NeedsReconnect catch (e) {
       if (current()) _dropClient();
       if (current()) {
@@ -519,12 +528,19 @@ class SyncController extends Notifier<WorkspaceSync> {
         );
       }
     } on Object catch (e) {
+      // Google refused to renew the sign-in (access removed, an admin
+      // policy, or unused for months): only signing in again fixes it.
+      final signedOut =
+          e is AccessDeniedException ||
+          (e is ServerRequestFailedException &&
+              (e.statusCode == 400 || e.statusCode == 401));
+      if (signedOut && current()) _dropClient();
       if (current()) {
         state = WorkspaceSync(
-          SyncPhase.error,
+          signedOut ? SyncPhase.needsReconnect : SyncPhase.error,
           email: _sync.email,
           lastSyncedAt: _sync.lastSyncedAt,
-          message: _describe(e),
+          message: signedOut ? 'Google signed this device out.' : _describe(e),
         );
       }
     } finally {
