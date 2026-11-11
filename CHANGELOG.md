@@ -2,7 +2,8 @@
 
 What changed in each build, newest first. Build number = CI run number (= Android `versionCode`). Update this with every change the owner would notice.
 
-## Next build: fixes from a fourth code audit
+## Build 153 (Android, web) / iPhone 1.1.2 — 2026-11-11: fixes from a fourth code audit
+- **iPhone version 1.1.2:** Apple approved 1.1.1 and closed it to new builds, so Build 153's TestFlight upload was refused (it compiled fine). The version is now 1.1.2.
 - **Quick add keeps your words.** "Log in", "Check in", "Turn the heater on" and "In person meeting" used to lose their "in", "on" or "at". Now a small word is dropped only when it sat next to a date that was taken out ("Pay rent, Friday" → "Pay rent").
 - **Quick add reads dates better:** "Plan today's agenda" is no longer due today, "Dec 1, 2027" keeps its year, and "Call back in 2 hours" is no longer read as a 2-hour task.
 - **Status → Done in the task editor** now finishes the task properly: a repeating task gets its next copy, XP is awarded, and wrap-up counts it. Changing it back from Done clears the finish date.
