@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../google/auth_io.dart' show signInDoneHtml;
 import '../sync/account_auth.dart';
 import 'microsoft_auth.dart';
 import 'microsoft_config.dart';
@@ -65,7 +66,7 @@ class _Loopback implements RedirectCatcher {
       request.response
         ..statusCode = HttpStatus.ok
         ..headers.contentType = ContentType.html
-        ..write(_doneHtml);
+        ..write(signInDoneHtml);
       await request.response.close();
       return request.uri;
     }
@@ -114,10 +115,3 @@ class _AndroidLink implements RedirectCatcher {
     }
   }
 }
-
-const _doneHtml = '''<!doctype html>
-<html><head><meta charset="utf-8"><title>Gumption connected</title>
-<style>body{font-family:system-ui,sans-serif;background:#0f1115;color:#e6e8ee;
-display:grid;place-items:center;height:100vh;margin:0}
-div{text-align:center}h1{color:#7c9cff}</style></head>
-<body><div><h1>Connected ✓</h1><p>You can close this tab and go back to Gumption.</p></div></body></html>''';

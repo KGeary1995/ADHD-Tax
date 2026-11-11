@@ -26,7 +26,9 @@ class ShareViewController: SLComposeServiceViewController {
     guard let url = providers.first(where: {
       $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
     }) else {
-      queue(title: text, link: "")
+      // Text alone goes in the body, as on Android: the app takes its
+      // first line as the title and the rest as notes.
+      queue(title: "", link: text)
       return
     }
     url.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in

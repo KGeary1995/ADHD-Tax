@@ -368,7 +368,7 @@ class _AchievementTile extends StatelessWidget {
               child: unlocked
                   ? Text(achievement.icon, style: const TextStyle(fontSize: 26))
                   : CustomPaint(
-                      painter: _DashedSquare(s.line2),
+                      painter: DashedBorder(s.line2, radius: 16),
                       child: SizedBox.square(
                         dimension: 56,
                         child: Icon(Ph.lock, size: 22, color: s.ink3),
@@ -392,34 +392,6 @@ class _AchievementTile extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DashedSquare extends CustomPainter {
-  _DashedSquare(this.color);
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          (Offset.zero & size).deflate(1),
-          const Radius.circular(16),
-        ),
-      );
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    for (final m in path.computeMetrics()) {
-      for (var d = 0.0; d < m.length; d += 9) {
-        canvas.drawPath(m.extractPath(d, d + 5), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedSquare old) => old.color != color;
 }
 
 String _ago(DateTime at, DateTime now) {

@@ -45,6 +45,7 @@ void main() {
   late DateTime now;
   // What the token endpoint says next; null means a normal grant.
   Map<String, Object?>? tokenError;
+  var tokenErrorStatus = 400;
 
   setUp(() {
     secrets = _Memory();
@@ -52,6 +53,7 @@ void main() {
     tokenNo = 0;
     now = DateTime(2026, 10, 25, 12);
     tokenError = null;
+    tokenErrorStatus = 400;
   });
 
   final api = <String>[];
@@ -59,7 +61,7 @@ void main() {
     if (r.url.host == 'login.microsoftonline.com') {
       tokenCalls.add(r.bodyFields);
       if (tokenError != null) {
-        return http.Response(jsonEncode(tokenError), 400);
+        return http.Response(jsonEncode(tokenError), tokenErrorStatus);
       }
       tokenNo++;
       return http.Response(
@@ -194,6 +196,19 @@ void main() {
     await expectLater(
       client.get(Uri.parse('https://graph.microsoft.com/v1.0/me')),
       throwsA(isA<NeedsReconnect>()),
+    );
+  });
+
+  test('Microsoft busy or down is an error to retry, not a sign-in', () async {
+    secrets.values['microsoft.credentials.personal'] = jsonEncode({
+      'refresh_token': 'old',
+    });
+    tokenError = {'error': 'temporarily_unavailable'};
+    tokenErrorStatus = 503;
+    final client = (await auth(echo()).restore(Workspace.personal))!;
+    await expectLater(
+      client.get(Uri.parse('https://graph.microsoft.com/v1.0/me')),
+      throwsA(isA<http.ClientException>()),
     );
   });
 

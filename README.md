@@ -156,7 +156,7 @@ flutter build windows --release                   # Windows → build/windows/x6
 flutter build web --release --no-web-resources-cdn # Web → build/web/ (self-contained, no CDN)
 ```
 
-Every push (except docs-only changes) runs CI, which tests the app and builds the web version. Pushes to `main` also build the Android version (on another branch, add `[android]` to the commit message). The Android build is published to the `android-latest` release, and the web app to Cloudflare Pages once it's set up (see above). Mac, iPhone, Windows and the Play bundle build on request (Run workflow, or `[mac]`, `[ios]`, `[windows]`, `[play]` in the commit message). Every build is also attached to the run's **Artifacts** section. Details: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Every push (except docs-only changes) runs CI, which tests the app and builds the web version. Pushes to `main` also build the Android version (on another branch, add `[android]` to the commit message) and publish the web app. The Android build is published to the `android-latest` release, and the web app to Cloudflare Pages once it's set up (see above); a branch push doesn't change the live web app. Mac, iPhone, Windows and the Play bundle build on request (Run workflow, or `[mac]`, `[ios]`, `[windows]`, `[play]` in the commit message). The Windows build is in the run's **Artifacts** section. Details: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ### Set up Google sync (one time, about 20 minutes)
 
@@ -177,8 +177,7 @@ Sync needs your own Google Cloud sign-in keys. They're free, and the app can onl
 |---|---|---|
 | **Web application** (used by the web app, Android *and* the iPhone app) | **Authorized JavaScript origins:** your iPhone web app address (`https://unstuck-4o8.pages.dev`) and `http://localhost:8080` | Client ID |
 | **Android** | Package name `com.adhdtax.adhd_tax`, SHA-1 `E9:F6:E9:C8:17:8A:B9:27:E7:9A:28:87:EC:67:D5:04:4F:F5:1F:BA` | nothing |
-| **Desktop app** (used by Mac and Windows) | Name only | Client ID **and** Client secret |
-| **iOS** (the native iPhone/iPad app) | Bundle ID `com.adhdtax.adhdTax` | Client ID |
+| **Desktop app** (used by Mac, Windows and the native iPhone/iPad app, which signs in through the browser) | Name only | Client ID **and** Client secret |
 
 **C. Give the keys to the builds**
 
@@ -189,7 +188,6 @@ In GitHub, open this repo → **Settings → Secrets and variables → Actions �
 | `GOOGLE_WEB_CLIENT_ID` | the Web application's Client ID |
 | `GOOGLE_DESKTOP_CLIENT_ID` | the Desktop app's Client ID |
 | `GOOGLE_DESKTOP_CLIENT_SECRET` | the Desktop app's Client secret |
-| `GOOGLE_IOS_CLIENT_ID` | the iOS client's Client ID |
 
 The next build of each app includes them. Then, in each app, go to **Settings → Accounts & sync → Connect**: your personal Google account for **Personal**, and your clinic account for **Work**.
 

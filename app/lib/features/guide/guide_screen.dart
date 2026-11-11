@@ -63,6 +63,7 @@ class GuideScreen extends StatelessWidget {
     void push(String path) => context.push(path);
 
     final android = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    final ios = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
     final desktop =
         !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.macOS ||
@@ -183,14 +184,14 @@ class GuideScreen extends StatelessWidget {
       _Section(
         Ph.slidersHorizontal,
         'Settings, sync and backups',
-        'Personal and Work stay apart. Each can sync to its own Google '
-            'account, or neither.',
+        'Personal and Work stay apart. Each can sync to its own account '
+            '(Google Drive, OneDrive${ios ? ' or iCloud' : ''}), or neither.',
         [
-          '**Sync**: a hidden folder in your own Google Drive that only '
-              'Gumption can open.',
+          '**Sync**: a folder of its own in your cloud storage. Nothing '
+              'goes to a server of ours.',
           '**Backup file**: everything in one file you keep, to restore on '
               'any device.',
-          if (android)
+          if (android || ios)
             '**Reminders**: a countdown while you focus, a "time\'s up" '
                 'alert, and gentle check-ins.',
           '**Sensitive info check** (off unless you turn it on) warns when '
@@ -199,14 +200,17 @@ class GuideScreen extends StatelessWidget {
         'Go to Settings',
         () => go('/settings'),
       ),
-      if (android)
+      if (android || ios)
         _Section(
           Ph.squaresFour,
           'Outside the app',
           'Gumption can help without being open.',
           [
-            '**Widgets**: long-press your home screen → Widgets → Gumption. '
-                'They show the current pick with Start.',
+            ios
+                ? '**Widgets**: touch and hold the Home Screen → Edit → Add '
+                      'Widget → Gumption. They show the current pick.'
+                : '**Widgets**: long-press your home screen → Widgets → '
+                      'Gumption. They show the current pick with Start.',
             '**Share** text from any app to Gumption to turn it into a task.',
           ],
           null,

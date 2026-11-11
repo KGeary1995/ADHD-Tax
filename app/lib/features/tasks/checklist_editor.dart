@@ -244,8 +244,3 @@ class ChecklistRow extends StatelessWidget {
     );
   }
 }
-
-/// "2 of 5" for a checklist, '' when there is none.
-String stepsProgress(List<ChecklistItem> items) => items.isEmpty
-    ? ''
-    : '${items.where((i) => i.done).length} of ${items.length}';

@@ -103,6 +103,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
       // the screen says it doesn't exist, so nothing may start either.
       if (task == null ||
           !ref.read(deviceWorkspacesProvider).shown.contains(task.workspace)) {
+        _runningSince = null; // no timer, so no "Time's up" either
         return;
       }
       if (task.status == TaskStatus.done ||

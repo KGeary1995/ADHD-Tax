@@ -202,6 +202,12 @@ class MicrosoftAuth implements AccountAuth, AbandonableSignIn {
       Uri.parse('${MicrosoftConfig.authority}/token'),
       body: {'client_id': clientId, 'scope': MicrosoftConfig.scopes, ...fields},
     );
+    // Busy or down: an error the next round retries, not a sign-in.
+    if (res.statusCode == 429 || res.statusCode >= 500) {
+      throw http.ClientException(
+        'Microsoft sign-in is busy (${res.statusCode})',
+      );
+    }
     final body = res.body.isEmpty
         ? const <String, Object?>{}
         : jsonDecode(res.body) as Map<String, Object?>;

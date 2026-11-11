@@ -126,7 +126,14 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           (n) => filter.workspace == null || n.workspace == filter.workspace,
         )
         .toList();
-    final tags = {for (final n in inWorkspace) ...n.allTags}.toList()..sort();
+    // One pass: allTags scans each note's text.
+    final tagCounts = <String, int>{};
+    for (final n in inWorkspace) {
+      for (final t in n.allTags) {
+        tagCounts[t] = (tagCounts[t] ?? 0) + 1;
+      }
+    }
+    final tags = tagCounts.keys.toList()..sort();
     final shown = all.where(filter.shows).toList();
     final pinned = shown.where((n) => n.pinned).toList();
     final rest = shown.where((n) => !n.pinned).toList();
@@ -206,7 +213,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                 SideItem(
                   label: '#$t',
                   icon: Ph.hash,
-                  count: inWorkspace.where((n) => n.allTags.contains(t)).length,
+                  count: tagCounts[t],
                   selected: filter.tag == t,
                   onTap: () => ctl.tag(filter.tag == t ? null : t),
                 ),

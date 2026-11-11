@@ -168,6 +168,8 @@ class ICloudBridge: NSObject, FlutterPlugin {
   private enum Failure: Error {
     case unavailable
     case io(String)
+    /// The newest version hasn't downloaded yet; the Dart side retries later.
+    case notReady
   }
 
   /// File work and finding the container can block, so they run here.
@@ -212,6 +214,8 @@ class ICloudBridge: NSObject, FlutterPlugin {
         }
       } catch Failure.unavailable {
         self.reply(result, FlutterError(code: "unavailable", message: nil, details: nil))
+      } catch Failure.notReady {
+        self.reply(result, FlutterError(code: "notReady", message: nil, details: nil))
       } catch Failure.io(let message) {
         self.reply(result, FlutterError(code: "io", message: message, details: nil))
       } catch {
@@ -298,22 +302,25 @@ class ICloudBridge: NSObject, FlutterPlugin {
   }
 
   /// Waits (up to 30 s) for iCloud to bring the latest version down.
-  private func waitUntilDownloaded(_ url: URL) {
+  /// False if the newest version still isn't here after 30 s: reading the
+  /// older copy would have it recorded as read under the new checksum.
+  private func waitUntilDownloaded(_ url: URL) -> Bool {
     for _ in 0..<60 {
       var u = url
       u.removeAllCachedResourceValues()
       let status = (try? u.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]))?
         .ubiquitousItemDownloadingStatus
-      if status == .current { return }
-      if status == nil && FileManager.default.fileExists(atPath: url.path) { return }
+      if status == .current { return true }
+      if status == nil && FileManager.default.fileExists(atPath: url.path) { return true }
       try? FileManager.default.startDownloadingUbiquitousItem(at: url)
       Thread.sleep(forTimeInterval: 0.5)
     }
+    return false
   }
 
   private func read(_ args: [String: Any]) throws -> FlutterStandardTypedData {
     let url = try self.url(for: args["id"] as? String ?? "")
-    waitUntilDownloaded(url)
+    guard waitUntilDownloaded(url) else { throw Failure.notReady }
     var data: Data?
     var failure: Error?
     var coordination: NSError?

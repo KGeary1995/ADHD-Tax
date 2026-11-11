@@ -80,11 +80,6 @@ class NotesController extends Notifier<List<Note>> {
   /// Undo for delete.
   void restore(Note n) => _write(n.copyWith(updatedAt: _now()));
 
-  void togglePin(String id) {
-    final n = byId(id);
-    if (n != null) save(n.copyWith(pinned: !n.pinned));
-  }
-
   /// Turns the chosen lines into tasks in the note's workspace and project.
   List<Task> makeTasks(Note n, Iterable<String> lines) {
     final tasks = ref.read(tasksProvider.notifier);

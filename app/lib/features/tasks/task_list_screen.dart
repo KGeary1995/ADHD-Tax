@@ -799,7 +799,7 @@ class _DashedPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(Radii.md),
         onTap: onTap,
         child: CustomPaint(
-          painter: _DashedBorder(s.line2),
+          painter: DashedBorder(s.line2),
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 44),
             child: Padding(
@@ -821,34 +821,6 @@ class _DashedPill extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DashedBorder extends CustomPainter {
-  _DashedBorder(this.color);
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          (Offset.zero & size).deflate(1),
-          const Radius.circular(Radii.md),
-        ),
-      );
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    for (final m in path.computeMetrics()) {
-      for (var d = 0.0; d < m.length; d += 9) {
-        canvas.drawPath(m.extractPath(d, d + 5), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorder old) => old.color != color;
 }
 
 /// A waiting task whose check-back date has come: one tap to resolve it.

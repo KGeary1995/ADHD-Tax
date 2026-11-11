@@ -29,12 +29,9 @@ class MobileGoogleAuth implements GoogleAuth {
   bool get restoreMayRecover => true;
 
   @override
-  bool get isConfigured =>
-      GoogleConfig.webClientId.isNotEmpty &&
-      (!Platform.isIOS || GoogleConfig.iosClientId.isNotEmpty);
+  bool get isConfigured => GoogleConfig.webClientId.isNotEmpty;
 
   Future<void> _ensureInit() => _init ??= GoogleSignIn.instance.initialize(
-    clientId: Platform.isIOS ? GoogleConfig.iosClientId : null,
     serverClientId: GoogleConfig.webClientId,
   );
 
@@ -185,7 +182,7 @@ class DesktopGoogleAuth implements GoogleAuth, AbandonableSignIn {
                 : LaunchMode.externalApplication,
           );
         },
-        customPostAuthPage: _doneHtml,
+        customPostAuthPage: signInDoneHtml,
       );
       if ((_generation[ws] ?? 0) != started) {
         throw const NeedsReconnect('Sign-in was cancelled.');
@@ -231,7 +228,8 @@ class DesktopGoogleAuth implements GoogleAuth, AbandonableSignIn {
   }
 }
 
-const _doneHtml = '''<!doctype html>
+/// The page the browser shows once a sign-in comes back (Microsoft's too).
+const signInDoneHtml = '''<!doctype html>
 <html><head><meta charset="utf-8"><title>Gumption connected</title>
 <style>body{font-family:system-ui,sans-serif;background:#0f1115;color:#e6e8ee;
 display:grid;place-items:center;height:100vh;margin:0}

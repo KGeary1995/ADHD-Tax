@@ -39,6 +39,8 @@ class ICloudStore implements AccountRemoteStore {
       return await _channel.invokeMethod<T>(method, args);
     } on PlatformException catch (e) {
       if (e.code == 'unavailable') throw NeedsReconnect(_unavailable);
+      // Still downloading: the engine skips the file and reads it next round.
+      if (e.code == 'notReady') throw const FormatException('Not here yet');
       rethrow;
     } on MissingPluginException {
       throw const NeedsReconnect(_unavailable);

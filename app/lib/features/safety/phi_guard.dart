@@ -24,9 +24,9 @@ final _patterns = <String, RegExp>{
     caseSensitive: false,
   ),
   'Long ID number': RegExp(r'\b\d{7,}\b'),
-  // "pt John Smith", "patient SMITH", "Mrs. O'Brien", "Mr McDonald".
+  // "pt John Smith", "Patient: SMITH", "Mrs. O'Brien", "Mr McDonald".
   "Someone's name": RegExp(
-    r"\b([Pp]t\.?|[Pp]atient|[Mm]rs?\.?|[Mm]s\.?)\s+[A-Z][A-Za-z'’-]+"
+    r"\b([Pp]t\.?|[Pp]atient|[Mm]rs?\.?|[Mm]s\.?):?\s+[A-Z][A-Za-z'’-]+"
     r"(\s+[A-Z][A-Za-z'’-]+)?",
   ),
 };
@@ -68,5 +68,5 @@ List<PhiHit> scanForPhi(String text, {DateTime? now}) {
 
 const phiWarning =
     "Looks like someone's personal details. Consider initials or a "
-    'reference number instead: task text syncs to your Google Drive, and '
+    'reference number instead: task text syncs to your cloud storage, and '
     'to the AI helper if you turn it on.';

@@ -156,6 +156,14 @@ class ProgressController extends Notifier<ProgressStats> {
     // (foldEvents), so celebrating XP and achievements here would show
     // what the total then takes back.
     if (_recordedOn(ProgressKind.completed, t.id, now)) {
+      // The finish counted already, but this session's minutes are new.
+      if ((sessionMin ?? 0) > 0) {
+        return recordPartial(
+          t,
+          sessionMin!,
+          keptGoingAfterFive: keptGoingAfterFive,
+        );
+      }
       return CelebrationEvent(
         kind: CelebrationKind.completed,
         taskTitle: t.title,
